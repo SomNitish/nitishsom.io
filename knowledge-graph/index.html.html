@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Knowledge Graph — monkincyber</title>
+<link rel="stylesheet" href="../assets/shared.css">
+<style>
+body{overflow:hidden}
+.graph-page{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.graph-topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 20px;height:54px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-shrink:0;z-index:10}
+.graph-topbar-left{display:flex;align-items:center;gap:16px}
+.back-link{font-family:var(--mono);font-size:11px;color:var(--text3);display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:var(--rp);background:var(--bg2);border:1px solid var(--border);transition:all .15s}
+.back-link:hover{color:var(--text);border-color:var(--border2)}
+.graph-title{font-size:14px;font-weight:700;color:var(--text);letter-spacing:-.02em}
+.graph-sub{font-size:11px;color:var(--text3)}
+
+/* legend */
+.legend{display:flex;gap:12px;flex-wrap:wrap}
+.leg{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);font-weight:500}
+.leg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+/* filter pills */
+.graph-filters{background:var(--bg2);border-bottom:1px solid var(--border);padding:8px 16px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;flex-shrink:0}
+.gf-label{font-family:var(--mono);font-size:10px;color:var(--text3);margin-right:4px;text-transform:uppercase;letter-spacing:.06em}
+.gf-pill{padding:4px 12px;border-radius:var(--rp);font-size:11px;font-weight:500;border:1px solid var(--border);color:var(--text2);background:var(--surface);cursor:pointer;transition:all .15s}
+.gf-pill:hover{border-color:var(--border2);color:var(--text)}
+.gf-pill.on{background:var(--text);color:var(--bg);border-color:var(--text)}
+
+/* canvas */
+.graph-canvas-wrap{flex:1;position:relative;overflow:hidden}
+#gc{display:block;width:100%;height:100%}
+
+/* tooltip */
+.g-tooltip{position:absolute;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;pointer-events:none;opacity:0;transition:opacity .15s;max-width:260px;box-shadow:var(--sh-lg);z-index:20}
+.gtt-name{font-size:13px;font-weight:700;color:var(--text);margin-bottom:5px;letter-spacing:-.02em}
+.gtt-type{font-size:10px;font-weight:700;padding:3px 8px;border-radius:var(--rp);display:inline-block;margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em}
+.gtt-desc{font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:8px;font-weight:300}
+.gtt-connections{font-family:var(--mono);font-size:10px;color:var(--text3)}
+.gtt-hint{font-size:10px;color:var(--green);margin-top:6px;font-weight:600}
+
+/* detail panel */
+.detail-panel{position:absolute;top:0;right:0;width:320px;height:100%;background:var(--surface);border-left:1px solid var(--border);transform:translateX(100%);transition:transform .25s ease;overflow-y:auto;z-index:15;display:flex;flex-direction:column}
+.detail-panel.open{transform:translateX(0)}
+.dp-head{padding:20px;border-bottom:1px solid var(--border);background:var(--bg2);flex-shrink:0}
+.dp-close{float:right;font-size:18px;color:var(--text3);cursor:pointer;margin-left:8px;line-height:1}
+.dp-close:hover{color:var(--text)}
+.dp-type-badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:var(--rp);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px;display:inline-block}
+.dp-name{font-size:17px;font-weight:800;color:var(--text);letter-spacing:-.03em;margin-bottom:8px;line-height:1.2}
+.dp-desc{font-size:13px;font-weight:300;color:var(--text2);line-height:1.6}
+.dp-body{padding:20px;flex:1}
+.dp-section{margin-bottom:24px}
+.dp-section-label{font-family:var(--mono);font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.dp-conn-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--rs);background:var(--bg2);border:1px solid var(--border);margin-bottom:6px;cursor:pointer;transition:all .15s}
+.dp-conn-item:hover{border-color:var(--border2);background:var(--surface)}
+.dp-conn-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dp-conn-name{font-size:12px;font-weight:500;color:var(--text);letter-spacing:-.01em}
+.dp-conn-type{font-size:10px;color:var(--text3);font-family:var(--mono)}
+.dp-action-btn{display:block;text-align:center;padding:10px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--rs);font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px;transition:all .15s;cursor:pointer}
+.dp-action-btn:hover{background:var(--text);color:var(--bg);border-color:var(--text)}
+.dp-action-btn.primary{background:var(--text);color:var(--bg);border-color:var(--text)}
+.dp-action-btn.primary:hover{opacity:.8}
+</style>
+</head>
+<body>
+<div class="graph-page">
+
+  <div class="graph-topbar">
+    <div class="graph-topbar-left">
+      <a href="../index.html" class="back-link">← Portfolio</a>
+      <div>
+        <div class="graph-title">Knowledge graph</div>
+        <div class="graph-sub">Click any node to explore connections</div>
+      </div>
+    </div>
+    <div class="legend">
+      <div class="leg"><div class="leg-dot" style="background:#7C3AED"></div>Domain</div>
+      <div class="leg"><div class="leg-dot" style="background:#6366F1"></div>Skill</div>
+      <div class="leg"><div class="leg-dot" style="background:#16A34A"></div>Cert</div>
+      <div class="leg"><div class="leg-dot" style="background:#2563EB"></div>Project</div>
+      <div class="leg"><div class="leg-dot" style="background:#D97706"></div>Tool</div>
+    </div>
+  </div>
+
+  <div class="graph-filters">
+    <span class="gf-label">Filter:</span>
+    <div class="gf-pill on" onclick="setFilter('all',this)">All</div>
+    <div class="gf-pill" onclick="setFilter('detection',this)">Detection</div>
+    <div class="gf-pill" onclick="setFilter('response',this)">Response</div>
+    <div class="gf-pill" onclick="setFilter('automation',this)">Automation</div>
+    <div class="gf-pill" onclick="setFilter('hunting',this)">Hunting</div>
+    <div class="gf-pill" onclick="setFilter('network',this)">Networking</div>
+    <div class="gf-pill" onclick="setFilter('certs',this)">Certs only</div>
+    <div class="gf-pill" onclick="setFilter('projects',this)">Projects only</div>
+  </div>
+
+  <div class="graph-canvas-wrap">
+    <canvas id="gc"></canvas>
+    <div class="g-tooltip" id="gtt">
+      <div class="gtt-name" id="gtt-name"></div>
+      <div class="gtt-type" id="gtt-type"></div>
+      <div class="gtt-desc" id="gtt-desc"></div>
+      <div class="gtt-connections" id="gtt-conn"></div>
+      <div class="gtt-hint" id="gtt-hint"></div>
+    </div>
+    <div class="detail-panel" id="detail-panel">
+      <div class="dp-head">
+        <span class="dp-close" onclick="closePanel()">×</span>
+        <div class="dp-type-badge" id="dp-type-badge"></div>
+        <div class="dp-name" id="dp-name"></div>
+        <div class="dp-desc" id="dp-desc"></div>
+      </div>
+      <div class="dp-body" id="dp-body"></div>
+    </div>
+  </div>
+
+</div>
+
+<script src="../assets/data.js"></script>
+<script>
+const canvas = document.getElementById('gc');
+const ctx    = canvas.getContext('2d');
+const tooltip= document.getElementById('gtt');
+const panel  = document.getElementById('detail-panel');
+
+const isDark = window.matchMedia('(prefers-color-scheme:dark)').matches;
+const C = {
+  bg:      isDark ? '#111110' : '#FAFAF8',
+  surface: isDark ? '#1F1E1B' : '#FFFFFF',
+  border:  isDark ? '#2E2C26' : '#E8E6DF',
+  text:    isDark ? '#EEECEA' : '#1A1916',
+  text2:   isDark ? '#948F86' : '#6B6860',
+  text3:   isDark ? '#5A5750' : '#B0ADA4',
+  edge:    isDark ? '#3D3A32' : '#D6D3C8',
+  edgeHi:  isDark ? '#818CF8' : '#6366F1',
+};
+
+const TYPE_CFG = {
+  domain:  { color:'#7C3AED', r:26 },
+  skill:   { color:'#6366F1', r:19 },
+  cert:    { color:'#16A34A', r:20 },
+  project: { color:'#2563EB', r:20 },
+  tool:    { color:'#D97706', r:16 },
+  blog:    { color:'#0D9488', r:15 },
+};
+
+/* build node map & position nodes */
+let nodes = JSON.parse(JSON.stringify(P.graph.nodes));
+let edges = JSON.parse(JSON.stringify(P.graph.edges));
+
+/* simple force-directed initial positions */
+const W0 = 900, H0 = 700;
+const domainAngles = nodes.filter(n=>n.type==='domain').map((_,i,a)=>({ angle: (i/a.length)*Math.PI*2 }));
+let di = 0;
+nodes.forEach(n => {
+  if(n.type==='domain') {
+    const a = (di/nodes.filter(x=>x.type==='domain').length)*Math.PI*2;
+    n.x = W0/2 + Math.cos(a)*220;
+    n.y = H0/2 + Math.sin(a)*180;
+    di++;
+  } else {
+    n.x = W0/2 + (Math.random()-.5)*560;
+    n.y = H0/2 + (Math.random()-.5)*440;
+  }
+  n.vx = 0; n.vy = 0;
+});
+
+/* simple force layout */
+function tick() {
+  const visIds = new Set(visibleNodes().map(n=>n.id));
+  nodes.forEach(a => {
+    if(!visIds.has(a.id)) return;
+    nodes.forEach(b => {
+      if(a===b || !visIds.has(b.id)) return;
+      const dx = a.x-b.x, dy = a.y-b.y;
+      const d = Math.sqrt(dx*dx+dy*dy)||1;
+      const rep = Math.min(2800, 2800/(d*d));
+      a.vx += dx/d*rep; a.vy += dy/d*rep;
+    });
+  });
+  edges.forEach(([sid,tid]) => {
+    const a = nodes.find(n=>n.id===sid), b = nodes.find(n=>n.id===tid);
+    if(!a||!b||!visIds.has(a.id)||!visIds.has(b.id)) return;
+    const dx = b.x-a.x, dy = b.y-a.y, d = Math.sqrt(dx*dx+dy*dy)||1;
+    const ideal = 160, f = (d-ideal)*0.04;
+    a.vx+=dx/d*f; a.vy+=dy/d*f;
+    b.vx-=dx/d*f; b.vy-=dy/d*f;
+  });
+  nodes.forEach(n => {
+    n.vx*=.78; n.vy*=.78;
+    n.x+=n.vx; n.y+=n.vy;
+    n.x=Math.max(40,Math.min(W0-40,n.x));
+    n.y=Math.max(40,Math.min(H0-40,n.y));
+  });
+}
+for(let i=0;i<200;i++) tick();
+
+/* state */
+let scale=1, offX=0, offY=0;
+let drag=false, lx=0, ly=0;
+let hover=null, selected=null;
+let activeFilter='all';
+let simRunning=true, simTick=0;
+
+function visibleNodes() {
+  if(activeFilter==='all') return nodes;
+  if(activeFilter==='certs') return nodes.filter(n=>['cert','domain'].includes(n.type));
+  if(activeFilter==='projects') return nodes.filter(n=>['project','skill','domain'].includes(n.type));
+  return nodes.filter(n=>n.type==='domain' || n.cat===activeFilter || (n.type!=='domain' && edges.some(([s,t])=>{
+    const dn = nodes.find(x=>x.id===s&&x.type==='domain'&&x.cat===activeFilter);
+    return dn && (t===n.id || s===n.id);
+  })));
+}
+
+function connectedIds(nodeId) {
+  const ids = new Set();
+  edges.forEach(([s,t]) => {
+    if(s===nodeId) ids.add(t);
+    if(t===nodeId) ids.add(s);
+  });
+  return ids;
+}
+
+function resize() {
+  canvas.width  = canvas.parentElement.clientWidth;
+  canvas.height = canvas.parentElement.clientHeight;
+  draw();
+}
+
+function toScreen(x,y) {
+  return [(x+offX)*scale + canvas.width/2 - W0*scale/2,
+          (y+offY)*scale + canvas.height/2 - H0*scale/2];
+}
+function toWorld(sx,sy) {
+  return [(sx - canvas.width/2  + W0*scale/2)/scale - offX,
+          (sy - canvas.height/2 + H0*scale/2)/scale - offY];
+}
+
+function draw() {
+  const W=canvas.width, H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = C.bg; ctx.fillRect(0,0,W,H);
+
+  const visIds   = new Set(visibleNodes().map(n=>n.id));
+  const hiIds    = selected ? connectedIds(selected.id) : null;
+  const hiEdges  = new Set();
+  if(selected) {
+    edges.forEach((e,i) => {
+      if((e[0]===selected.id||e[1]===selected.id) && visIds.has(e[0]) && visIds.has(e[1]))
+        hiEdges.add(i);
+    });
+    hiIds.add(selected.id);
+  }
+
+  /* edges */
+  edges.forEach((e,i) => {
+    const a=nodes.find(n=>n.id===e[0]), b=nodes.find(n=>n.id===e[1]);
+    if(!a||!b||!visIds.has(a.id)||!visIds.has(b.id)) return;
+    const [ax,ay]=toScreen(a.x,a.y), [bx,by]=toScreen(b.x,b.y);
+    const isHi = selected ? hiEdges.has(i) : true;
+    ctx.beginPath(); ctx.moveTo(ax,ay); ctx.lineTo(bx,by);
+    ctx.strokeStyle = isHi ? (selected ? C.edgeHi : C.edge) : C.edge;
+    ctx.globalAlpha = isHi ? (selected ? .65 : .3) : .07;
+    ctx.lineWidth   = isHi && selected ? 1.5 : .8;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  });
+
+  /* nodes */
+  nodes.forEach(n => {
+    if(!visIds.has(n.id)) return;
+    const [sx,sy] = toScreen(n.x,n.y);
+    const cfg = TYPE_CFG[n.type]||TYPE_CFG.skill;
+    const r   = cfg.r * Math.min(scale*1.1, 1.5);
+    const isHov = hover===n, isSel = selected===n;
+    const isDim = selected && !hiIds.has(n.id);
+    ctx.globalAlpha = isDim ? .18 : 1;
+
+    /* glow ring */
+    ctx.beginPath(); ctx.arc(sx,sy,r+5,0,Math.PI*2);
+    ctx.fillStyle = cfg.color;
+    ctx.globalAlpha = isDim ? .02 : (isSel ? .2 : isHov ? .12 : .07);
+    ctx.fill();
+    ctx.globalAlpha = isDim ? .18 : 1;
+
+    /* node bg */
+    ctx.beginPath(); ctx.arc(sx,sy,r,0,Math.PI*2);
+    ctx.fillStyle = C.surface;
+    ctx.fill();
+    ctx.strokeStyle = cfg.color;
+    ctx.lineWidth   = isSel ? 2.5 : isHov ? 2 : 1.2;
+    ctx.stroke();
+
+    /* inner dot */
+    ctx.beginPath(); ctx.arc(sx,sy,r*.52,0,Math.PI*2);
+    ctx.fillStyle = cfg.color;
+    ctx.globalAlpha = isDim ? .18 : (isSel ? 1 : .82);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    /* label */
+    const fs  = Math.max(9, Math.min(11, 10*scale));
+    const lbl = n.label.length>18 ? n.label.slice(0,16)+'…' : n.label;
+    ctx.font      = `${isSel?500:400} ${fs}px Sora,sans-serif`;
+    ctx.fillStyle = isSel ? C.text : C.text2;
+    ctx.textAlign = 'center';
+    ctx.globalAlpha = isDim ? .25 : 1;
+    ctx.fillText(lbl, sx, sy+r+13);
+    ctx.globalAlpha = 1;
+  });
+}
+
+/* interaction */
+function nodeAt(mx,my) {
+  const [wx,wy] = toWorld(mx,my);
+  let best=null, bestD=Infinity;
+  visibleNodes().forEach(n => {
+    const d=Math.hypot(n.x-wx,n.y-wy);
+    const r=(TYPE_CFG[n.type]||TYPE_CFG.skill).r/scale;
+    if(d<r+10/scale && d<bestD) { bestD=d; best=n; }
+  });
+  return best;
+}
+
+function showTooltip(n, sx, sy) {
+  const cfg = TYPE_CFG[n.type]||TYPE_CFG.skill;
+  const tColors={ domain:'#7C3AED',skill:'#6366F1',cert:'#16A34A',project:'#2563EB',tool:'#D97706' };
+  const tLabels={ domain:'Domain',skill:'Skill',cert:'Certification',project:'Project',tool:'Tool' };
+  document.getElementById('gtt-name').textContent = n.label;
+  const tt = document.getElementById('gtt-type');
+  tt.textContent = tLabels[n.type]||n.type;
+  tt.style.background = tColors[n.type]+'22';
+  tt.style.color = tColors[n.type];
+  /* find extra info from P */
+  let desc='';
+  if(n.type==='cert') { const c=P.certs.find(x=>x.id===n.id); if(c) desc=c.summary||''; }
+  else if(n.type==='skill') { const s=P.skills.find(x=>x.id===n.id); if(s) desc=s.desc||''; }
+  else if(n.type==='project') { const p=P.projects.find(x=>x.id===n.id); if(p) desc=p.tagline||''; }
+  document.getElementById('gtt-desc').textContent = desc.slice(0,100)+(desc.length>100?'…':'');
+  const conns = connectedIds(n.id).size;
+  document.getElementById('gtt-conn').textContent = `${conns} connection${conns!==1?'s':''}`;
+  document.getElementById('gtt-hint').textContent = 'Click to explore connections →';
+  const pct = sx/canvas.width;
+  tooltip.style.left = pct>.6 ? 'auto' : (sx/canvas.width*100+2)+'%';
+  tooltip.style.right= pct>.6 ? ((1-sx/canvas.width)*100+2)+'%' : 'auto';
+  tooltip.style.top  = Math.min(sy/canvas.height*100+3, 62)+'%';
+  tooltip.style.opacity='1';
+}
+
+function openPanel(n) {
+  const cfg = TYPE_CFG[n.type]||TYPE_CFG.skill;
+  const tColors={ domain:'#7C3AED',skill:'#6366F1',cert:'#16A34A',project:'#2563EB',tool:'#D97706' };
+  const tLabels={ domain:'Domain',skill:'Skill',cert:'Certification',project:'Project',tool:'Tool' };
+  const badge = document.getElementById('dp-type-badge');
+  badge.textContent = tLabels[n.type]||n.type;
+  badge.style.background = tColors[n.type]+'22';
+  badge.style.color = tColors[n.type];
+  document.getElementById('dp-name').textContent = n.label;
+  let desc='', bodyHTML='';
+  const connIds = [...connectedIds(n.id)];
+  const connNodes = connIds.map(id=>nodes.find(x=>x.id===id)).filter(Boolean);
+
+  if(n.type==='cert') {
+    const c=P.certs.find(x=>x.id===n.id);
+    if(c) {
+      desc = c.summary||'';
+      const skills = (c.learned||[]).map(sid=>{
+        const s=P.skills.find(x=>x.id===sid);
+        return s?`<div class="dp-conn-item" onclick="focusNode('${s.id}')"><div class="dp-conn-dot" style="background:#6366F1"></div><div><div class="dp-conn-name">${s.name}</div><div class="dp-conn-type">Skill learned</div></div></div>`:''
+      }).join('');
+      const projs = (c.appliedIn||[]).map(pid=>{
+        const p=P.projects.find(x=>x.id===pid);
+        return p?`<div class="dp-conn-item" onclick="focusNode('${p.id}')"><div class="dp-conn-dot" style="background:#2563EB"></div><div><div class="dp-conn-name">${p.name}</div><div class="dp-conn-type">Applied in</div></div></div>`:''
+      }).join('');
+      bodyHTML=`
+        <div class="dp-section">${skills?`<div class="dp-section-label">Skills from this cert</div>${skills}`:''}</div>
+        <div class="dp-section">${projs?`<div class="dp-section-label">Applied in projects</div>${projs}`:''}</div>
+        <a href="../certifications/${c.id}.html" class="dp-action-btn primary">View full cert page →</a>`;
+    }
+  } else if(n.type==='skill') {
+    const s=P.skills.find(x=>x.id===n.id);
+    if(s) {
+      desc=s.desc||'';
+      const learnedFrom = P.certs.filter(c=>(c.learned||[]).includes(n.id)).map(c=>
+        `<div class="dp-conn-item" onclick="focusNode('${c.id}')"><div class="dp-conn-dot" style="background:#16A34A"></div><div><div class="dp-conn-name">${c.name}</div><div class="dp-conn-type">Learned from cert</div></div></div>`).join('');
+      const usedIn = P.projects.filter(p=>(p.skills||[]).includes(n.id)).map(p=>
+        `<div class="dp-conn-item" onclick="focusNode('${p.id}')"><div class="dp-conn-dot" style="background:#2563EB"></div><div><div class="dp-conn-name">${p.name}</div><div class="dp-conn-type">Used in project</div></div></div>`).join('');
+      bodyHTML=`
+        <div class="dp-section">${learnedFrom?`<div class="dp-section-label">Learned from</div>${learnedFrom}`:''}</div>
+        <div class="dp-section">${usedIn?`<div class="dp-section-label">Applied in</div>${usedIn}`:''}</div>`;
+    }
+  } else if(n.type==='project') {
+    const p=P.projects.find(x=>x.id===n.id);
+    if(p) {
+      desc=p.tagline||'';
+      const skills = (p.skills||[]).map(sid=>{
+        const s=P.skills.find(x=>x.id===sid);
+        return s?`<div class="dp-conn-item" onclick="focusNode('${s.id}')"><div class="dp-conn-dot" style="background:#6366F1"></div><div><div class="dp-conn-name">${s.name}</div><div class="dp-conn-type">Skill used</div></div></div>`:''
+      }).join('');
+      bodyHTML=`
+        <div class="dp-section">${skills?`<div class="dp-section-label">Skills used</div>${skills}`:''}</div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--green-t);background:var(--green-l);border:1px solid var(--green-b);padding:8px 12px;border-radius:var(--rs);margin-bottom:12px">${p.impact}</div>
+        <a href="../projects/index.html#${p.id}" class="dp-action-btn primary">View project →</a>
+        ${p.blog?`<a href="${p.blog}" class="dp-action-btn">Read write-up →</a>`:''}`;
+    }
+  } else {
+    desc = `${connIds.length} direct connections`;
+    const items = connNodes.slice(0,8).map(cn=>{
+      const c2 = TYPE_CFG[cn.type]||TYPE_CFG.skill;
+      const tl={ domain:'Domain',skill:'Skill',cert:'Cert',project:'Project',tool:'Tool' };
+      return `<div class="dp-conn-item" onclick="focusNode('${cn.id}')"><div class="dp-conn-dot" style="background:${c2.color}"></div><div><div class="dp-conn-name">${cn.label}</div><div class="dp-conn-type">${tl[cn.type]||cn.type}</div></div></div>`;
+    }).join('');
+    bodyHTML=`<div class="dp-section"><div class="dp-section-label">Connections</div>${items}</div>`;
+  }
+  document.getElementById('dp-desc').textContent=desc;
+  document.getElementById('dp-body').innerHTML=bodyHTML;
+  panel.classList.add('open');
+}
+
+function closePanel() {
+  panel.classList.remove('open');
+  selected=null; draw();
+}
+
+window.focusNode = function(id) {
+  const n=nodes.find(x=>x.id===id);
+  if(n){ selected=n; openPanel(n); draw(); }
+};
+
+/* filter */
+window.setFilter = function(f,el) {
+  activeFilter=f;
+  selected=null; hover=null; panel.classList.remove('open');
+  document.querySelectorAll('.gf-pill').forEach(p=>p.classList.remove('on'));
+  el.classList.add('on');
+  draw();
+};
+
+/* check URL param */
+const focusParam = new URLSearchParams(location.search).get('focus');
+if(focusParam) { setTimeout(()=>{ focusNode(focusParam); },300); }
+
+/* mouse */
+canvas.addEventListener('mousemove', e => {
+  const rect=canvas.getBoundingClientRect();
+  const mx=(e.clientX-rect.left)*(canvas.width/rect.width);
+  const my=(e.clientY-rect.top)*(canvas.height/rect.height);
+  if(drag){ offX+=(mx-lx)/scale; offY+=(my-ly)/scale; lx=mx; ly=my; draw(); return; }
+  const n=nodeAt(mx,my);
+  hover=n; canvas.style.cursor=n?'pointer':'grab';
+  if(n) showTooltip(n,mx,my);
+  else tooltip.style.opacity='0';
+  draw();
+});
+canvas.addEventListener('mousedown', e=>{
+  const rect=canvas.getBoundingClientRect();
+  lx=(e.clientX-rect.left)*(canvas.width/rect.width);
+  ly=(e.clientY-rect.top)*(canvas.height/rect.height);
+  drag=true;
+});
+canvas.addEventListener('mouseup', e=>{
+  const rect=canvas.getBoundingClientRect();
+  const mx=(e.clientX-rect.left)*(canvas.width/rect.width);
+  const my=(e.clientY-rect.top)*(canvas.height/rect.height);
+  if(Math.hypot(mx-lx,my-ly)<4){
+    const n=nodeAt(mx,my);
+    if(n){ selected=n; openPanel(n); } else { selected=null; panel.classList.remove('open'); }
+    draw();
+  }
+  drag=false;
+});
+canvas.addEventListener('wheel', e=>{
+  e.preventDefault();
+  const rect=canvas.getBoundingClientRect();
+  const mx=(e.clientX-rect.left)*(canvas.width/rect.width);
+  const my=(e.clientY-rect.top)*(canvas.height/rect.height);
+  const [wx,wy]=toWorld(mx,my);
+  scale*=e.deltaY<0?1.1:.9;
+  scale=Math.max(.35,Math.min(3.5,scale));
+  const CW=canvas.width/2, CH=canvas.height/2;
+  offX=mx/scale-CW/scale-wx+W0/2-W0/2;
+  offY=my/scale-CH/scale-wy+H0/2-H0/2;
+  draw();
+},{passive:false});
+canvas.addEventListener('mouseleave',()=>{ drag=false; hover=null; tooltip.style.opacity='0'; draw(); });
+
+/* touch */
+let touchStart={x:0,y:0};
+canvas.addEventListener('touchstart',e=>{
+  const t=e.touches[0],rect=canvas.getBoundingClientRect();
+  touchStart={x:(t.clientX-rect.left)*(canvas.width/rect.width),y:(t.clientY-rect.top)*(canvas.height/rect.height)};
+  lx=touchStart.x; ly=touchStart.y; drag=true;
+},{passive:true});
+canvas.addEventListener('touchmove',e=>{
+  e.preventDefault();
+  const t=e.touches[0],rect=canvas.getBoundingClientRect();
+  const mx=(t.clientX-rect.left)*(canvas.width/rect.width);
+  const my=(t.clientY-rect.top)*(canvas.height/rect.height);
+  offX+=(mx-lx)/scale; offY+=(my-ly)/scale; lx=mx; ly=my; draw();
+},{passive:false});
+canvas.addEventListener('touchend',e=>{
+  drag=false;
+  const rect=canvas.getBoundingClientRect();
+  if(e.changedTouches.length){
+    const t=e.changedTouches[0];
+    const mx=(t.clientX-rect.left)*(canvas.width/rect.width);
+    const my=(t.clientY-rect.top)*(canvas.height/rect.height);
+    if(Math.hypot(mx-touchStart.x,my-touchStart.y)<8){
+      const n=nodeAt(mx,my);
+      if(n){ selected=n; openPanel(n); } else { selected=null; panel.classList.remove('open'); }
+      draw();
+    }
+  }
+});
+
+/* sim */
+function simLoop() {
+  if(simRunning && simTick < 80) { tick(); simTick++; draw(); }
+  else if(simRunning) { simRunning=false; draw(); }
+  requestAnimationFrame(simLoop);
+}
+
+window.addEventListener('resize', resize);
+resize();
+simLoop();
+</script>
+</body>
+</html>

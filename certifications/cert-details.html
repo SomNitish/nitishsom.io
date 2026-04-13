@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Certification — monkincyber</title>
+<link rel="stylesheet" href="../assets/shared.css">
+<style>
+.cert-hero{padding:56px 0 40px;border-bottom:1px solid var(--border);background:var(--surface)}
+.cert-hero-inner{display:grid;grid-template-columns:1fr auto;gap:40px;align-items:start}
+.back-link{font-family:var(--mono);font-size:11px;color:var(--text3);margin-bottom:20px;display:inline-flex;align-items:center;gap:6px;transition:color .15s}
+.back-link:hover{color:var(--text2)}
+.cert-hero-logo{width:80px;height:80px;border-radius:18px;background:var(--bg2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:20px}
+.cert-hero-logo img{width:52px;height:52px;object-fit:contain}
+.cert-hero-logo-fallback{font-size:22px;font-weight:800;color:var(--text2)}
+.cert-hero h1{font-size:clamp(26px,4vw,40px);font-weight:800;letter-spacing:-.04em;line-height:1.1;margin-bottom:8px}
+.cert-hero-meta{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.cert-hero p{font-size:15px;font-weight:300;color:var(--text2);line-height:1.7;max-width:560px;letter-spacing:-.01em}
+.cert-hero-right{display:flex;flex-direction:column;align-items:flex-end;gap:12px;padding-top:40px}
+.verify-btn{background:var(--text);color:var(--bg);font-size:12px;font-weight:600;padding:9px 18px;border-radius:var(--rp);display:inline-flex;align-items:center;gap:6px;transition:opacity .15s}
+.verify-btn:hover{opacity:.8}
+.cert-meta-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rs);padding:16px 20px;font-size:12px;font-family:var(--mono);color:var(--text2);min-width:160px}
+.cert-meta-card div+div{margin-top:6px}
+.cert-meta-card span{color:var(--text3);margin-right:6px}
+
+/* ── body ── */
+.cert-body{display:grid;grid-template-columns:2fr 1fr;gap:48px;padding:56px 0;align-items:start}
+@media(max-width:768px){.cert-body,.cert-hero-inner{grid-template-columns:1fr}.cert-hero-right{align-items:flex-start;padding-top:0}}
+
+/* ── topics ── */
+.topics{display:flex;flex-direction:column;gap:28px}
+.topic-block{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;box-shadow:var(--sh)}
+.topic-head{padding:16px 20px;border-bottom:1px solid var(--border);background:var(--bg2);display:flex;align-items:center;gap:10px}
+.topic-num{font-family:var(--mono);font-size:11px;color:var(--text3)}
+.topic-title{font-size:14px;font-weight:700;color:var(--text);letter-spacing:-.02em}
+.topic-points{padding:16px 20px;display:flex;flex-direction:column;gap:8px}
+.topic-point{font-size:13px;font-weight:300;color:var(--text2);line-height:1.6;padding-left:16px;position:relative}
+.topic-point::before{content:'';position:absolute;left:0;top:9px;width:5px;height:5px;border-radius:50%;background:var(--green)}
+
+/* ── sidebar ── */
+.cert-sidebar{display:flex;flex-direction:column;gap:20px}
+.sidebar-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;box-shadow:var(--sh)}
+.sidebar-label{font-family:var(--mono);font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:14px}
+.skill-link{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--rs);background:var(--bg2);border:1px solid var(--border);margin-bottom:8px;transition:all .15s;cursor:pointer}
+.skill-link:hover{border-color:var(--border2);background:var(--surface)}
+.skill-dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0}
+.skill-link-name{font-size:13px;font-weight:500;color:var(--text);letter-spacing:-.01em}
+.skill-link-cat{font-size:10px;color:var(--text3);margin-top:1px;font-family:var(--mono)}
+.proj-link-item{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:var(--rs);background:var(--bg2);border:1px solid var(--border);margin-bottom:8px;transition:all .15s}
+.proj-link-item:hover{border-color:var(--border2)}
+.proj-link-name{font-size:13px;font-weight:500;color:var(--text);letter-spacing:-.01em}
+.proj-link-arrow{font-size:12px;color:var(--text3)}
+.notes-block{padding:14px 16px;background:var(--green-l);border:1px solid var(--green-b);border-radius:var(--rs);font-size:13px;font-weight:300;color:var(--green-t);line-height:1.7;letter-spacing:-.01em}
+.notes-label{font-size:10px;font-weight:700;color:var(--green-t);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;font-family:var(--mono)}
+.graph-link-btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:11px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--rs);font-size:13px;font-weight:600;color:var(--text2);transition:all .15s;cursor:pointer}
+.graph-link-btn:hover{background:var(--text);color:var(--bg);border-color:var(--text)}
+</style>
+</head>
+<body>
+<nav class="site-nav">
+  <div class="container nav-inner">
+    <a href="../index.html" class="nav-logo">monkey<em>cyber</em></a>
+    <div class="nav-links">
+      <a href="../index.html">Home</a>
+      <a href="../index.html#experience">Experience</a>
+      <a href="../index.html#stack">Stack</a>
+      <a href="../projects/index.html">Projects</a>
+      <a href="index.html" class="act">Certs</a>
+      <a href="../blog/index.html">Blog</a>
+      <a href="../knowledge-graph/index.html">Graph</a>
+      <a href="../index.html#contact">Contact</a>
+    </div>
+    <div class="nav-right">
+      <div id="avail-badge"><span class="pulse"></span>Open to remote</div>
+      <button id="hire-btn"><span class="pulse"></span>Hire me</button>
+    </div>
+  </div>
+</nav>
+
+<div id="cert-content"></div>
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <div>
+      <div class="footer-logo">monkey<em>cyber</em></div>
+      <div class="footer-copy">© 2025 · All rights reserved</div>
+    </div>
+    <div class="footer-tz">IST · UTC+5:30 · Remote ready</div>
+  </div>
+</footer>
+
+<script src="../assets/data.js"></script>
+<script>
+if(P.showHireBtn) document.getElementById('hire-btn').style.display='flex';
+if(P.showAvailBadge) document.getElementById('avail-badge').style.display='flex';
+
+/* get cert id from filename */
+const certId = location.pathname.split('/').pop().replace('.html','');
+const cert = P.certs.find(c => c.id === certId);
+
+if(!cert) {
+  document.getElementById('cert-content').innerHTML = `
+  <div class="container" style="padding:80px 0;text-align:center">
+    <h2 style="font-size:24px;margin-bottom:12px">Certification not found</h2>
+    <a href="index.html" class="btn-s" style="display:inline-flex">← Back to certifications</a>
+  </div>`;
+} else {
+  document.title = `${cert.name} — monkincyber`;
+
+  const skillName = id => { const s = P.skills.find(x=>x.id===id); return s ? s.name : id; };
+  const skillCat  = id => { const s = P.skills.find(x=>x.id===id); return s ? s.cat : ''; };
+  const projName  = id => { const p = P.projects.find(x=>x.id===id); return p ? p.name : id; };
+
+  const statusLabel = cert.status==='active' ? 'Certified' : cert.status==='progress' ? `${cert.progress||0}% complete` : 'Planned';
+  const statusClass = cert.status==='active' ? 'badge-green' : cert.status==='progress' ? 'badge-amber' : 'badge-gray';
+
+  const topicsHTML = cert.topics.map((t, i) => `
+    <div class="topic-block fu">
+      <div class="topic-head">
+        <span class="topic-num">0${i+1}</span>
+        <span class="topic-title">${t.heading}</span>
+      </div>
+      <div class="topic-points">
+        ${t.points.map(p=>`<div class="topic-point">${p}</div>`).join('')}
+      </div>
+    </div>`).join('');
+
+  const skillsHTML = (cert.learned||[]).map(id=>`
+    <a class="skill-link" href="../knowledge-graph/index.html?focus=${id}">
+      <div class="skill-dot"></div>
+      <div>
+        <div class="skill-link-name">${skillName(id)}</div>
+        <div class="skill-link-cat">${skillCat(id)}</div>
+      </div>
+    </a>`).join('');
+
+  const projectsHTML = (cert.appliedIn||[]).length
+    ? (cert.appliedIn.map(id=>`
+    <a class="proj-link-item" href="../projects/index.html#${id}">
+      <span class="proj-link-name">${projName(id)}</span>
+      <span class="proj-link-arrow">→</span>
+    </a>`).join(''))
+    : `<div style="font-size:12px;color:var(--text3);font-family:var(--mono)">Applied in ongoing work</div>`;
+
+  const progressBar = cert.status === 'progress'
+    ? `<div style="margin-top:16px">
+        <div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:6px">Progress</div>
+        <div style="height:4px;background:var(--bg2);border-radius:2px;overflow:hidden">
+          <div style="width:${cert.progress||0}%;height:100%;background:var(--amber);border-radius:2px"></div>
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px;font-family:var(--mono)">${cert.progress||0}% · Target: ${cert.year||'TBD'}</div>
+      </div>` : '';
+
+  document.getElementById('cert-content').innerHTML = `
+  <div class="cert-hero">
+    <div class="container">
+      <a href="index.html" class="back-link">← All certifications</a>
+      <div class="cert-hero-inner">
+        <div>
+          <div class="cert-hero-logo">
+            <img src="${cert.icon}" alt="${cert.issuer}"
+              onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+            <div class="cert-hero-logo-fallback" style="display:none">${cert.badge.slice(0,2)}</div>
+          </div>
+          <div class="cert-hero-meta">
+            <span class="badge ${statusClass}">${statusLabel}</span>
+            <span class="badge badge-gray" style="font-family:var(--mono)">${cert.issuer}</span>
+          </div>
+          <h1>${cert.name}</h1>
+          <p>${cert.summary}</p>
+          ${progressBar}
+        </div>
+        <div class="cert-hero-right">
+          ${cert.verify_url && cert.status === 'active'
+            ? `<a href="${cert.verify_url}" target="_blank" class="verify-btn">Verify credential ↗</a>` : ''}
+          <div class="cert-meta-card">
+            <div><span>Issuer</span>${cert.issuer}</div>
+            <div><span>Year</span>${cert.year || 'TBD'}</div>
+            <div><span>Status</span>${statusLabel}</div>
+            <div><span>Skills</span>${cert.learned?.length || 0} covered</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="cert-body">
+      <div>
+        <div class="eyebrow">What I learned</div>
+        <div class="topics">${topicsHTML}</div>
+        ${cert.notes ? `
+        <div style="margin-top:28px">
+          <div class="notes-block">
+            <div class="notes-label">How I applied this</div>
+            ${cert.notes}
+          </div>
+        </div>` : ''}
+      </div>
+      <div class="cert-sidebar">
+        <div class="sidebar-card">
+          <div class="sidebar-label">Skills from this cert</div>
+          ${skillsHTML}
+        </div>
+        <div class="sidebar-card">
+          <div class="sidebar-label">Applied in projects</div>
+          ${projectsHTML}
+        </div>
+        <a href="../knowledge-graph/index.html?focus=${cert.id}" class="graph-link-btn sidebar-card" style="text-decoration:none">
+          ⬡ See in knowledge graph
+        </a>
+      </div>
+    </div>
+  </div>`;
+
+  /* fade-up */
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => { if(e.isIntersecting){ e.target.classList.add('vis'); obs.unobserve(e.target); } });
+  }, { threshold: 0.08 });
+  document.querySelectorAll('.fu').forEach(el => obs.observe(el));
+}
+</script>
+</body>
+</html>

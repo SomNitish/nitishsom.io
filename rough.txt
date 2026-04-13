@@ -1,0 +1,16 @@
+nitishsom/
+├── index.html
+├── certifications/
+│   ├── index.html
+│   └── cert-detail.html
+├── blog/
+│   └── index.html
+├── knowledge-graph/
+│   └── index.html
+├── projects/
+│   └── index.html
+├── assets/
+│   ├── shared.css
+│   ├── data.js
+│   └── icons/        ← empty folder for now
+└── README.md

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Blog — monkincyber</title>
+<link rel="stylesheet" href="../assets/shared.css">
+<style>
+.page-hero{padding:64px 0 48px;border-bottom:1px solid var(--border)}
+.lip-banner{background:var(--blue-l);border:1px solid var(--blue-b);border-radius:var(--r);padding:20px 24px;margin-bottom:40px;display:flex;align-items:flex-start;gap:16px}
+.lip-icon{width:40px;height:40px;border-radius:10px;background:var(--blue);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px}
+.lip-text h3{font-size:14px;font-weight:700;color:var(--blue-t);margin-bottom:4px;letter-spacing:-.02em}
+.lip-text p{font-size:13px;font-weight:300;color:var(--blue-t);line-height:1.6;opacity:.85}
+.lip-li-link{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--blue);margin-top:8px;border:1px solid var(--blue-b);padding:5px 12px;border-radius:var(--rp);background:var(--surface);transition:all .15s}
+.lip-li-link:hover{background:var(--blue);color:#fff;border-color:var(--blue)}
+
+/* filter */
+.filter-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:40px;padding-bottom:24px;border-bottom:1px solid var(--border)}
+.ftab{padding:6px 14px;border-radius:var(--rp);font-size:12px;font-weight:500;color:var(--text2);background:var(--surface);border:1px solid var(--border);cursor:pointer;transition:all .15s}
+.ftab:hover{border-color:var(--border2);color:var(--text)}
+.ftab.on{background:var(--text);color:var(--bg);border-color:var(--text)}
+
+/* blog grid */
+.blog-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px}
+
+/* blog card */
+.blog-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;box-shadow:var(--sh);transition:all .2s;display:flex;flex-direction:column;cursor:pointer}
+.blog-card:hover{box-shadow:var(--sh-md);transform:translateY(-3px);border-color:var(--border2)}
+.blog-thumb{height:100px;padding:16px;display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap;position:relative}
+.blog-cat-tag{font-size:10px;font-weight:700;padding:4px 10px;border-radius:var(--rp);background:rgba(255,255,255,.88);letter-spacing:.03em;text-transform:uppercase}
+.blog-body{padding:20px;flex:1;display:flex;flex-direction:column;gap:12px}
+.blog-title{font-size:15px;font-weight:700;color:var(--text);line-height:1.35;letter-spacing:-.02em}
+.blog-summary{font-size:13px;font-weight:300;color:var(--text2);line-height:1.6;letter-spacing:-.01em;flex:1}
+.blog-tags{display:flex;flex-wrap:wrap;gap:5px}
+.blog-tag-chip{font-size:10px;font-weight:500;padding:3px 8px;border-radius:var(--rp);background:var(--bg2);color:var(--text3);border:1px solid var(--border)}
+.blog-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.blog-date{font-family:var(--mono);font-size:11px;color:var(--text3)}
+.blog-meta-right{display:flex;align-items:center;gap:10px}
+.blog-read{font-size:12px;font-weight:600;color:var(--green)}
+.blog-li-btn{display:flex;align-items:center;gap:4px;font-size:10px;font-weight:600;color:var(--blue-t);background:var(--blue-l);border:1px solid var(--blue-b);padding:3px 9px;border-radius:var(--rp);transition:all .15s}
+.blog-li-btn:hover{background:var(--blue);color:#fff;border-color:var(--blue)}
+
+/* cat colors */
+.cat-green .blog-thumb{background:linear-gradient(135deg,#F0FDF4,#DCFCE7)}
+.cat-blue .blog-thumb{background:linear-gradient(135deg,#EFF6FF,#DBEAFE)}
+.cat-purple .blog-thumb{background:linear-gradient(135deg,#F5F3FF,#EDE9FE)}
+.cat-amber .blog-thumb{background:linear-gradient(135deg,#FFFBEB,#FEF3C7)}
+.cat-teal .blog-thumb{background:linear-gradient(135deg,#F0FDFA,#CCFBF1)}
+</style>
+</head>
+<body>
+<nav class="site-nav">
+  <div class="container nav-inner">
+    <a href="../index.html" class="nav-logo">monkey<em>cyber</em></a>
+    <div class="nav-links">
+      <a href="../index.html">Home</a>
+      <a href="../index.html#experience">Experience</a>
+      <a href="../projects/index.html">Projects</a>
+      <a href="../certifications/index.html">Certs</a>
+      <a href="index.html" class="act">Blog</a>
+      <a href="../knowledge-graph/index.html">Graph</a>
+      <a href="../index.html#contact">Contact</a>
+    </div>
+    <div class="nav-right">
+      <div id="avail-badge"><span class="pulse"></span>Open to remote</div>
+      <button id="hire-btn"><span class="pulse"></span>Hire me</button>
+    </div>
+  </div>
+</nav>
+
+<div class="page-hero">
+  <div class="container">
+    <div style="font-family:var(--mono);font-size:11px;color:var(--green-t);background:var(--green-l);border:1px solid var(--green-b);padding:5px 12px;border-radius:var(--rp);display:inline-block;margin-bottom:18px;letter-spacing:.04em;text-transform:uppercase">Learn in public</div>
+    <h1 style="font-size:clamp(32px,5vw,52px);font-weight:800;letter-spacing:-.04em;line-height:1.08;margin-bottom:14px">Writing about what I build.</h1>
+    <p style="font-size:15px;font-weight:300;color:var(--text2);line-height:1.7;max-width:520px">Tool integrations, threat analysis deep-dives, and notes from the field. Everything I learn gets documented and shared — I believe in building in public.</p>
+  </div>
+</div>
+
+<div class="container" style="padding-top:40px">
+
+  <!-- Learn in public banner -->
+  <div class="lip-banner fu">
+    <div class="lip-icon">🔗</div>
+    <div class="lip-text">
+      <h3>I share everything I learn on LinkedIn first</h3>
+      <p>Each post starts as a LinkedIn update — quick takeaway, what I figured out, what I struggled with. If it's deep enough, it becomes a full article here. Follow along to see the learning as it happens.</p>
+      <a href="https://linkedin.com/in/yourprofile" target="_blank" class="lip-li-link">Follow on LinkedIn ↗</a>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filter-bar">
+    <div class="ftab on" onclick="filterPosts('all',this)">All posts</div>
+    <div class="ftab" onclick="filterPosts('green',this)">Tool integration</div>
+    <div class="ftab" onclick="filterPosts('blue',this)">Blue team ops</div>
+    <div class="ftab" onclick="filterPosts('purple',this)">Tutorials</div>
+    <div class="ftab" onclick="filterPosts('amber',this)">Threat analysis</div>
+    <div class="ftab" onclick="filterPosts('teal',this)">CTF write-ups</div>
+  </div>
+
+  <!-- Blog grid -->
+  <div class="blog-grid" id="blog-grid"></div>
+
+  <div style="padding:60px 0 80px;text-align:center" id="empty-state" style="display:none">
+    <p style="font-size:14px;color:var(--text3)">No posts in this category yet — check back soon.</p>
+  </div>
+
+</div>
+
+<footer class="site-footer" style="margin-top:40px">
+  <div class="container footer-inner">
+    <div>
+      <div class="footer-logo">monkey<em>cyber</em></div>
+      <div class="footer-copy">© 2025 · All rights reserved</div>
+    </div>
+    <div class="footer-tz">IST · UTC+5:30 · Remote ready</div>
+  </div>
+</footer>
+
+<script src="../assets/data.js"></script>
+<script>
+if(P.showHireBtn) document.getElementById('hire-btn').style.display='flex';
+if(P.showAvailBadge) document.getElementById('avail-badge').style.display='flex';
+
+function formatDate(d) {
+  return new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+}
+
+function renderPosts(filter) {
+  const posts = filter === 'all' ? P.posts : P.posts.filter(p => p.catColor === filter);
+  const grid = document.getElementById('blog-grid');
+  if(!posts.length) {
+    grid.innerHTML = '';
+    document.getElementById('empty-state').style.display = '';
+    return;
+  }
+  document.getElementById('empty-state').style.display = 'none';
+  grid.innerHTML = posts.map(post => {
+    const tags = (post.tags||[]).slice(0,4).map(t=>`<span class="blog-tag-chip">${t}</span>`).join('');
+    const catColors = {green:'#14532D',blue:'#1D4ED8',purple:'#5B21B6',amber:'#92400E',teal:'#115E59'};
+    return `
+    <div class="blog-card cat-${post.catColor} fu" data-cat="${post.catColor}" onclick="location.href='${post.id}.html'">
+      <div class="blog-thumb">
+        <span class="blog-cat-tag" style="color:${catColors[post.catColor]||'#475569'}">${post.cat}</span>
+      </div>
+      <div class="blog-body">
+        <div class="blog-title">${post.title}</div>
+        <div class="blog-summary">${post.summary}</div>
+        <div class="blog-tags">${tags}</div>
+      </div>
+      <div class="blog-footer">
+        <span class="blog-date">${formatDate(post.date)} · ${post.readMins} min</span>
+        <div class="blog-meta-right">
+          ${post.linkedin ? `<a class="blog-li-btn" href="${post.linkedin}" target="_blank" onclick="event.stopPropagation()">in</a>` : ''}
+          <span class="blog-read">Read →</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  initFU();
+}
+
+function filterPosts(f, el) {
+  document.querySelectorAll('.ftab').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');
+  renderPosts(f);
+}
+
+function initFU() {
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => { if(e.isIntersecting){ e.target.classList.add('vis'); obs.unobserve(e.target); }});
+  }, {threshold:0.06});
+  document.querySelectorAll('.fu').forEach(el => obs.observe(el));
+}
+
+renderPosts('all');
+</script>
+</body>
+</html>
