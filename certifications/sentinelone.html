@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SentinelOne Certified — monkincyber</title>
+<link rel="stylesheet" href="../assets/shared.css">
+<style>
+/* ── page hero ── */
+.cert-hero{padding:52px 0 40px;border-bottom:1px solid var(--border);background:var(--surface)}
+.back{font-family:var(--mono);font-size:11px;color:var(--text3);display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:var(--rp);background:var(--bg2);border:1px solid var(--border);margin-bottom:20px;transition:all .15s;text-decoration:none}
+.back:hover{color:var(--text);border-color:var(--border2)}
+.hero-grid{display:grid;grid-template-columns:1fr auto;gap:40px;align-items:start}
+@media(max-width:700px){.hero-grid{grid-template-columns:1fr}}
+.vendor-logo{width:72px;height:72px;border-radius:16px;background:var(--bg2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;margin-bottom:18px;overflow:hidden}
+.vendor-logo img{width:48px;height:48px;object-fit:contain}
+.vendor-logo-fb{font-size:20px;font-weight:800;color:var(--text2)}
+.cert-badges{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.cert-title{font-size:clamp(24px,4vw,38px);font-weight:800;letter-spacing:-.04em;line-height:1.1;margin-bottom:10px;color:var(--text)}
+.cert-summary{font-size:15px;font-weight:300;color:var(--text2);line-height:1.7;max-width:540px;letter-spacing:-.01em}
+.hero-meta{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rs);padding:16px 20px;font-family:var(--mono);font-size:12px;color:var(--text2);min-width:160px;display:flex;flex-direction:column;gap:8px}
+.hm-row span:first-child{color:var(--text3);margin-right:8px}
+.verify-btn{display:inline-flex;align-items:center;gap:6px;background:var(--text);color:var(--bg);font-size:12px;font-weight:600;padding:9px 18px;border-radius:var(--rp);margin-top:12px;transition:opacity .15s;text-decoration:none}
+.verify-btn:hover{opacity:.8}
+
+/* ── body layout ── */
+.cert-body{padding:56px 0;display:grid;grid-template-columns:1fr 320px;gap:48px;align-items:start}
+@media(max-width:900px){.cert-body{grid-template-columns:1fr}}
+
+/* ── module cards ── */
+.modules-section{margin-bottom:48px}
+.eyebrow{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:28px;display:flex;align-items:center;gap:14px}
+.eyebrow::after{content:'';flex:1;height:1px;background:var(--border)}
+.module-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:14px;box-shadow:var(--sh);transition:box-shadow .2s}
+.module-card:hover{box-shadow:var(--sh-md)}
+.module-header{padding:18px 20px;display:flex;align-items:center;gap:14px;cursor:pointer;user-select:none}
+.module-header:hover .module-title{color:var(--green)}
+.module-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px}
+.module-title{font-size:15px;font-weight:700;color:var(--text);letter-spacing:-.02em}
+.module-sub{font-size:12px;color:var(--text2);margin-top:2px;font-weight:300}
+.module-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.module-badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:var(--rp)}
+.mb-prod{background:var(--green-l);color:var(--green-t);border:1px solid var(--green-b)}
+.mb-deep{background:var(--blue-l);color:var(--blue-t);border:1px solid var(--blue-b)}
+.mb-adv{background:var(--purple-l);color:var(--purple-t);border:1px solid var(--purple-b)}
+.module-chevron{color:var(--text3);font-size:14px;transition:transform .2s;flex-shrink:0}
+.module-chevron.open{transform:rotate(90deg)}
+.module-body{padding:0 20px;max-height:0;overflow:hidden;transition:max-height .3s ease,padding .3s ease}
+.module-body.open{max-height:600px;padding:0 20px 20px}
+.module-divider{height:1px;background:var(--border);margin-bottom:16px}
+
+/* what I did section */
+.did-label{font-family:var(--mono);font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px}
+.did-item{font-size:13px;font-weight:300;color:var(--text2);line-height:1.6;padding-left:14px;position:relative;margin-bottom:5px;letter-spacing:-.01em}
+.did-item::before{content:'';position:absolute;left:0;top:9px;width:5px;height:5px;border-radius:50%;background:var(--green)}
+
+/* impact chip */
+.impact-chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--green-t);background:var(--green-l);border:1px solid var(--green-b);padding:7px 12px;border-radius:var(--rs);margin-top:10px}
+
+/* skills tags */
+.skills-used{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.sk-chip{font-size:11px;font-weight:500;padding:4px 10px;border-radius:var(--rp);background:var(--bg2);color:var(--text2);border:1px solid var(--border)}
+.sk-chip.hi{background:var(--accent-l,var(--green-l));color:var(--green-t);border-color:var(--green-b)}
+
+/* knowledge topics */
+.topics-grid{display:flex;flex-direction:column;gap:14px}
+.topic-block{background:var(--bg2);border-radius:var(--rs);overflow:hidden;border:1px solid var(--border)}
+.topic-head{padding:11px 14px;border-bottom:1px solid var(--border);background:var(--surface);display:flex;align-items:center;gap:8px}
+.topic-num{font-family:var(--mono);font-size:10px;color:var(--text3)}
+.topic-name{font-size:13px;font-weight:600;color:var(--text);letter-spacing:-.01em}
+.topic-pts{padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.topic-pt{font-size:12px;font-weight:300;color:var(--text2);line-height:1.5;padding-left:12px;position:relative}
+.topic-pt::before{content:'';position:absolute;left:0;top:7px;width:4px;height:4px;border-radius:50%;background:var(--green)}
+
+/* sidebar */
+.cert-sidebar{display:flex;flex-direction:column;gap:16px}
+.sb-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;box-shadow:var(--sh)}
+.sb-label{font-family:var(--mono);font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px}
+.sb-item{display:flex;align-items:flex-start;gap:8px;padding:9px 10px;border-radius:var(--rs);background:var(--bg2);border:1px solid var(--border);margin-bottom:6px;cursor:pointer;transition:all .15s;text-decoration:none;display:flex}
+.sb-item:hover{border-color:var(--border2);background:var(--surface)}
+.sb-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:3px}
+.sb-name{font-size:12px;font-weight:500;color:var(--text);letter-spacing:-.01em}
+.sb-type{font-size:10px;color:var(--text3);font-family:var(--mono);margin-top:1px}
+.graph-btn{display:flex;align-items:center;justify-content:center;gap:7px;padding:11px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--rs);font-size:13px;font-weight:600;color:var(--text2);transition:all .15s;text-decoration:none}
+.graph-btn:hover{background:var(--text);color:var(--bg);border-color:var(--text)}
+.notes-block{padding:14px;background:var(--green-l);border:1px solid var(--green-b);border-radius:var(--rs);font-size:13px;font-weight:300;color:var(--green-t);line-height:1.7}
+.notes-lbl{font-size:10px;font-weight:700;color:var(--green-t);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;font-family:var(--mono)}
+</style>
+</head>
+<body>
+<nav class="site-nav">
+  <div class="container nav-inner">
+    <a href="../index.html" class="nav-logo">monkey<em>cyber</em></a>
+    <div class="nav-links">
+      <a href="../index.html">Home</a>
+      <a href="../index.html#experience">Experience</a>
+      <a href="../index.html#stack">Stack</a>
+      <a href="../projects/index.html">Projects</a>
+      <a href="index.html" class="act">Certs</a>
+      <a href="../blog/index.html">Blog</a>
+      <a href="../knowledge-graph.html">Graph</a>
+      <a href="../index.html#contact">Contact</a>
+    </div>
+    <div class="nav-right">
+      <div id="avail-badge"><span class="pulse"></span>Open to remote</div>
+      <button id="hire-btn"><span class="pulse"></span>Hire me</button>
+    </div>
+  </div>
+</nav>
+
+<div class="cert-hero">
+  <div class="container">
+    <a href="index.html" class="back">← All certifications</a>
+    <div class="hero-grid">
+      <div>
+        <div class="vendor-logo">
+          <img src="../assets/icons/sentinelone.png" alt="SentinelOne"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+          <div class="vendor-logo-fb" style="display:none">S1</div>
+        </div>
+        <div class="cert-badges">
+          <span class="badge badge-green">Certified · 2024</span>
+          <span class="badge badge-gray" style="font-family:var(--mono)">SentinelOne</span>
+          <span class="badge badge-purple">EDR · XDR · Automation</span>
+        </div>
+        <h1 class="cert-title">SentinelOne Certified Professional</h1>
+        <p class="cert-summary">Vendor-certified on SentinelOne's full platform — from deep endpoint investigation using RemoteOps to building hyperautomation workflows and running Purple Team adversary simulations. Every module applied in a production environment.</p>
+      </div>
+      <div>
+        <div class="hero-meta">
+          <div class="hm-row"><span>Issuer</span>SentinelOne</div>
+          <div class="hm-row"><span>Year</span>2024</div>
+          <div class="hm-row"><span>Status</span>Active</div>
+          <div class="hm-row"><span>Modules</span>4 covered</div>
+          <div class="hm-row"><span>Applied</span>Job 2 — daily</div>
+        </div>
+        <a href="https://www.sentinelone.com/" target="_blank" class="verify-btn">Verify credential ↗</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="cert-body">
+    <div>
+
+      <!-- ── MODULE CARDS ── -->
+      <div class="modules-section">
+        <div class="eyebrow">Platform modules — what I learned & built</div>
+
+        <!-- MODULE 1: Hyperautomation -->
+        <div class="module-card">
+          <div class="module-header" onclick="toggleModule(this)">
+            <div class="module-icon" style="background:#F0FDF4">⚡</div>
+            <div>
+              <div class="module-title">Hyperautomation</div>
+              <div class="module-sub">Custom automated response workflows via API and STAR rules</div>
+            </div>
+            <div class="module-right">
+              <span class="module-badge mb-prod">Production deployed</span>
+              <span class="module-chevron">›</span>
+            </div>
+          </div>
+          <div class="module-body">
+            <div class="module-divider"></div>
+            <div class="did-label">What I built</div>
+            <div class="did-item">Auto-isolation workflow — endpoint auto-quarantined on HIGH severity alert trigger</div>
+            <div class="did-item">Custom STAR rules for behavioural patterns not covered by default policies</div>
+            <div class="did-item">Alert enrichment automation — adds process ancestry, network context before analyst sees it</div>
+            <div class="did-item">Automated ticket creation in JIRA on alert fire with full context pre-populated</div>
+            <div class="did-item">Rollback automation — reverses malicious file changes after confirmed compromise</div>
+            <div class="impact-chip">✓ Containment time: 8 min → 30 sec</div>
+            <div class="skills-used">
+              <span class="sk-chip hi">SOAR automation</span>
+              <span class="sk-chip hi">IR playbooks</span>
+              <span class="sk-chip">Python</span>
+              <span class="sk-chip">REST API</span>
+              <span class="sk-chip hi">MITRE ATT&CK</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- MODULE 2: RemoteOps -->
+        <div class="module-card">
+          <div class="module-header" onclick="toggleModule(this)">
+            <div class="module-icon" style="background:#EFF6FF">🔍</div>
+            <div>
+              <div class="module-title">RemoteOps</div>
+              <div class="module-sub">Live endpoint investigation without interrupting the user</div>
+            </div>
+            <div class="module-right">
+              <span class="module-badge mb-deep">Used in live IR</span>
+              <span class="module-chevron">›</span>
+            </div>
+          </div>
+          <div class="module-body">
+            <div class="module-divider"></div>
+            <div class="did-label">What I did with it</div>
+            <div class="did-item">Live process listing and kill — terminated malicious process without endpoint reboot</div>
+            <div class="did-item">File system investigation — pulled suspicious files for sandbox analysis during active IR</div>
+            <div class="did-item">Memory dump collection — captured process memory for offline forensic analysis</div>
+            <div class="did-item">Registry inspection — identified persistence mechanisms during a real incident</div>
+            <div class="did-item">Network connection listing — confirmed C2 communication channels in live environment</div>
+            <div class="did-item">Script execution — ran custom PowerShell collection scripts across multiple endpoints simultaneously</div>
+            <div class="impact-chip">✓ Used in 3 real incident investigations</div>
+            <div class="skills-used">
+              <span class="sk-chip hi">IR playbooks</span>
+              <span class="sk-chip hi">Log parsing</span>
+              <span class="sk-chip hi">Threat hunting</span>
+              <span class="sk-chip">PowerShell</span>
+              <span class="sk-chip hi">Report writing</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- MODULE 3: Reporting -->
+        <div class="module-card">
+          <div class="module-header" onclick="toggleModule(this)">
+            <div class="module-icon" style="background:#F5F3FF">📄</div>
+            <div>
+              <div class="module-title">Reporting</div>
+              <div class="module-sub">Executive and technical reports built from SentinelOne data</div>
+            </div>
+            <div class="module-right">
+              <span class="module-badge mb-adv">Client-facing</span>
+              <span class="module-chevron">›</span>
+            </div>
+          </div>
+          <div class="module-body">
+            <div class="module-divider"></div>
+            <div class="did-label">Reports I created</div>
+            <div class="did-item">Weekly threat summary reports — delivered to client stakeholders every Monday</div>
+            <div class="did-item">Incident deep-dive reports — full timeline, attack chain, impact, remediation steps</div>
+            <div class="did-item">Endpoint health posture reports — showing coverage gaps and unprotected devices</div>
+            <div class="did-item">Detection coverage reports — MITRE ATT&CK heatmap mapped to active STAR rules</div>
+            <div class="did-item">Custom scheduled reports set up in console — auto-delivered to distribution lists</div>
+            <div class="impact-chip">✓ 15+ reports delivered to clients</div>
+            <div class="skills-used">
+              <span class="sk-chip hi">Report writing</span>
+              <span class="sk-chip hi">MITRE ATT&CK</span>
+              <span class="sk-chip hi">IR playbooks</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- MODULE 4: Dashboarding -->
+        <div class="module-card">
+          <div class="module-header" onclick="toggleModule(this)">
+            <div class="module-icon" style="background:#FFFBEB">📊</div>
+            <div>
+              <div class="module-title">Dashboarding</div>
+              <div class="module-sub">Custom views for SOC ops and client visibility</div>
+            </div>
+            <div class="module-right">
+              <span class="module-badge mb-prod">Daily use</span>
+              <span class="module-chevron">›</span>
+            </div>
+          </div>
+          <div class="module-body">
+            <div class="module-divider"></div>
+            <div class="did-label">Dashboards I built</div>
+            <div class="did-item">SOC ops dashboard — live alert queue, severity breakdown, analyst workload distribution</div>
+            <div class="did-item">Threat landscape view — IOC counts, top attacked hosts, most triggered STAR rules by week</div>
+            <div class="did-item">Client executive dashboard — simplified single-pane for non-technical stakeholders</div>
+            <div class="did-item">Coverage gap dashboard — endpoints without agent, outdated agent versions, offline devices</div>
+            <div class="did-item">MTTR tracking view — average response times by severity and analyst</div>
+            <div class="impact-chip">✓ 5 custom dashboards in production</div>
+            <div class="skills-used">
+              <span class="sk-chip hi">Threat hunting</span>
+              <span class="sk-chip hi">UEBA</span>
+              <span class="sk-chip hi">Report writing</span>
+              <span class="sk-chip hi">SOP design</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- MODULE 5: Purple Team -->
+        <div class="module-card">
+          <div class="module-header" onclick="toggleModule(this)">
+            <div class="module-icon" style="background:#F5F3FF">⚔</div>
+            <div>
+              <div class="module-title">Purple Team operations</div>
+              <div class="module-sub">Adversary simulation to find and close detection gaps</div>
+            </div>
+            <div class="module-right">
+              <span class="module-badge mb-adv">Advanced</span>
+              <span class="module-chevron">›</span>
+            </div>
+          </div>
+          <div class="module-body">
+            <div class="module-divider"></div>
+            <div class="did-label">Exercises I ran</div>
+            <div class="did-item">15+ adversary simulations using SentinelOne's built-in Purple Team tooling</div>
+            <div class="did-item">Mapped every simulation to a MITRE ATT&CK technique and sub-technique</div>
+            <div class="did-item">Identified detection gaps — techniques that fired no alerts → wrote STAR rules to cover them</div>
+            <div class="did-item">Credential dumping simulation (T1003) — confirmed detection and tested alert quality</div>
+            <div class="did-item">Lateral movement simulation (T1021) — validated NDR + EDR correlation was catching it</div>
+            <div class="did-item">Persistence simulation (T1053) — verified scheduled task creation was alerting correctly</div>
+            <div class="impact-chip">✓ 3 MITRE tactic categories improved after gap analysis</div>
+            <div class="skills-used">
+              <span class="sk-chip hi">MITRE ATT&CK mapping</span>
+              <span class="sk-chip hi">Correlation rules</span>
+              <span class="sk-chip hi">Threat hunting</span>
+              <span class="sk-chip hi">Report writing</span>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /modules -->
+
+      <!-- ── KNOWLEDGE TOPICS ── -->
+      <div>
+        <div class="eyebrow">Platform knowledge covered</div>
+        <div class="topics-grid">
+          <div class="topic-block">
+            <div class="topic-head"><span class="topic-num">01</span><span class="topic-name">Platform fundamentals</span></div>
+            <div class="topic-pts">
+              <div class="topic-pt">Agent deployment and policy management</div>
+              <div class="topic-pt">Console navigation and alert queue management</div>
+              <div class="topic-pt">Exclusion and suppression management</div>
+              <div class="topic-pt">Threat intelligence integration and IOC management</div>
+            </div>
+          </div>
+          <div class="topic-block">
+            <div class="topic-head"><span class="topic-num">02</span><span class="topic-name">Detection & STAR rules</span></div>
+            <div class="topic-pts">
+              <div class="topic-pt">Behavioural AI detection model understanding</div>
+              <div class="topic-pt">STAR rule syntax and custom detection logic</div>
+              <div class="topic-pt">Causality tree analysis — process ancestry and attack chains</div>
+              <div class="topic-pt">Alert tuning — reducing noise without losing fidelity</div>
+            </div>
+          </div>
+          <div class="topic-block">
+            <div class="topic-head"><span class="topic-num">03</span><span class="topic-name">API & integrations</span></div>
+            <div class="topic-pts">
+              <div class="topic-pt">SentinelOne REST API — authentication, endpoints, rate limits</div>
+              <div class="topic-pt">Webhook configuration for external SOAR integration</div>
+              <div class="topic-pt">Python SDK usage for custom automation scripts</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /main col -->
+
+    <!-- ── SIDEBAR ── -->
+    <div class="cert-sidebar">
+      <div class="sb-card">
+        <div class="sb-label">Skills covered</div>
+        <a class="sb-item" href="../knowledge-graph.html?focus=soar-automation">
+          <div class="sb-dot" style="background:#6366F1"></div>
+          <div><div class="sb-name">SOAR automation</div><div class="sb-type">skill</div></div>
+        </a>
+        <a class="sb-item" href="../knowledge-graph.html?focus=ir-playbooks">
+          <div class="sb-dot" style="background:#6366F1"></div>
+          <div><div class="sb-name">IR playbooks</div><div class="sb-type">skill</div></div>
+        </a>
+        <a class="sb-item" href="../knowledge-graph.html?focus=mitre-mapping">
+          <div class="sb-dot" style="background:#6366F1"></div>
+          <div><div class="sb-name">MITRE ATT&CK mapping</div><div class="sb-type">skill</div></div>
+        </a>
+        <a class="sb-item" href="../knowledge-graph.html?focus=log-parsing">
+          <div class="sb-dot" style="background:#6366F1"></div>
+          <div><div class="sb-name">Log parsing</div><div class="sb-type">skill</div></div>
+        </a>
+        <a class="sb-item" href="../knowledge-graph.html?focus=report-writing">
+          <div class="sb-dot" style="background:#6366F1"></div>
+          <div><div class="sb-name">IR reporting</div><div class="sb-type">skill</div></div>
+        </a>
+      </div>
+
+      <div class="sb-card">
+        <div class="sb-label">Applied in projects</div>
+        <a class="sb-item" href="../projects/index.html#sentinelone-hyperauto">
+          <div class="sb-dot" style="background:#2563EB"></div>
+          <div><div class="sb-name">S1 Hyperautomation playbooks</div><div class="sb-type">project</div></div>
+        </a>
+        <a class="sb-item" href="../projects/index.html#wazuh-siem-lab">
+          <div class="sb-dot" style="background:#2563EB"></div>
+          <div><div class="sb-name">Wazuh SIEM lab</div><div class="sb-type">project</div></div>
+        </a>
+      </div>
+
+      <div class="sb-card">
+        <div class="notes-lbl">How I applied this</div>
+        <div class="notes-block">Every module from this cert was applied in Job 2. Hyperautomation workflows reduced containment from 8 minutes to 30 seconds. RemoteOps was used in 3 real incident investigations. Purple Team exercises closed detection gaps across 3 MITRE tactic categories.</div>
+      </div>
+
+      <a href="../knowledge-graph.html?focus=sentinelone" class="graph-btn">
+        ⬡ View in knowledge graph
+      </a>
+    </div>
+
+  </div><!-- /cert-body -->
+</div>
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <div>
+      <div class="footer-logo">monkey<em>cyber</em></div>
+      <div class="footer-copy">© 2025 · All rights reserved</div>
+    </div>
+    <div class="footer-tz">IST · UTC+5:30 · Remote ready</div>
+  </div>
+</footer>
+
+<script src="../assets/data.js"></script>
+<script>
+if(P.showHireBtn) document.getElementById('hire-btn').style.display='flex';
+if(P.showAvailBadge) document.getElementById('avail-badge').style.display='flex';
+
+function toggleModule(header) {
+  const body   = header.nextElementSibling;
+  const chev   = header.querySelector('.module-chevron');
+  const isOpen = body.classList.contains('open');
+  /* close all */
+  document.querySelectorAll('.module-body').forEach(b => b.classList.remove('open'));
+  document.querySelectorAll('.module-chevron').forEach(c => c.classList.remove('open'));
+  /* open clicked unless it was already open */
+  if (!isOpen) { body.classList.add('open'); chev.classList.add('open'); }
+}
+</script>
+</body>
+</html>

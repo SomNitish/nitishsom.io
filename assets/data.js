@@ -67,7 +67,7 @@ const P = {
        year      — completion year
        status    — "active" | "progress" | "planned"
        progress  — 0-100 (only for "progress")
-       icon      — path to icon: assets/icons/sentinelone.png
+       icon      — path to icon: assets/icons/sentinelone.svg
        color     — accent color for the cert page
        badge     — short label for badge display
        summary   — 1-2 sentences about the cert
@@ -84,7 +84,7 @@ const P = {
       issuer:    "SentinelOne",
       year:      2024,
       status:    "active",
-      icon:      "../assets/icons/sentinelone.png",
+      icon:      "../assets/icons/sentinelone.svg",
       color:     "#8B3DFF",
       badge:     "S1 Certified",
       summary:   "Vendor-certified on SentinelOne's EDR platform covering endpoint investigation, automated response, purple team operations, and hyperautomation workflows.",
@@ -107,7 +107,7 @@ const P = {
       issuer:    "Fortinet",
       year:      2023,
       status:    "active",
-      icon:      "../assets/icons/fortinet.png",
+      icon:      "../assets/icons/fortinet.svg",
       color:     "#EE3124",
       badge:     "Fortinet NSE",
       summary:   "Fortinet network security certification covering firewall management, IPS/IDS, VPN architecture, and threat intelligence feeds.",
@@ -130,7 +130,7 @@ const P = {
       issuer:    "Palo Alto Networks",
       year:      2024,
       status:    "active",
-      icon:      "../assets/icons/paloalto.png",
+      icon:      "../assets/icons/paloalto.svg",
       color:     "#FA582D",
       badge:     "Cortex XDR",
       summary:   "XDR investigation and response certification — causality chain analysis, BIOC rule writing, and cross-layer alert correlation across endpoint, network, and cloud.",
@@ -153,7 +153,7 @@ const P = {
       issuer:    "LetsDefend",
       year:      2023,
       status:    "active",
-      icon:      "../assets/icons/letsdefend.png",
+      icon:      "../assets/icons/letsdefend.svg",
       color:     "#3B82F6",
       badge:     "LetsDefend SOC",
       summary:   "Scenario-based SOC analyst training covering real-world alert investigation, log analysis, SIEM usage, and phishing investigation through hands-on lab environments.",
@@ -176,7 +176,7 @@ const P = {
       issuer:    "LetsDefend",
       year:      2023,
       status:    "active",
-      icon:      "../assets/icons/letsdefend.png",
+      icon:      "../assets/icons/letsdefend.svg",
       color:     "#3B82F6",
       badge:     "LetsDefend IR",
       summary:   "Practical incident response path covering evidence collection, containment strategies, timeline reconstruction, and structured reporting through real-world scenarios.",
@@ -200,7 +200,7 @@ const P = {
       year:      2025,
       status:    "progress",
       progress:  60,
-      icon:      "../assets/icons/comptia.png",
+      icon:      "../assets/icons/comptia.svg",
       color:     "#C41230",
       badge:     "Security+",
       summary:   "Broad security fundamentals certification covering threats, architecture, implementation, and operations. Industry-standard recognition for security practitioners.",
@@ -231,7 +231,7 @@ const P = {
       skills:    ["log-parsing","correlation-rules","ndr-analysis","mitre-mapping"],
       github:    "https://github.com/monkincyber/",
       blog:      "../blog/wazuh-detection-lab.html",
-      icon:      "../assets/icons/wazuh.png",
+      icon:      "../assets/icons/wazuh.svg",
     },
     {
       id:        "soar-pipeline",
@@ -243,7 +243,7 @@ const P = {
       skills:    ["soar-automation","ir-playbooks","log-parsing"],
       github:    "https://github.com/monkincyber/",
       blog:      "../blog/soar-pipeline.html",
-      icon:      "../assets/icons/n8n.png",
+      icon:      "../assets/icons/n8n.svg",
     },
     {
       id:        "sentinelone-hyperauto",
@@ -255,25 +255,25 @@ const P = {
       skills:    ["soar-automation","ir-playbooks","mitre-mapping"],
       github:    "https://github.com/monkincyber/",
       blog:      "../blog/sentinelone-hyperauto.html",
-      icon:      "../assets/icons/sentinelone.png",
+      icon:      "../assets/icons/sentinelone.svg",
     },
   ],
 
   /* ── TOOLS / STACK ─────────────────────── */
   tools: [
-    { id:"sentinelone", name:"SentinelOne",      cat:"EDR",        icon:"sentinelone.png", lvl:90 },
-    { id:"wazuh",       name:"Wazuh",            cat:"SIEM/XDR",   icon:"wazuh.png",       lvl:92 },
-    { id:"splunk",      name:"Splunk",           cat:"SIEM",       icon:"splunk.png",       lvl:78 },
-    { id:"elastic",     name:"Elastic SIEM",     cat:"SIEM",       icon:"elastic.png",      lvl:62 },
-    { id:"cortex-xdr",  name:"Cortex XDR",       cat:"XDR",        icon:"paloalto.png",     lvl:76 },
-    { id:"n8n",         name:"N8N",              cat:"SOAR",       icon:"n8n.png",          lvl:82 },
-    { id:"thehive",     name:"TheHive",          cat:"SOAR",       icon:"thehive.png",      lvl:84 },
-    { id:"suricata",    name:"Suricata",         cat:"NDR/IDS",    icon:"suricata.png",     lvl:80 },
-    { id:"fortinet",    name:"Fortinet",         cat:"Firewall",   icon:"fortinet.png",     lvl:66 },
-    { id:"jira",        name:"JIRA",             cat:"Process",    icon:"jira.png",         lvl:70 },
-    { id:"python",      name:"Python",           cat:"Scripting",  icon:"python.png",       lvl:42 },
-    { id:"bash",        name:"Bash",             cat:"Scripting",  icon:"bash.png",         lvl:56 },
-    { id:"powershell",  name:"PowerShell",       cat:"Scripting",  icon:"powershell.png",   lvl:50 },
+    { id:"sentinelone", name:"SentinelOne",      cat:"EDR",        icon:"sentinelone.svg", lvl:90 },
+    { id:"wazuh",       name:"Wazuh",            cat:"SIEM/XDR",   icon:"wazuh.svg",       lvl:92 },
+    { id:"splunk",      name:"Splunk",           cat:"SIEM",       icon:"splunk.svg",       lvl:78 },
+    { id:"elastic",     name:"Elastic SIEM",     cat:"SIEM",       icon:"elastic.svg",      lvl:62 },
+    { id:"cortex-xdr",  name:"Cortex XDR",       cat:"XDR",        icon:"paloalto.svg",     lvl:76 },
+    { id:"n8n",         name:"N8N",              cat:"SOAR",       icon:"n8n.svg",          lvl:82 },
+    { id:"thehive",     name:"TheHive",          cat:"SOAR",       icon:"thehive.svg",      lvl:84 },
+    { id:"suricata",    name:"Suricata",         cat:"NDR/IDS",    icon:"suricata.svg",     lvl:80 },
+    { id:"fortinet",    name:"Fortinet",         cat:"Firewall",   icon:"fortinet.svg",     lvl:66 },
+    { id:"jira",        name:"JIRA",             cat:"Process",    icon:"jira.svg",         lvl:70 },
+    { id:"python",      name:"Python",           cat:"Scripting",  icon:"python.svg",       lvl:42 },
+    { id:"bash",        name:"Bash",             cat:"Scripting",  icon:"bash.svg",         lvl:56 },
+    { id:"powershell",  name:"PowerShell",       cat:"Scripting",  icon:"powershell.svg",   lvl:50 },
   ],
 
   /* ── BLOG POSTS ────────────────────────── */
