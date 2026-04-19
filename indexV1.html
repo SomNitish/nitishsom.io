@@ -1,0 +1,1486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>monkincyber — SOC Analyst & Threat Hunter</title>
+<meta name="description" content="SOC Analyst, Threat Hunter & Security Researcher. 2 years securing enterprise environments. Open to remote roles.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Sora:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ════════════════════════════════════════════
+   TOKENS
+════════════════════════════════════════════ */
+:root {
+  --bg:       #FAFAF8;
+  --bg2:      #F3F2EE;
+  --surface:  #FFFFFF;
+  --border:   #E8E6DF;
+  --border2:  #D6D3C8;
+  --text:     #1A1916;
+  --text2:    #6B6860;
+  --text3:    #B0ADA4;
+  --accent:   #1A1916;
+  --green:    #16A34A;
+  --green-l:  #F0FDF4;
+  --green-b:  #BBF7D0;
+  --green-t:  #14532D;
+  --red:      #DC2626;
+  --red-l:    #FEF2F2;
+  --red-b:    #FECACA;
+  --amber:    #D97706;
+  --amber-l:  #FFFBEB;
+  --mono:     'DM Mono', monospace;
+  --sans:     'Sora', sans-serif;
+  --radius:   14px;
+  --radius-s: 8px;
+  --radius-pill: 100px;
+  --sh:       0 1px 3px rgba(0,0,0,.05), 0 1px 2px rgba(0,0,0,.03);
+  --sh-md:    0 4px 16px rgba(0,0,0,.08);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:       #111110;
+    --bg2:      #1A1916;
+    --surface:  #1F1E1B;
+    --border:   #2E2C26;
+    --border2:  #3D3A32;
+    --text:     #EEECEA;
+    --text2:    #948F86;
+    --text3:    #5A5750;
+    --green:    #22C55E;
+    --green-l:  #052e16;
+    --green-b:  #166534;
+    --green-t:  #86EFAC;
+    --red:      #F87171;
+    --red-l:    #2A0A0A;
+    --red-b:    #7F1D1D;
+    --amber:    #FBBF24;
+    --amber-l:  #1C1500;
+    --sh:       0 1px 3px rgba(0,0,0,.3);
+    --sh-md:    0 4px 16px rgba(0,0,0,.5);
+  }
+}
+
+/* ════════════════════════════════════════════
+   RESET & BASE
+════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; font-size: 16px; }
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; text-decoration: none; }
+img { display: block; max-width: 100%; }
+button { font-family: var(--sans); cursor: pointer; border: none; background: none; }
+
+/* ════════════════════════════════════════════
+   SCROLLBAR
+════════════════════════════════════════════ */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 99px; }
+
+/* ════════════════════════════════════════════
+   UTILITY
+════════════════════════════════════════════ */
+.container { max-width: 1080px; margin: 0 auto; padding: 0 28px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+
+/* ════════════════════════════════════════════
+   NAV
+════════════════════════════════════════════ */
+.nav {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(250,250,248,.85);
+  backdrop-filter: blur(14px) saturate(180%);
+  -webkit-backdrop-filter: blur(14px) saturate(180%);
+  border-bottom: 1px solid var(--border);
+}
+@media (prefers-color-scheme: dark) {
+  .nav { background: rgba(17,17,16,.85); }
+}
+.nav-inner {
+  height: 58px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+}
+.nav-logo {
+  font-size: 17px; font-weight: 700; letter-spacing: -.03em;
+  color: var(--text); white-space: nowrap; flex-shrink: 0;
+}
+.nav-logo em { font-style: italic; color: var(--green); font-weight: 400; }
+.nav-links {
+  display: flex; gap: 6px; flex: 1; justify-content: center;
+}
+.nav-links a {
+  font-size: 13px; font-weight: 400; color: var(--text2);
+  padding: 6px 12px; border-radius: var(--radius-pill);
+  transition: color .15s, background .15s;
+  letter-spacing: -.01em;
+}
+.nav-links a:hover, .nav-links a.active { color: var(--text); background: var(--bg2); }
+.nav-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+
+/* ── hire me button (controlled by P.showHireBtn) ── */
+#hire-btn {
+  display: none; /* off by default — flip P.showHireBtn to show */
+  align-items: center; gap: 7px;
+  background: var(--text); color: var(--bg);
+  font-size: 12px; font-weight: 600; letter-spacing: -.01em;
+  padding: 7px 16px; border-radius: var(--radius-pill);
+  transition: opacity .15s;
+}
+#hire-btn:hover { opacity: .8; }
+#hire-btn .pulse {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--green);
+  animation: pulse 2s ease infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .4; transform: scale(.8); }
+}
+
+/* open to work badge (always visible when showAvailBadge: true) */
+#avail-badge {
+  display: none;
+  align-items: center; gap: 6px;
+  background: var(--green-l); color: var(--green-t);
+  border: 1px solid var(--green-b);
+  font-size: 11px; font-weight: 600; letter-spacing: .01em;
+  padding: 5px 12px; border-radius: var(--radius-pill);
+}
+#avail-badge .pulse { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 2s ease infinite; }
+
+/* ════════════════════════════════════════════
+   HERO
+════════════════════════════════════════════ */
+.hero {
+  padding: 88px 0 72px;
+  border-bottom: 1px solid var(--border);
+  position: relative; overflow: hidden;
+}
+.hero-grid-bg {
+  position: absolute; inset: 0; pointer-events: none; opacity: .35;
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 0%, black 40%, transparent 100%);
+}
+.hero-inner { position: relative; z-index: 1; }
+.hero-kicker {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 12px; font-weight: 500; letter-spacing: .02em;
+  color: var(--green-t); background: var(--green-l);
+  border: 1px solid var(--green-b);
+  padding: 6px 14px; border-radius: var(--radius-pill);
+  margin-bottom: 28px;
+}
+.hero-kicker .pulse { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 2s ease infinite; }
+.hero-h1 {
+  font-size: clamp(38px, 6vw, 64px);
+  font-weight: 800; letter-spacing: -.04em; line-height: 1.05;
+  color: var(--text); margin-bottom: 22px; max-width: 700px;
+}
+.hero-h1 em { font-style: italic; font-weight: 300; color: var(--text2); }
+.hero-p {
+  font-size: 16px; font-weight: 300; color: var(--text2);
+  line-height: 1.75; max-width: 520px; margin-bottom: 36px;
+  letter-spacing: -.01em;
+}
+.hero-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 56px; }
+.btn-primary {
+  background: var(--text); color: var(--bg);
+  font-size: 14px; font-weight: 600; letter-spacing: -.02em;
+  padding: 12px 24px; border-radius: var(--radius-pill);
+  transition: opacity .15s; display: inline-flex; align-items: center; gap: 8px;
+}
+.btn-primary:hover { opacity: .8; }
+.btn-secondary {
+  font-size: 14px; font-weight: 400; letter-spacing: -.02em;
+  color: var(--text2); padding: 12px 24px;
+  border: 1px solid var(--border2); border-radius: var(--radius-pill);
+  background: var(--surface); transition: border-color .15s, color .15s;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.btn-secondary:hover { border-color: var(--text2); color: var(--text); }
+.hero-stats {
+  display: flex; gap: 0; flex-wrap: wrap;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--surface); overflow: hidden;
+  width: fit-content; box-shadow: var(--sh);
+}
+.hstat {
+  padding: 20px 32px; border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 4px;
+}
+.hstat:last-child { border-right: none; }
+.hstat-num {
+  font-size: 28px; font-weight: 800; letter-spacing: -.04em;
+  color: var(--text); line-height: 1;
+}
+.hstat-label { font-size: 11px; font-weight: 400; color: var(--text3); letter-spacing: .01em; }
+
+/* ════════════════════════════════════════════
+   MARQUEE
+════════════════════════════════════════════ */
+.marquee-wrap {
+  border-bottom: 1px solid var(--border);
+  overflow: hidden; background: var(--surface);
+  padding: 14px 0;
+}
+.marquee-track {
+  display: flex; gap: 0;
+  animation: marquee 22s linear infinite;
+  width: max-content;
+}
+.marquee-track:hover { animation-play-state: paused; }
+@keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+.marquee-item {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 0 28px; white-space: nowrap;
+  font-size: 12px; font-weight: 500; color: var(--text3);
+  letter-spacing: .02em; text-transform: uppercase;
+  border-right: 1px solid var(--border);
+}
+.marquee-item:last-child { border-right: none; }
+.marquee-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+
+/* ════════════════════════════════════════════
+   SECTION UTILITY
+════════════════════════════════════════════ */
+.section { padding: 80px 0; border-bottom: 1px solid var(--border); }
+.section:last-child { border-bottom: none; }
+.section-eyebrow {
+  font-family: var(--mono);
+  font-size: 11px; font-weight: 500; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--text3);
+  margin-bottom: 40px; display: flex; align-items: center; gap: 14px;
+}
+.section-eyebrow::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.section-h2 {
+  font-size: clamp(26px, 3.5vw, 38px); font-weight: 800;
+  letter-spacing: -.04em; line-height: 1.1; color: var(--text);
+  margin-bottom: 14px;
+}
+.section-sub {
+  font-size: 15px; font-weight: 300; color: var(--text2);
+  line-height: 1.7; max-width: 480px; letter-spacing: -.01em;
+}
+
+/* ════════════════════════════════════════════
+   ABOUT / SPLIT
+════════════════════════════════════════════ */
+.about-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: start;
+}
+.about-text {
+  font-size: 15px; font-weight: 300; color: var(--text2);
+  line-height: 1.8; letter-spacing: -.01em;
+}
+.about-text strong { color: var(--text); font-weight: 600; }
+.about-text p + p { margin-top: 16px; }
+.tag-cloud { display: flex; flex-wrap: wrap; gap: 8px; }
+.tag {
+  font-size: 12px; font-weight: 500; padding: 6px 14px;
+  border-radius: var(--radius-pill); background: var(--bg2);
+  color: var(--text2); border: 1px solid var(--border);
+  letter-spacing: -.01em; transition: all .15s;
+}
+.tag:hover { background: var(--text); color: var(--bg); border-color: var(--text); }
+.tag.green { background: var(--green-l); color: var(--green-t); border-color: var(--green-b); }
+
+/* ════════════════════════════════════════════
+   EXPERIENCE TIMELINE
+════════════════════════════════════════════ */
+.timeline { display: flex; flex-direction: column; gap: 0; }
+.tl-item { display: flex; gap: 28px; padding-bottom: 40px; position: relative; }
+.tl-item:last-child { padding-bottom: 0; }
+.tl-left { display: flex; flex-direction: column; align-items: center; width: 20px; flex-shrink: 0; padding-top: 6px; }
+.tl-node {
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid var(--border2); background: var(--surface);
+  flex-shrink: 0; transition: all .2s; z-index: 1;
+}
+.tl-item:hover .tl-node { background: var(--green); border-color: var(--green); }
+.tl-line { width: 1px; flex: 1; background: var(--border); margin-top: 6px; }
+.tl-right { flex: 1; padding-bottom: 8px; }
+.tl-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 24px;
+  box-shadow: var(--sh); transition: box-shadow .2s;
+}
+.tl-item:hover .tl-card { box-shadow: var(--sh-md); }
+.tl-head {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  flex-wrap: wrap; gap: 10px; margin-bottom: 16px;
+}
+.tl-role { font-size: 16px; font-weight: 700; color: var(--text); letter-spacing: -.02em; }
+.tl-co { font-size: 13px; font-weight: 400; color: var(--text2); margin-top: 3px; }
+.tl-period {
+  font-family: var(--mono); font-size: 11px; color: var(--text3);
+  background: var(--bg2); padding: 4px 10px; border-radius: var(--radius-pill);
+  white-space: nowrap;
+}
+.tl-groups { display: flex; flex-direction: column; gap: 14px; }
+.tl-group-head {
+  font-family: var(--mono); font-size: 10px; font-weight: 500;
+  color: var(--green); text-transform: uppercase; letter-spacing: .08em;
+  margin-bottom: 6px;
+}
+.tl-bullet {
+  font-size: 13px; font-weight: 300; color: var(--text2); line-height: 1.6;
+  padding-left: 14px; position: relative; margin-bottom: 4px;
+  letter-spacing: -.01em;
+}
+.tl-bullet::before {
+  content: ''; position: absolute; left: 0; top: 9px;
+  width: 4px; height: 4px; border-radius: 50%; background: var(--border2);
+}
+.compliance-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+.comp-badge {
+  font-size: 11px; font-weight: 600; padding: 4px 10px;
+  border-radius: var(--radius-pill);
+}
+.cb-green { background: var(--green-l); color: var(--green-t); border: 1px solid var(--green-b); }
+.cb-blue { background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE; }
+.cb-purple { background: #F5F3FF; color: #5B21B6; border: 1px solid #DDD6FE; }
+@media (prefers-color-scheme: dark) {
+  .cb-blue { background: #0C1A3A; color: #93C5FD; border-color: #1E3A5F; }
+  .cb-purple { background: #1A0F3A; color: #C4B5FD; border-color: #2D1F6E; }
+}
+
+/* ════════════════════════════════════════════
+   TECH STACK / MY STACK
+════════════════════════════════════════════ */
+.stack-intro {
+  display: grid; grid-template-columns: 1fr 1.4fr; gap: 64px;
+  align-items: start; margin-bottom: 56px;
+}
+.stack-note {
+  font-family: var(--mono); font-size: 11px; color: var(--text3);
+  line-height: 1.8; padding: 16px; background: var(--bg2);
+  border-radius: var(--radius-s); border: 1px solid var(--border);
+}
+.stack-note strong { color: var(--text2); }
+.stack-categories { display: flex; flex-direction: column; gap: 32px; }
+.stack-cat-label {
+  font-family: var(--mono); font-size: 10px; font-weight: 500;
+  color: var(--text3); text-transform: uppercase; letter-spacing: .1em;
+  margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.stack-items { display: flex; flex-wrap: wrap; gap: 10px; }
+.stack-item {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-s); padding: 10px 14px;
+  font-size: 13px; font-weight: 500; color: var(--text2);
+  letter-spacing: -.01em; transition: all .15s; box-shadow: var(--sh);
+}
+.stack-item:hover { border-color: var(--border2); color: var(--text); box-shadow: var(--sh-md); transform: translateY(-1px); }
+.stack-icon {
+  width: 26px; height: 26px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; flex-shrink: 0;
+}
+.si-edr { background: #F0FDF4; }
+.si-siem { background: #EFF6FF; }
+.si-soar { background: #F5F3FF; }
+.si-net { background: #FFFBEB; }
+.si-lang { background: #FEF2F2; }
+.si-proc { background: #F8FAFC; }
+.si-cloud { background: #F0FDFF; }
+.si-fw { background: #FFF7ED; }
+@media (prefers-color-scheme: dark) {
+  .si-edr { background: #052e16; } .si-siem { background: #0c1a3a; }
+  .si-soar { background: #1a0f3a; } .si-net { background: #1c1500; }
+  .si-lang { background: #2a0a0a; } .si-proc { background: #1a1916; }
+  .si-cloud { background: #042926; } .si-fw { background: #1a1000; }
+}
+.stack-proficiency { margin-top: 8px; }
+.sp-bar-wrap {
+  height: 2px; background: var(--border);
+  border-radius: 1px; overflow: hidden; margin-top: 3px;
+}
+.sp-bar { height: 100%; background: var(--green); border-radius: 1px; }
+
+/* ════════════════════════════════════════════
+   PROJECTS
+════════════════════════════════════════════ */
+.projects-grid { display: flex; flex-direction: column; gap: 16px; }
+.proj-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 28px;
+  box-shadow: var(--sh); transition: box-shadow .2s;
+  display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: start;
+}
+.proj-card:hover { box-shadow: var(--sh-md); }
+.proj-top { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 14px; }
+.proj-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.proj-name {
+  font-size: 16px; font-weight: 700; color: var(--text);
+  letter-spacing: -.02em; margin-bottom: 4px;
+}
+.proj-desc { font-size: 13px; font-weight: 300; color: var(--text2); line-height: 1.6; letter-spacing: -.01em; }
+.proj-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 14px; }
+.proj-tag {
+  font-size: 11px; font-weight: 500; padding: 3px 9px;
+  border-radius: var(--radius-pill); background: var(--bg2);
+  color: var(--text3); border: 1px solid var(--border);
+}
+.proj-impact {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 600; color: var(--green-t);
+  background: var(--green-l); padding: 8px 12px; border-radius: var(--radius-s);
+  border: 1px solid var(--green-b); margin-top: 12px; width: fit-content;
+}
+.proj-right { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
+.proj-link {
+  font-size: 12px; font-weight: 600; color: var(--text2);
+  padding: 7px 14px; border: 1px solid var(--border);
+  border-radius: var(--radius-pill); background: var(--bg2);
+  transition: all .15s; white-space: nowrap;
+}
+.proj-link:hover { background: var(--text); color: var(--bg); border-color: var(--text); }
+.proj-link.primary { background: var(--text); color: var(--bg); border-color: var(--text); }
+.proj-link.primary:hover { opacity: .8; }
+
+/* ════════════════════════════════════════════
+   CERTIFICATIONS
+════════════════════════════════════════════ */
+.certs-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px;
+}
+.cert-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 20px;
+  box-shadow: var(--sh); transition: box-shadow .2s;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.cert-card:hover { box-shadow: var(--sh-md); }
+.cert-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.cert-vendor-badge {
+  width: 36px; height: 36px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 800; flex-shrink: 0;
+}
+.cert-name { font-size: 13px; font-weight: 600; color: var(--text); letter-spacing: -.01em; line-height: 1.3; }
+.cert-issuer { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.cert-status {
+  font-size: 10px; font-weight: 700; padding: 3px 8px;
+  border-radius: var(--radius-pill); white-space: nowrap; flex-shrink: 0;
+}
+.cs-active { background: var(--green-l); color: var(--green-t); border: 1px solid var(--green-b); }
+.cs-progress { background: var(--amber-l); color: var(--amber); border: 1px solid #FDE68A; }
+.cert-progress-wrap { height: 3px; background: var(--bg2); border-radius: 1px; overflow: hidden; }
+.cert-progress-bar { height: 100%; border-radius: 1px; background: var(--amber); }
+.cert-year {
+  font-family: var(--mono); font-size: 10px; color: var(--text3);
+  align-self: flex-end;
+}
+
+/* ════════════════════════════════════════════
+   BLOG
+════════════════════════════════════════════ */
+.blog-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px;
+}
+.blog-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); overflow: hidden;
+  box-shadow: var(--sh); transition: all .2s;
+}
+.blog-card:hover { box-shadow: var(--sh-md); transform: translateY(-2px); }
+.blog-thumb {
+  height: 90px; padding: 16px;
+  display: flex; align-items: flex-end;
+}
+.blog-tag {
+  font-size: 10px; font-weight: 700; padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  background: rgba(255,255,255,.85); color: var(--text2);
+  letter-spacing: .02em; text-transform: uppercase;
+}
+.blog-body { padding: 18px; }
+.blog-title {
+  font-size: 14px; font-weight: 600; color: var(--text);
+  line-height: 1.4; letter-spacing: -.02em; margin-bottom: 12px;
+}
+.blog-meta { display: flex; justify-content: space-between; align-items: center; }
+.blog-date { font-family: var(--mono); font-size: 11px; color: var(--text3); }
+.blog-read { font-size: 12px; font-weight: 600; color: var(--green); }
+
+/* ════════════════════════════════════════════
+   KNOWLEDGE GRAPH CTA
+════════════════════════════════════════════ */
+.graph-cta {
+  background: var(--text); color: var(--bg);
+  border-radius: var(--radius); padding: 40px;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 24px; flex-wrap: wrap;
+}
+.graph-cta h3 {
+  font-size: 22px; font-weight: 800; letter-spacing: -.03em;
+  margin-bottom: 8px;
+}
+.graph-cta p { font-size: 14px; font-weight: 300; opacity: .6; line-height: 1.6; max-width: 420px; }
+.cta-btn {
+  background: var(--bg); color: var(--text);
+  font-size: 13px; font-weight: 700; letter-spacing: -.01em;
+  padding: 12px 24px; border-radius: var(--radius-pill);
+  transition: opacity .15s; white-space: nowrap; flex-shrink: 0;
+}
+.cta-btn:hover { opacity: .85; }
+
+/* ════════════════════════════════════════════
+   CONTACT / FOOTER
+════════════════════════════════════════════ */
+.contact-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: start;
+}
+.contact-links { display: flex; flex-direction: column; gap: 10px; }
+.contact-link {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px; background: var(--surface);
+  border: 1px solid var(--border); border-radius: var(--radius-s);
+  box-shadow: var(--sh); transition: all .15s;
+}
+.contact-link:hover { border-color: var(--border2); box-shadow: var(--sh-md); transform: translateX(4px); }
+.cl-left { display: flex; align-items: center; gap: 12px; }
+.cl-icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: var(--bg2); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; flex-shrink: 0;
+}
+.cl-label { font-size: 14px; font-weight: 600; color: var(--text); letter-spacing: -.01em; }
+.cl-value { font-family: var(--mono); font-size: 11px; color: var(--text3); margin-top: 1px; }
+.cl-arrow { color: var(--text3); font-size: 16px; }
+.contact-info { display: flex; flex-direction: column; gap: 20px; }
+.ci-item {}
+.ci-label {
+  font-family: var(--mono); font-size: 10px; font-weight: 500;
+  color: var(--text3); text-transform: uppercase; letter-spacing: .08em;
+  margin-bottom: 6px;
+}
+.ci-val { font-size: 15px; font-weight: 400; color: var(--text); letter-spacing: -.01em; }
+.ci-val em { font-style: normal; color: var(--green); }
+.avail-block {
+  padding: 20px; background: var(--green-l);
+  border: 1px solid var(--green-b); border-radius: var(--radius-s);
+}
+.avail-block p {
+  font-size: 14px; font-weight: 400; color: var(--green-t);
+  line-height: 1.6; letter-spacing: -.01em;
+}
+.avail-block strong { font-weight: 700; }
+
+.site-footer {
+  border-top: 1px solid var(--border); padding: 24px 0;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 12px;
+}
+.footer-left { display: flex; align-items: center; gap: 24px; }
+.footer-logo { font-size: 15px; font-weight: 700; letter-spacing: -.02em; }
+.footer-logo em { font-style: italic; font-weight: 300; color: var(--green); }
+.footer-copy { font-size: 12px; font-weight: 300; color: var(--text3); }
+.footer-tz {
+  font-family: var(--mono); font-size: 11px; color: var(--green-t);
+  background: var(--green-l); border: 1px solid var(--green-b);
+  padding: 5px 12px; border-radius: var(--radius-pill);
+}
+
+/* ════════════════════════════════════════════
+   RESPONSIVE
+════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .nav-links { display: none; }
+  .hero { padding: 56px 0 48px; }
+  .about-grid, .stack-intro, .contact-grid { grid-template-columns: 1fr; gap: 40px; }
+  .hero-stats { flex-direction: column; width: 100%; }
+  .hstat { border-right: none; border-bottom: 1px solid var(--border); }
+  .hstat:last-child { border-bottom: none; }
+  .proj-card { grid-template-columns: 1fr; }
+  .proj-right { align-items: flex-start; flex-direction: row; }
+  .section { padding: 56px 0; }
+  .container { padding: 0 20px; }
+  .graph-cta { padding: 28px; }
+}
+
+/* ════════════════════════════════════════════
+   ANIMATIONS
+════════════════════════════════════════════ */
+.fade-up {
+  opacity: 0; transform: translateY(20px);
+  transition: opacity .6s ease, transform .6s ease;
+}
+.fade-up.visible { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════
+     NAV
+══════════════════════════════════════════ -->
+<nav class="nav">
+  <div class="container nav-inner">
+    <div class="nav-logo">monkin<em>cyber</em></div>
+
+<div class="nav-links">
+  <a href="#about">About</a>
+  <a href="#experience">Experience</a>
+  <a href="#stack">Stack</a>
+  <a href="#projects">Projects</a>
+  <a href="#certs">Certs</a>
+  <a href="blog/index.html">Blog</a>
+  <a href="knowledge-graph.html">Graph</a>
+  <a href="#contact">Contact</a>
+</div>
+    <div class="nav-right">
+      <div id="avail-badge"><span class="pulse"></span>Open to remote</div>
+      <button id="hire-btn"><span class="pulse"></span>Hire me</button>
+    </div>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════════
+     HERO
+══════════════════════════════════════════ -->
+<section class="hero">
+  <div class="hero-grid-bg"></div>
+  <div class="container hero-inner fade-up">
+    <div class="hero-kicker">
+      <span class="pulse"></span>
+      Available for remote roles · IST / UTC+5:30
+    </div>
+    <h1 class="hero-h1">SOC Analyst.<br><em>Threat Hunter.</em><br>Security Engineer.</h1>
+    <p class="hero-p">
+      2 years securing enterprise environments — from SIEM correlation rules
+      and ISP-scale NDR deployments to full SOAR automation pipelines.
+      Based in India, working with teams globally.
+    </p>
+    <div class="hero-actions">
+      <a href="#projects" class="btn-primary">View my work →</a>
+      <a href="#contact" class="btn-secondary">Get in touch</a>
+    </div>
+    <div class="hero-stats">
+      <div class="hstat">
+        <div class="hstat-num">30+</div>
+        <div class="hstat-label">IR reports delivered</div>
+      </div>
+      <div class="hstat">
+        <div class="hstat-num">2 yrs</div>
+        <div class="hstat-label">Hands-on SOC</div>
+      </div>
+      <div class="hstat">
+        <div class="hstat-num">5+</div>
+        <div class="hstat-label">Enterprise tools</div>
+      </div>
+      <div class="hstat">
+        <div class="hstat-num">3</div>
+        <div class="hstat-label">Compliance frameworks</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     MARQUEE
+══════════════════════════════════════════ -->
+<div class="marquee-wrap">
+  <div class="marquee-track">
+    <!-- duplicated for seamless loop -->
+    <span class="marquee-item"><span class="marquee-dot"></span>SentinelOne</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>Wazuh</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>Suricata</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>TheHive</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>N8N</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>JIRA</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>MITRE ATT&CK</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>NIST RMF</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>Splunk</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>PCI DSS</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>ISO 27001</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>Cortex XDR</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>Fortinet NSE</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>SentinelOne</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>Wazuh</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>Suricata</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>TheHive</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>N8N</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>JIRA</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>MITRE ATT&CK</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>NIST RMF</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>Splunk</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>PCI DSS</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>ISO 27001</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>Cortex XDR</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>Fortinet NSE</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     ABOUT
+══════════════════════════════════════════ -->
+<section class="section" id="about">
+  <div class="container fade-up">
+    <div class="section-eyebrow">About</div>
+    <div class="about-grid">
+      <div>
+        <h2 class="section-h2">Security practitioner, not just a cert collector.</h2>
+      </div>
+      <div>
+        <div class="about-text">
+          <p>
+            I'm a SOC analyst with <strong>2 years of hands-on experience</strong> in enterprise
+            environments. I've monitored ISP-level traffic for APT behaviour, built SOAR
+            automation pipelines that cut MTTR from 15 minutes to under 2, and written
+            <strong>30+ threat hunting reports</strong> delivered directly to clients.
+          </p>
+          <p>
+            My approach: <strong>understand the log, write the rule, automate the response</strong>.
+            I believe in building detection systems that actually catch what others miss — not
+            just checking compliance boxes.
+          </p>
+          <p>
+            Currently based in <strong>India (IST / UTC+5:30)</strong>. Open to remote
+            full-time roles and freelance security engagements globally.
+          </p>
+        </div>
+        <div class="tag-cloud" style="margin-top: 24px;">
+          <span class="tag green">Threat detection</span>
+          <span class="tag green">Incident response</span>
+          <span class="tag green">SOAR automation</span>
+          <span class="tag">Log parsing</span>
+          <span class="tag">Correlation rules</span>
+          <span class="tag">UEBA</span>
+          <span class="tag">NDR</span>
+          <span class="tag">Threat hunting</span>
+          <span class="tag">Purple team</span>
+          <span class="tag">MITRE ATT&CK</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     EXPERIENCE
+══════════════════════════════════════════ -->
+<section class="section" id="experience">
+  <div class="container fade-up">
+    <div class="section-eyebrow">Experience</div>
+    <div class="timeline">
+
+      <div class="tl-item">
+        <div class="tl-left">
+          <div class="tl-node"></div>
+          <div class="tl-line"></div>
+        </div>
+        <div class="tl-right">
+          <div class="tl-card">
+            <div class="tl-head">
+              <div>
+                <div class="tl-role">Security Engineer</div>
+                <div class="tl-co">Company Name · Full-time</div>
+              </div>
+              <div class="tl-period">2023 – Present</div>
+            </div>
+            <div class="tl-groups">
+              <div>
+                <div class="tl-group-head">Tool implementation</div>
+                <div class="tl-bullet">Implemented Wazuh with Suricata, N8N, and TheHive integrations from scratch</div>
+                <div class="tl-bullet">Implemented JIRA for org from zero, shared instance with client stakeholders</div>
+                <div class="tl-bullet">SentinelOne deep-dive: RemoteOps, Purple Team exercises, Hyperautomation workflows</div>
+              </div>
+              <div>
+                <div class="tl-group-head">Automation & SOAR</div>
+                <div class="tl-bullet">Automated SOAR integration pipeline — Wazuh alerts → N8N enrichment → TheHive cases</div>
+                <div class="tl-bullet">Implemented anomaly detection at scale for large distributed environments</div>
+                <div class="tl-bullet">MTTR reduced from 15 minutes to under 2 minutes through automation</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-left">
+          <div class="tl-node"></div>
+        </div>
+        <div class="tl-right">
+          <div class="tl-card">
+            <div class="tl-head">
+              <div>
+                <div class="tl-role">SOC Analyst</div>
+                <div class="tl-co">Company Name · Full-time</div>
+              </div>
+              <div class="tl-period">2022 – 2023</div>
+            </div>
+            <div class="tl-groups">
+              <div>
+                <div class="tl-group-head">Detection & monitoring</div>
+                <div class="tl-bullet">SIEM alert monitoring and triage with strict IR protocol adherence</div>
+                <div class="tl-bullet">Developed custom correlation rules based on client detection use cases</div>
+                <div class="tl-bullet">UEBA rule creation aligned to log onboarding and behavioural baselines</div>
+              </div>
+              <div>
+                <div class="tl-group-head">Threat hunting</div>
+                <div class="tl-bullet">Submitted 30+ threat hunting and IR reports to clients and stakeholders</div>
+                <div class="tl-bullet">ISP-level traffic analysis for APT behaviour using NDR correlation</div>
+                <div class="tl-bullet">Network flow and log analysis using NDR capabilities</div>
+              </div>
+              <div>
+                <div class="tl-group-head">Training & documentation</div>
+                <div class="tl-bullet">Trained new analysts — average 2-week onboarding time reduction</div>
+                <div class="tl-bullet">Designed and maintained SOPs for all SOC operational activities</div>
+                <div class="tl-bullet">Simulated phishing exercises and security awareness sessions</div>
+              </div>
+            </div>
+            <div class="compliance-row">
+              <span class="comp-badge cb-green">PCI DSS</span>
+              <span class="comp-badge cb-blue">NIST RMF</span>
+              <span class="comp-badge cb-purple">ISO 27001</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     TECH STACK / MY STACK
+══════════════════════════════════════════ -->
+<section class="section" id="stack">
+  <div class="container fade-up">
+    <div class="section-eyebrow">My Stack</div>
+    <div class="stack-intro">
+      <div>
+        <h2 class="section-h2">Tools & platforms I work with daily.</h2>
+        <p class="section-sub" style="margin-top: 16px;">
+          In cybersecurity, your stack is tools and platforms — not just programming languages.
+          Here's everything I've deployed, configured, and operated in production.
+        </p>
+      </div>
+      <div class="stack-note">
+        <strong># why a "stack" section?</strong><br><br>
+        Most stack sections are for developers showing React or Python.
+        Mine shows the security toolchain — the EDR, SIEM, SOAR, and
+        scripting languages I use to detect, respond, and automate.<br><br>
+        Every item here has been used in a real environment,
+        not just a lab or a course.
+      </div>
+    </div>
+
+    <div class="stack-categories">
+
+      <!-- EDR / Endpoint -->
+      <div>
+        <div class="stack-cat-label">EDR · Endpoint security</div>
+        <div class="stack-items">
+          <div class="stack-item">
+            <div class="stack-icon si-edr">🛡</div>
+            SentinelOne
+            <div class="stack-proficiency">
+              <div style="font-size:9px;color:var(--text3);font-family:var(--mono)">Expert</div>
+              <div class="sp-bar-wrap" style="width:60px"><div class="sp-bar" style="width:90%"></div></div>
+            </div>
+          </div>
+          <div class="stack-item">
+            <div class="stack-icon si-edr">🔍</div>
+            Cortex XDR
+            <div class="stack-proficiency">
+              <div style="font-size:9px;color:var(--text3);font-family:var(--mono)">Advanced</div>
+              <div class="sp-bar-wrap" style="width:60px"><div class="sp-bar" style="width:75%"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SIEM / XDR -->
+      <div>
+        <div class="stack-cat-label">SIEM · XDR · Log analysis</div>
+        <div class="stack-items">
+          <div class="stack-item">
+            <div class="stack-icon si-siem">📊</div>
+            Wazuh
+            <div class="stack-proficiency">
+              <div style="font-size:9px;color:var(--text3);font-family:var(--mono)">Expert</div>
+              <div class="sp-bar-wrap" style="width:60px"><div class="sp-bar" style="width:92%"></div></div>
+            </div>
+          </div>
+          <div class="stack-item">
+            <div class="stack-icon si-siem">🔎</div>
+            Splunk
+            <div class="stack-proficiency">
+              <div style="font-size:9px;color:var(--text3);font-family:var(--mono)">Advanced</div>
+              <div class="sp-bar-wrap" style="width:60px"><div class="sp-bar" style="width:78%"></div></div>
+            </div>
+          </div>
+          <div class="stack-item">
+            <div class="stack-icon si-siem">📡</div>
+            Elastic SIEM
+            <div class="stack-proficiency">
+              <div style="font-size:9px;color:var(--text3);font-family:var(--mono)">Intermediate</div>
+              <div class="sp-bar-wrap" style="width:60px"><div class="sp-bar" style="width:60%"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SOAR & Automation -->
+      <div>
+        <div class="stack-cat-label">SOAR · Automation</div>
+        <div class="stack-items">
+          <div class="stack-item">
+            <div class="stack-icon si-soar">⚡</div>
+            N8N
+            <div class="stack-proficiency">
+              <div style="font-size:9px;color:var(--text3);font-family:var(--mono)">Advanced</div>
+              <div class="sp-bar-wrap" style="width:60px"><div class="sp-bar" style="width:80%"></div></div>
+            </div>
+          </div>
+          <div class="stack-item">
+            <div class="stack-icon si-soar">🐝</div>
+            TheHive
+            <div class="stack-proficiency">
+              <div style="font-size:9px;color:var(--text3);font-family:var(--mono)">Advanced</div>
+              <div class="sp-bar-wrap" style="width:60px"><div class="sp-bar" style="width:82%"></div></div>
+            </div>
+          </div>
+          <div class="stack-item">
+            <div class="stack-icon si-soar">🔗</div>
+            JIRA Automation
+            <div class="stack-proficiency">
+              <div style="font-size:9px;color:var(--text3);font-family:var(--mono)">Intermediate</div>
+              <div class="sp-bar-wrap" style="width:60px"><div class="sp-bar" style="width:65%"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Network / NDR -->
+      <div>
+        <div class="stack-cat-label">Network security · NDR · IDS</div>
+        <div class="stack-items">
+          <div class="stack-item">
+            <div class="stack-icon si-net">🌐</div>
+            Suricata
+            <div class="stack-proficiency">
+              <div style="font-size:9px;color:var(--text3);font-family:var(--mono)">Advanced</div>
+              <div class="sp-bar-wrap" style="width:60px"><div class="sp-bar" style="width:80%"></div></div>
+            </div>
+          </div>
+          <div class="stack-item">
+            <div class="stack-icon si-fw">🔥</div>
+            Fortinet
+            <div class="stack-proficiency">
+              <div style="font-size:9px;color:var(--text3);font-family:var(--mono)">Intermediate</div>
+              <div class="sp-bar-wrap" style="width:60px"><div class="sp-bar" style="width:65%"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scripting languages -->
+      <div>
+        <div class="stack-cat-label">Scripting · Learning in progress</div>
+        <div class="stack-items">
+          <div class="stack-item">
+            <div class="stack-icon si-lang">🐍</div>
+            Python
+            <div class="stack-proficiency">
+              <div style="font-size:9px;color:var(--text3);font-family:var(--mono)">Learning</div>
+              <div class="sp-bar-wrap" style="width:60px"><div class="sp-bar" style="width:40%"></div></div>
+            </div>
+          </div>
+          <div class="stack-item">
+            <div class="stack-icon si-lang">💻</div>
+            Bash
+            <div class="stack-proficiency">
+              <div style="font-size:9px;color:var(--text3);font-family:var(--mono)">Intermediate</div>
+              <div class="sp-bar-wrap" style="width:60px"><div class="sp-bar" style="width:55%"></div></div>
+            </div>
+          </div>
+          <div class="stack-item">
+            <div class="stack-icon si-lang">⚙</div>
+            PowerShell
+            <div class="stack-proficiency">
+              <div style="font-size:9px;color:var(--text3);font-family:var(--mono)">Intermediate</div>
+              <div class="sp-bar-wrap" style="width:60px"><div class="sp-bar" style="width:50%"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Frameworks -->
+      <div>
+        <div class="stack-cat-label">Frameworks · Methodologies</div>
+        <div class="stack-items">
+          <div class="stack-item"><div class="stack-icon si-proc">🎯</div>MITRE ATT&CK</div>
+          <div class="stack-item"><div class="stack-icon si-proc">📋</div>NIST RMF</div>
+          <div class="stack-item"><div class="stack-icon si-proc">✅</div>PCI DSS</div>
+          <div class="stack-item"><div class="stack-icon si-proc">🔐</div>ISO 27001</div>
+          <div class="stack-item"><div class="stack-icon si-proc">⚔</div>Kill Chain</div>
+        </div>
+      </div>
+
+      <!-- Process tools -->
+      <div>
+        <div class="stack-cat-label">Process · Documentation · Ticketing</div>
+        <div class="stack-items">
+          <div class="stack-item"><div class="stack-icon si-cloud">📌</div>JIRA</div>
+          <div class="stack-item"><div class="stack-icon si-cloud">📝</div>Confluence</div>
+          <div class="stack-item"><div class="stack-icon si-cloud">📄</div>SOP design</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     PROJECTS
+══════════════════════════════════════════ -->
+<section class="section" id="projects">
+  <div class="container fade-up">
+    <div class="section-eyebrow">Projects</div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:40px;flex-wrap:wrap;gap:16px">
+      <div>
+        <h2 class="section-h2">Built, deployed, optimised.</h2>
+        <p class="section-sub">Open source tools configured and hardened for real environments.</p>
+      </div>
+    </div>
+    <div class="projects-grid">
+
+      <div class="proj-card">
+        <div>
+          <div class="proj-top">
+            <div class="proj-icon si-siem" style="border:1px solid var(--border)">📊</div>
+            <div>
+              <div class="proj-name">Wazuh SIEM hardening & detection lab</div>
+              <div class="proj-desc">Production-grade Wazuh deployment with 20+ custom detection rules, alert noise reduction, and multi-source integration — Suricata, Windows Event, syslog, and ISP firewall formats.</div>
+            </div>
+          </div>
+          <div class="proj-tags">
+            <span class="proj-tag">Wazuh</span><span class="proj-tag">Suricata</span>
+            <span class="proj-tag">MITRE ATT&CK</span><span class="proj-tag">Custom decoders</span>
+          </div>
+          <div class="proj-impact">✓ Alert fidelity +60% · False positives −45%</div>
+        </div>
+        <div class="proj-right">
+          <a href="#" class="proj-link primary">GitHub →</a>
+          <a href="#" class="proj-link">Write-up</a>
+        </div>
+      </div>
+
+      <div class="proj-card">
+        <div>
+          <div class="proj-top">
+            <div class="proj-icon si-soar" style="border:1px solid var(--border)">⚡</div>
+            <div>
+              <div class="proj-name">SOAR automation pipeline — N8N + Wazuh + TheHive</div>
+              <div class="proj-desc">End-to-end automated incident triage: Wazuh alert fires → N8N enriches with IP reputation and geo data → TheHive case auto-created with full context. Zero manual Tier 1 steps.</div>
+            </div>
+          </div>
+          <div class="proj-tags">
+            <span class="proj-tag">N8N</span><span class="proj-tag">TheHive</span>
+            <span class="proj-tag">Wazuh</span><span class="proj-tag">Cortex</span>
+          </div>
+          <div class="proj-impact">✓ MTTR: 15 min → under 2 min</div>
+        </div>
+        <div class="proj-right">
+          <a href="#" class="proj-link primary">GitHub →</a>
+          <a href="#" class="proj-link">Write-up</a>
+        </div>
+      </div>
+
+      <div class="proj-card">
+        <div>
+          <div class="proj-top">
+            <div class="proj-icon si-edr" style="border:1px solid var(--border)">🛡</div>
+            <div>
+              <div class="proj-name">SentinelOne hyperautomation & response playbooks</div>
+              <div class="proj-desc">Custom response automation via SentinelOne API — auto-isolate on high-severity alerts, RemoteOps forensic collection playbooks, and Purple Team use-case library with 15+ adversary simulations.</div>
+            </div>
+          </div>
+          <div class="proj-tags">
+            <span class="proj-tag">SentinelOne</span><span class="proj-tag">Python</span>
+            <span class="proj-tag">REST API</span><span class="proj-tag">Purple team</span>
+          </div>
+          <div class="proj-impact">✓ Containment: 8 min → 30 sec</div>
+        </div>
+        <div class="proj-right">
+          <a href="#" class="proj-link primary">GitHub →</a>
+          <a href="#" class="proj-link">Write-up</a>
+        </div>
+      </div>
+
+      <div class="proj-card">
+        <div>
+          <div class="proj-top">
+            <div class="proj-icon si-cloud" style="border:1px solid var(--border)">📌</div>
+            <div>
+              <div class="proj-name">JIRA security ops workflow — from zero</div>
+              <div class="proj-desc">Full incident and change management system built in JIRA from scratch — custom ticket schema for SOC lifecycle, SLA-based auto-escalation, shared client instance, and MTTR dashboard.</div>
+            </div>
+          </div>
+          <div class="proj-tags">
+            <span class="proj-tag">JIRA</span><span class="proj-tag">JIRA Automation</span>
+            <span class="proj-tag">Confluence</span><span class="proj-tag">SLA tracking</span>
+          </div>
+          <div class="proj-impact">✓ Full audit trail · compliance-ready</div>
+        </div>
+        <div class="proj-right">
+          <a href="#" class="proj-link primary">Docs →</a>
+          <a href="#" class="proj-link">Write-up</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     CERTIFICATIONS
+══════════════════════════════════════════ -->
+<section class="section" id="certs">
+  <div class="container fade-up">
+    <div class="section-eyebrow">Certifications</div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:40px;flex-wrap:wrap;gap:16px">
+      <h2 class="section-h2">Vendor-certified.<br>Practically applied.</h2>
+    </div>
+    <div class="certs-grid">
+
+      <!-- <div class="cert-card">
+        <div class="cert-top">
+          <div>
+            <div class="cert-vendor-badge" style="background:#F0FDF4;color:#15803D;font-size:11px">S1</div>
+          </div>
+          <span class="cert-status cs-active">Active</span>
+        </div>
+        <div>
+          <div class="cert-name">SentinelOne Certified Professional</div>
+          <div class="cert-issuer">SentinelOne</div>
+        </div>
+        <div class="cert-year">2024</div>
+      </div> -->
+
+      <a href="/certifications/sentinelone.html" style="text-decoration:none;display:block;">
+  <div class="cert-card" style="cursor:pointer;">
+    <div class="cert-top">
+      <div>
+        <div class="cert-vendor-badge" style="background:#F0FDF4;color:#15803D;font-size:11px">S1</div>
+      </div>
+      <span class="cert-status cs-active">Active</span>
+    </div>
+    <div>
+      <div class="cert-name">SentinelOne Certified Professional</div>
+      <div class="cert-issuer">SentinelOne</div>
+    </div>
+    <div class="cert-year">2024 · View details →</div>
+  </div>
+</a>
+
+      <div class="cert-card">
+        <div class="cert-top">
+          <div>
+            <div class="cert-vendor-badge" style="background:#FFF7ED;color:#C2410C;font-size:11px">FT</div>
+          </div>
+          <span class="cert-status cs-active">Active</span>
+        </div>
+        <div>
+          <div class="cert-name">Fortinet NSE Certification</div>
+          <div class="cert-issuer">Fortinet</div>
+        </div>
+        <div class="cert-year">2023</div>
+      </div>
+
+      <div class="cert-card">
+        <div class="cert-top">
+          <div>
+            <div class="cert-vendor-badge" style="background:#FEF3C7;color:#92400E;font-size:11px">PA</div>
+          </div>
+          <span class="cert-status cs-active">Active</span>
+        </div>
+        <div>
+          <div class="cert-name">Cortex XDR — Investigation & Response</div>
+          <div class="cert-issuer">Palo Alto Networks</div>
+        </div>
+        <div class="cert-year">2024</div>
+      </div>
+
+      <div class="cert-card">
+        <div class="cert-top">
+          <div>
+            <div class="cert-vendor-badge" style="background:#F5F3FF;color:#5B21B6;font-size:11px">LD</div>
+          </div>
+          <span class="cert-status cs-active">Active</span>
+        </div>
+        <div>
+          <div class="cert-name">SOC Analyst Learning Path</div>
+          <div class="cert-issuer">LetsDefend</div>
+        </div>
+        <div class="cert-year">2023</div>
+      </div>
+
+      <div class="cert-card">
+        <div class="cert-top">
+          <div>
+            <div class="cert-vendor-badge" style="background:#F5F3FF;color:#5B21B6;font-size:11px">LD</div>
+          </div>
+          <span class="cert-status cs-active">Active</span>
+        </div>
+        <div>
+          <div class="cert-name">Incident Responder Path</div>
+          <div class="cert-issuer">LetsDefend</div>
+        </div>
+        <div class="cert-year">2023</div>
+      </div>
+
+      <div class="cert-card">
+        <div class="cert-top">
+          <div>
+            <div class="cert-vendor-badge" style="background:#FFF7ED;color:#C2410C;font-size:11px">C+</div>
+          </div>
+          <span class="cert-status cs-progress">60%</span>
+        </div>
+        <div>
+          <div class="cert-name">CompTIA Security+</div>
+          <div class="cert-issuer">CompTIA · In progress</div>
+        </div>
+        <div class="cert-progress-wrap">
+          <div class="cert-progress-bar" style="width:60%"></div>
+        </div>
+        <div class="cert-year">Target: Q3 2025</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     BLOG
+══════════════════════════════════════════ -->
+<section class="section" id="blog">
+  <div class="container fade-up">
+    <div class="section-eyebrow">Blog</div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:40px;flex-wrap:wrap;gap:16px">
+      <div>
+        <h2 class="section-h2">Writing about what I build.</h2>
+        <p class="section-sub">Tool integrations, threat analysis, and blue team deep-dives.</p>
+      </div>
+      <a href="#" class="btn-secondary" style="font-size:13px;padding:10px 20px">All posts →</a>
+    </div>
+    <div class="blog-grid">
+
+      <div class="blog-card">
+        <div class="blog-thumb" style="background:linear-gradient(135deg,#F0FDF4,#DCFCE7)">
+          <span class="blog-tag">Tool integration</span>
+        </div>
+        <div class="blog-body">
+          <div class="blog-title">Integrating Suricata with Wazuh — a complete step-by-step guide</div>
+          <div class="blog-meta">
+            <span class="blog-date">Mar 2025 · 8 min</span>
+            <span class="blog-read">Read →</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="blog-card">
+        <div class="blog-thumb" style="background:linear-gradient(135deg,#EFF6FF,#DBEAFE)">
+          <span class="blog-tag">Blue team ops</span>
+        </div>
+        <div class="blog-body">
+          <div class="blog-title">Building a SOAR pipeline with N8N + Wazuh + TheHive from scratch</div>
+          <div class="blog-meta">
+            <span class="blog-date">Feb 2025 · 12 min</span>
+            <span class="blog-read">Read →</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="blog-card">
+        <div class="blog-thumb" style="background:linear-gradient(135deg,#F5F3FF,#EDE9FE)">
+          <span class="blog-tag">Tutorial</span>
+        </div>
+        <div class="blog-body">
+          <div class="blog-title">Writing effective Wazuh detection rules for real-world use cases</div>
+          <div class="blog-meta">
+            <span class="blog-date">Jan 2025 · 10 min</span>
+            <span class="blog-read">Read →</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     KNOWLEDGE GRAPH CTA
+══════════════════════════════════════════ -->
+<section class="section" style="border-bottom:1px solid var(--border)">
+  <div class="container fade-up">
+    <div class="graph-cta">
+      <div>
+        <h3>Explore my knowledge graph</h3>
+        <p>An interactive Obsidian-style graph showing how every skill, cert, project, and blog post connects — click any node to see the full evidence trail.</p>
+      </div>
+      <a href="/knowledge-graph.html" class="cta-btn">Open graph →</a>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     CONTACT
+══════════════════════════════════════════ -->
+<section class="section" id="contact">
+  <div class="container fade-up">
+    <div class="section-eyebrow">Contact</div>
+    <div class="contact-grid">
+      <div>
+        <h2 class="section-h2">Let's work together.</h2>
+        <p class="section-sub" style="margin-top:14px">
+          Open to remote full-time roles, freelance security engagements,
+          and collaborations on open-source security tooling.
+        </p>
+        <div class="avail-block" style="margin-top:28px">
+          <p>
+            <strong>Currently available</strong> for remote opportunities.
+            Based in India — happy to work async or with overlap on
+            US Eastern, UK, or EU timezones.
+          </p>
+        </div>
+      </div>
+      <div class="contact-links">
+        <a href="mailto:your@email.com" class="contact-link">
+          <div class="cl-left">
+            <div class="cl-icon">✉</div>
+            <div>
+              <div class="cl-label">Email</div>
+              <div class="cl-value">your@email.com</div>
+            </div>
+          </div>
+          <div class="cl-arrow">→</div>
+        </a>
+        <a href="https://linkedin.com/in/yourprofile" target="_blank" class="contact-link">
+          <div class="cl-left">
+            <div class="cl-icon">💼</div>
+            <div>
+              <div class="cl-label">LinkedIn</div>
+              <div class="cl-value">linkedin.com/in/yourprofile</div>
+            </div>
+          </div>
+          <div class="cl-arrow">→</div>
+        </a>
+        <a href="https://github.com/monkincyber" target="_blank" class="contact-link">
+          <div class="cl-left">
+            <div class="cl-icon">💻</div>
+            <div>
+              <div class="cl-label">GitHub</div>
+              <div class="cl-value">github.com/monkincyber</div>
+            </div>
+          </div>
+          <div class="cl-arrow">→</div>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     FOOTER
+══════════════════════════════════════════ -->
+<footer>
+  <div class="container site-footer">
+    <div class="footer-left">
+      <div class="footer-logo">monkin<em>cyber</em></div>
+
+      <div class="footer-copy">© 2025 — Built with HTML, CSS & GitHub Pages</div>
+    </div>
+    <div class="footer-tz">IST · UTC+5:30 · Remote ready</div>
+  </div>
+</footer>
+
+<!-- ══════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════ -->
+<script>
+/* ════════════════════════════════════════
+   PORTFOLIO CONFIG — edit only this object
+════════════════════════════════════════ */
+const P = {
+  name:           "monkincyber",
+
+  /* ── visibility flags ─────────────────
+     showHireBtn:    flip to true when actively job hunting
+     showAvailBadge: green "Open to remote" badge in nav
+     To deploy change: edit flag → git add . → git commit → git push
+  ─────────────────────────────────────── */
+  showHireBtn:    false,
+  showAvailBadge: true,
+};
+
+/* ════════════════════════════════════════
+   APPLY VISIBILITY FLAGS
+════════════════════════════════════════ */
+(function applyFlags() {
+  const hireBtn   = document.getElementById('hire-btn');
+  const availBadge = document.getElementById('avail-badge');
+
+  if (P.showHireBtn)    hireBtn.style.display    = 'flex';
+  if (P.showAvailBadge) availBadge.style.display = 'flex';
+})();
+
+/* ════════════════════════════════════════
+   ACTIVE NAV LINK ON SCROLL
+════════════════════════════════════════ */
+const sections = document.querySelectorAll('section[id], div[id]');
+const navLinks = document.querySelectorAll('.nav-links a');
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      navLinks.forEach(a => a.classList.remove('active'));
+      const active = document.querySelector(`.nav-links a[href="#${e.target.id}"]`);
+      if (active) active.classList.add('active');
+    }
+  });
+}, { rootMargin: '-50% 0px -50% 0px' });
+sections.forEach(s => observer.observe(s));
+
+/* ════════════════════════════════════════
+   FADE-UP ANIMATION ON SCROLL
+════════════════════════════════════════ */
+const fadeEls = document.querySelectorAll('.fade-up');
+const fadeObserver = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      fadeObserver.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.1 });
+fadeEls.forEach(el => fadeObserver.observe(el));
+
+/* ════════════════════════════════════════
+   STACK ITEM HOVER — subtle lift already
+   handled by CSS, JS just for analytics hook
+════════════════════════════════════════ */
+document.querySelectorAll('.stack-item').forEach(el => {
+  el.style.cursor = 'default';
+});
+</script>
+</body>
+</html>
