@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Threat Hunting — My Notes & Learnings | monkincyber</title>
+<meta name="description" content="My personal notes on Threat Hunting — covering hypotheses, IoCs, the hunting lifecycle, and real lab walkthroughs. Learning in public.">
+<link rel="stylesheet" href="../assets/shared.css">
+
+<!-- Open Graph for LinkedIn sharing -->
+<meta property="og:title" content="Threat Hunting — My Notes & Learnings">
+<meta property="og:description" content="Distilled notes on threat hunting: hypotheses, IoCs, the hunting lifecycle, and 3 real SIEM lab walkthroughs.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://somnitish.github.io/nitishsom.io/blog/threat-hunting-notes.html">
+
+<style>
+/* ── post layout ── */
+.post-hero{padding:56px 0 40px;border-bottom:1px solid var(--border)}
+.back-link{font-family:var(--mono);font-size:11px;color:var(--text3);display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:var(--rp);background:var(--bg2);border:1px solid var(--border);margin-bottom:20px;text-decoration:none;transition:all .15s}
+.back-link:hover{color:var(--text);border-color:var(--border2)}
+.post-meta{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+.post-cat{font-size:10px;font-weight:700;padding:4px 11px;border-radius:var(--rp);background:var(--green-l);color:var(--green-t);border:1px solid var(--green-b);text-transform:uppercase;letter-spacing:.05em}
+.post-date{font-family:var(--mono);font-size:11px;color:var(--text3)}
+.post-read{font-family:var(--mono);font-size:11px;color:var(--text3)}
+.post-title{font-size:clamp(26px,5vw,44px);font-weight:800;letter-spacing:-.04em;line-height:1.1;color:var(--text);margin-bottom:14px}
+.post-subtitle{font-size:16px;font-weight:300;color:var(--text2);line-height:1.7;max-width:580px;letter-spacing:-.01em}
+
+/* ── post body layout ── */
+.post-body{display:grid;grid-template-columns:1fr 240px;gap:56px;padding:52px 0;align-items:start}
+@media(max-width:820px){.post-body{grid-template-columns:1fr}}
+
+/* ── prose ── */
+.prose{max-width:680px}
+.prose h2{font-size:22px;font-weight:800;color:var(--text);letter-spacing:-.03em;margin:40px 0 14px;padding-top:8px;line-height:1.2}
+.prose h2:first-child{margin-top:0}
+.prose h3{font-size:16px;font-weight:700;color:var(--text);letter-spacing:-.02em;margin:28px 0 10px}
+.prose p{font-size:15px;font-weight:300;color:var(--text2);line-height:1.8;margin-bottom:16px;letter-spacing:-.01em}
+.prose p strong{color:var(--text);font-weight:600}
+.prose ul,.prose ol{padding-left:20px;margin-bottom:16px}
+.prose li{font-size:15px;font-weight:300;color:var(--text2);line-height:1.8;margin-bottom:5px;letter-spacing:-.01em}
+.prose li strong{color:var(--text);font-weight:600}
+.prose hr{border:none;border-top:1px solid var(--border);margin:36px 0}
+.prose a{color:var(--green);font-weight:500;text-decoration:underline;text-decoration-color:var(--green-b);transition:opacity .15s}
+.prose a:hover{opacity:.7}
+
+/* ── callout boxes ── */
+.callout{padding:16px 18px;border-radius:var(--rs);margin:20px 0;font-size:14px;font-weight:400;line-height:1.7}
+.callout-green{background:var(--green-l);border:1px solid var(--green-b);color:var(--green-t)}
+.callout-green strong{color:var(--green-t);font-weight:700}
+.callout-blue{background:var(--blue-l);border:1px solid var(--blue-b);color:var(--blue-t)}
+.callout-blue strong{color:var(--blue-t);font-weight:700}
+.callout-amber{background:var(--amber-l);border:1px solid var(--amber-b,#FDE68A);color:var(--amber)}
+.callout-amber strong{font-weight:700}
+.callout-label{font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px;display:block;opacity:.7}
+
+/* ── key concept chips ── */
+.concept-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:20px 0}
+.concept-card{padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);box-shadow:var(--sh)}
+.concept-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px;letter-spacing:-.01em}
+.concept-desc{font-size:12px;font-weight:300;color:var(--text2);line-height:1.5}
+
+/* ── lab cards ── */
+.lab-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin:20px 0;box-shadow:var(--sh)}
+.lab-header{padding:14px 18px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.lab-num{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--green-t);background:var(--green-l);border:1px solid var(--green-b);padding:3px 9px;border-radius:var(--rp)}
+.lab-title{font-size:14px;font-weight:700;color:var(--text);letter-spacing:-.02em}
+.lab-body{padding:16px 18px}
+.lab-hypothesis{font-size:13px;font-style:italic;color:var(--text2);border-left:3px solid var(--green);padding:8px 12px;background:var(--green-l);border-radius:0 var(--rs) var(--rs) 0;margin-bottom:14px;font-weight:400;line-height:1.6}
+.lab-steps{display:flex;flex-direction:column;gap:8px}
+.lab-step{display:flex;gap:10px;font-size:13px;color:var(--text2);font-weight:300;line-height:1.6}
+.lab-step-num{font-family:var(--mono);font-size:10px;font-weight:700;color:var(--green-t);background:var(--green-l);border:1px solid var(--green-b);padding:2px 7px;border-radius:var(--rp);flex-shrink:0;height:fit-content;margin-top:2px}
+.lab-finding{margin-top:12px;padding:10px 12px;background:var(--bg2);border-radius:var(--rs);border:1px solid var(--border);font-family:var(--mono);font-size:11px;color:var(--text2);line-height:1.8}
+.lab-finding strong{color:var(--text);font-weight:500}
+
+/* ── step-by-step ── */
+.steps{display:flex;flex-direction:column;gap:0;margin:20px 0}
+.step-item{display:flex;gap:16px;padding-bottom:20px;position:relative}
+.step-item:last-child{padding-bottom:0}
+.step-left{display:flex;flex-direction:column;align-items:center;width:28px;flex-shrink:0}
+.step-circle{width:28px;height:28px;border-radius:50%;background:var(--green-l);border:1px solid var(--green-b);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--green-t);flex-shrink:0;font-family:var(--mono)}
+.step-line{width:1px;flex:1;background:var(--border);margin-top:4px}
+.step-item:last-child .step-line{display:none}
+.step-right{flex:1;padding-top:4px}
+.step-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:5px;letter-spacing:-.02em}
+.step-desc{font-size:13px;font-weight:300;color:var(--text2);line-height:1.6}
+
+/* ── toc sidebar ── */
+.toc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;position:sticky;top:72px;box-shadow:var(--sh)}
+.toc-label{font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:12px}
+.toc-links{display:flex;flex-direction:column;gap:2px}
+.toc-link{font-size:12px;font-weight:400;color:var(--text2);padding:5px 8px;border-radius:var(--rs);transition:all .15s;text-decoration:none;letter-spacing:-.01em}
+.toc-link:hover,.toc-link.active{color:var(--green);background:var(--green-l)}
+.toc-sub{padding-left:12px;font-size:11px;color:var(--text3)}
+.toc-sub:hover,.toc-sub.active{color:var(--green);background:var(--green-l)}
+
+/* ── share bar ── */
+.share-bar{display:flex;align-items:center;gap:10px;padding:20px 0;border-top:1px solid var(--border);margin-top:48px;flex-wrap:wrap}
+.share-label{font-size:13px;font-weight:500;color:var(--text2)}
+.share-btn{display:inline-flex;align-items:center;gap:7px;padding:8px 16px;border-radius:var(--rp);font-size:12px;font-weight:600;border:1px solid;transition:all .15s;text-decoration:none}
+.share-li{background:var(--blue-l);color:var(--blue-t);border-color:var(--blue-b)}
+.share-li:hover{background:var(--blue);color:#fff;border-color:var(--blue)}
+.share-tw{background:var(--bg2);color:var(--text2);border-color:var(--border)}
+.share-tw:hover{background:var(--text);color:var(--bg);border-color:var(--text)}
+
+/* ── disclaimer ── */
+.disclaimer{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:20px 22px;margin-top:48px}
+.disclaimer-label{font-family:var(--mono);font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px}
+.disclaimer p{font-size:12px;font-weight:300;color:var(--text2);line-height:1.8;margin-bottom:8px;letter-spacing:-.01em}
+.disclaimer p:last-child{margin-bottom:0}
+
+/* ── tag row ── */
+.tag-row{display:flex;flex-wrap:wrap;gap:7px;margin-top:20px}
+.post-tag{font-size:11px;font-weight:500;padding:4px 11px;border-radius:var(--rp);background:var(--bg2);color:var(--text2);border:1px solid var(--border)}
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <div class="container nav-inner">
+    <a href="../index.html" class="nav-logo">monkey<em>cyber</em></a>
+    <div class="nav-links">
+      <a href="../index.html">Home</a>
+      <a href="../index.html#experience">Experience</a>
+      <a href="../index.html#stack">Stack</a>
+      <a href="../projects/index.html">Projects</a>
+      <a href="../certifications/index.html">Certs</a>
+      <a href="index.html" class="act">Blog</a>
+      <a href="../knowledge-graph.html">Graph</a>
+    </div>
+    <div class="nav-right">
+      <div id="avail-badge"><span class="pulse"></span>Open to remote</div>
+      <button id="hire-btn"><span class="pulse"></span>Hire me</button>
+    </div>
+  </div>
+</nav>
+
+<!-- ── HERO ── -->
+<div class="post-hero">
+  <div class="container">
+    <a href="index.html" class="back-link">← All posts</a>
+    <div class="post-meta">
+      <span class="post-cat">Threat Hunting</span>
+      <span class="post-date">April 2025</span>
+      <span class="post-read">· 8 min read</span>
+    </div>
+    <h1 class="post-title">Threat Hunting —<br>My Notes & Learnings</h1>
+    <p class="post-subtitle">Everything I've learned about threat hunting distilled into one place — what it is, how hypotheses work, IoCs, the full lifecycle, and three real SIEM lab walkthroughs. Learning in public.</p>
+    <div class="tag-row">
+      <span class="post-tag">Threat hunting</span>
+      <span class="post-tag">SIEM</span>
+      <span class="post-tag">Wazuh</span>
+      <span class="post-tag">MITRE ATT&CK</span>
+      <span class="post-tag">Hypotheses</span>
+      <span class="post-tag">IoC</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── BODY ── -->
+<div class="container">
+  <div class="post-body">
+
+    <!-- ── PROSE ── -->
+    <article class="prose">
+
+      <!-- ═══ SECTION 1 ═══ -->
+      <h2 id="what-is-it">What is threat hunting?</h2>
+
+      <p>Threat hunting is <strong>proactive</strong> — you're not waiting for an alert to fire. You're actively going into your environment looking for attackers who are already inside but haven't triggered anything yet.</p>
+
+      <p>The whole point is that traditional tools (antivirus, firewalls, IDS) are <strong>reactive</strong>. They only catch what they already know about. Threat hunting catches what they miss — the unknown, the zero-day, the attacker who's been sitting in your network for three months.</p>
+
+      <div class="callout callout-green">
+        <span class="callout-label">Key idea</span>
+        <strong>Reactive</strong> = wait for alert, then respond.<br>
+        <strong>Proactive (threat hunting)</strong> = assume breach, go looking, find it before damage is done.
+      </div>
+
+      <h3>Who's on the team?</h3>
+      <div class="concept-grid">
+        <div class="concept-card">
+          <div class="concept-title">Threat Hunter</div>
+          <div class="concept-desc">Plans and executes hunts, analyzes findings, writes reports</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-title">Incident Responder</div>
+          <div class="concept-desc">Kicks in when something is confirmed — contains, eradicates, recovers</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-title">Malware Analyst</div>
+          <div class="concept-desc">Reverse engineers malware found during hunts</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-title">Threat Intel Analyst</div>
+          <div class="concept-desc">Feeds current TTPs and threat actor info into hypothesis creation</div>
+        </div>
+      </div>
+
+      <hr>
+
+      <!-- ═══ SECTION 2 ═══ -->
+      <h2 id="data-sources">The data sources you actually hunt in</h2>
+
+      <p>Before you write a single hypothesis, you need to know what data you have. Every hunt is only as good as the logs feeding it.</p>
+
+      <ul>
+        <li><strong>Network logs</strong> — flow data, DNS queries, proxy logs, firewall allow/deny events</li>
+        <li><strong>Endpoint logs</strong> — process creation, file writes, registry changes, network connections from host</li>
+        <li><strong>Authentication logs</strong> — logins, failed logins, privilege escalations, account changes in AD</li>
+        <li><strong>Application logs</strong> — web server access, email server, FTP, VPN</li>
+        <li><strong>EDR telemetry</strong> — SentinelOne, CrowdStrike — rich process ancestry, parent/child relationships</li>
+      </ul>
+
+      <div class="callout callout-blue">
+        <span class="callout-label">From experience</span>
+        In the lab environments I worked through, Wazuh was the SIEM pulling in firewall traffic events, Linux security events, audit events, VPN events, and FTP logs. Having all of these in one place is what makes correlation possible.
+      </div>
+
+      <hr>
+
+      <!-- ═══ SECTION 3 ═══ -->
+      <h2 id="ioc">IoCs — Indicators of Compromise</h2>
+
+      <p>An IoC is evidence that a system has been compromised. Think of them as the <strong>digital fingerprints</strong> attackers leave behind.</p>
+
+      <ul>
+        <li><strong>IP addresses</strong> — known C2 servers, malicious sources</li>
+        <li><strong>Domains</strong> — malicious URLs, phishing domains, DGA-generated names</li>
+        <li><strong>File hashes</strong> — MD5/SHA256 of known malware samples</li>
+        <li><strong>Registry keys</strong> — persistence mechanisms added by malware</li>
+        <li><strong>User agent strings</strong> — unusual or malformed HTTP user agents</li>
+        <li><strong>Unusual processes</strong> — parent/child relationships that shouldn't exist</li>
+      </ul>
+
+      <h3>Where to look up IoCs</h3>
+      <ul>
+        <li><strong>VirusTotal</strong> — hash/URL/IP lookups</li>
+        <li><strong>OpenIOC</strong> — Mandiant's open IoC standard</li>
+        <li><strong>STIX/TAXII</strong> — structured threat intel sharing format/protocol</li>
+        <li><strong>Threat intel feeds</strong> — ISACs, commercial feeds (Recorded Future, etc.)</li>
+      </ul>
+
+      <div class="callout callout-amber">
+        <span class="callout-label">Important distinction</span>
+        <strong>IoC = what happened (past)</strong> — a file hash, a malicious IP.<br>
+        <strong>IoA = what's happening now</strong> — a behaviour pattern indicating active attack.<br>
+        Hunting for IoAs is harder but catches attackers earlier.
+      </div>
+
+      <hr>
+
+      <!-- ═══ SECTION 4 ═══ -->
+      <h2 id="hypotheses">Hypotheses — the core of threat hunting</h2>
+
+      <p>Every hunt starts with a hypothesis. A hypothesis is a specific, testable statement about how an attacker might be behaving in your environment right now.</p>
+
+      <p>Bad hypothesis: <em>"Something bad might be happening."</em><br>
+      Good hypothesis: <em>"An employee with access to sensitive files may be exfiltrating data via FTP before their last day."</em></p>
+
+      <h3>What makes a good hypothesis?</h3>
+      <ul>
+        <li><strong>Specific threat scenario</strong> — insider threat, APT, lateral movement, data exfil</li>
+        <li><strong>Expected indicators</strong> — what exactly you're looking for (large file copies at odd hours, logins from new geographies)</li>
+        <li><strong>Data sources</strong> — which logs will contain the evidence</li>
+        <li><strong>Testing method</strong> — what queries, filters, or correlations you'll run</li>
+        <li><strong>Expected outcome</strong> — what confirmed vs. disproved looks like</li>
+      </ul>
+
+      <h3>Where do hypotheses come from?</h3>
+      <ul>
+        <li><strong>MITRE ATT&CK</strong> — pick a tactic/technique and hunt for its indicators in your logs</li>
+        <li><strong>Threat intel</strong> — a new campaign targeting your industry → build a hypothesis around their known TTPs</li>
+        <li><strong>Anomalies in existing alerts</strong> — something in your SIEM looked weird but didn't fire a full alert</li>
+        <li><strong>Historical incidents</strong> — past breaches in your org or similar orgs</li>
+      </ul>
+
+      <hr>
+
+      <!-- ═══ SECTION 5 ═══ -->
+      <h2 id="lifecycle">The threat hunting lifecycle</h2>
+
+      <div class="steps">
+        <div class="step-item">
+          <div class="step-left"><div class="step-circle">1</div><div class="step-line"></div></div>
+          <div class="step-right">
+            <div class="step-title">Preparation & planning</div>
+            <div class="step-desc">Define scope — which systems, which network segments, what time window. Choose your tools (SIEM, EDR, network analysis). Set a clear objective so you don't go down infinite rabbit holes.</div>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-left"><div class="step-circle">2</div><div class="step-line"></div></div>
+          <div class="step-right">
+            <div class="step-title">Data collection & integration</div>
+            <div class="step-desc">Pull together all relevant log sources. Make sure they're actually ingesting into your SIEM. Missing a log source means missing an entire attack vector.</div>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-left"><div class="step-circle">3</div><div class="step-line"></div></div>
+          <div class="step-right">
+            <div class="step-title">Active hunting</div>
+            <div class="step-desc">Run your hypothesis against the data. Look for anomalies, unusual patterns, deviations from baseline. Use correlation — one log alone rarely tells the full story.</div>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-left"><div class="step-circle">4</div><div class="step-line"></div></div>
+          <div class="step-right">
+            <div class="step-title">Findings & reporting</div>
+            <div class="step-desc">Document everything — confirmed threats, false positives, interesting anomalies that need more investigation. Reports go to management, IR team, and feed future hunts.</div>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-left"><div class="step-circle">5</div><div class="step-line"></div></div>
+          <div class="step-right">
+            <div class="step-title">Remediation & optimisation</div>
+            <div class="step-desc">Fix what you found. Patch, isolate, revoke access. Then feed your findings back into your detection rules — a good hunt makes your SIEM smarter for next time.</div>
+          </div>
+        </div>
+      </div>
+
+      <hr>
+
+      <!-- ═══ SECTION 6 ═══ -->
+      <h2 id="labs">Lab walkthroughs — 3 real scenarios</h2>
+
+      <p>These three labs gave me the most practical understanding of how hypothesis-driven hunting actually works in a SIEM. All labs were run in Wazuh. I'll share the hypothesis, my approach, and the key findings — not the full answers (do the labs yourself).</p>
+
+      <!-- LAB 1 -->
+      <div class="lab-card">
+        <div class="lab-header">
+          <span class="lab-num">Lab 01</span>
+          <span class="lab-title">Unauthorised access from DMZ server</span>
+        </div>
+        <div class="lab-body">
+          <div class="lab-hypothesis">"There may be attempts to access unauthorised servers and ports from a Linux server located in the DMZ environment."</div>
+          <div class="lab-steps">
+            <div class="lab-step"><span class="lab-step-num">01</span><span>Start with firewall logs — look for newly added rules. A rule added mid-week for SSH access to a DMZ server is immediately suspicious.</span></div>
+            <div class="lab-step"><span class="lab-step-num">02</span><span>Correlate with authentication logs on the DMZ server. High volume of SSH failed attempts followed by a successful login = brute force → success.</span></div>
+            <div class="lab-step"><span class="lab-step-num">03</span><span>After successful access — check what was installed. Yum/package manager logs show exactly what the attacker installed.</span></div>
+            <div class="lab-step"><span class="lab-step-num">04</span><span>Once you know the tool (network scanner), look at outbound traffic to see what they scanned. The attacker used the DMZ box as a pivot point to scan internal networks.</span></div>
+            <div class="lab-step"><span class="lab-step-num">05</span><span>Follow the lateral movement — from DMZ → internal network → successful SSH to an internal host. Full attack chain confirmed.</span></div>
+          </div>
+          <div class="lab-finding">
+            <strong>Attack chain:</strong> External IP brute-forced DMZ server SSH → installed nmap → scanned 10.10.10.0/24 on port 22 → brute-forced 4 internal hosts → successfully pivoted to 10.10.10.24
+          </div>
+        </div>
+      </div>
+
+      <!-- LAB 2 -->
+      <div class="lab-card">
+        <div class="lab-header">
+          <span class="lab-num">Lab 02</span>
+          <span class="lab-title">Compromised VPN account</span>
+        </div>
+        <div class="lab-body">
+          <div class="lab-hypothesis">"User accounts with VPN access may have been compromised and unauthorised access attempts may be occurring."</div>
+          <div class="lab-steps">
+            <div class="lab-step"><span class="lab-step-num">01</span><span>Find the account with the most SSL VPN failures — this is your target account. Volume of failures = likely brute force attempt.</span></div>
+            <div class="lab-step"><span class="lab-step-num">02</span><span>Check successful logins on that account — look for geographic anomalies. Login from Germany (normal) AND Mexico (suspicious) = credential compromise.</span></div>
+            <div class="lab-step"><span class="lab-step-num">03</span><span>Track the tunnel IP assigned after the suspicious login. This IP is now your pivot point for the rest of the hunt.</span></div>
+            <div class="lab-step"><span class="lab-step-num">04</span><span>From the tunnel IP, look at all outbound traffic. Port 22 dominating = SSH scanning/lateral movement.</span></div>
+            <div class="lab-step"><span class="lab-step-num">05</span><span>Map the full post-access activity. After SSH success → process discovery (T1057) → searching for specific services = targeted attack, not opportunistic.</span></div>
+          </div>
+          <div class="lab-finding">
+            <strong>Attack chain:</strong> Brute forced VPN account → logged in from Mexico → tunnel IP 10.34.1.13 → SSH'd to 10.10.10.11 → ran <code style="font-family:var(--mono);font-size:11px">ps</code> → searched for proftpd process (T1057 Process Discovery)
+          </div>
+        </div>
+      </div>
+
+      <!-- LAB 3 -->
+      <div class="lab-card">
+        <div class="lab-header">
+          <span class="lab-num">Lab 03</span>
+          <span class="lab-title">Anonymous FTP misconfiguration exploit</span>
+        </div>
+        <div class="lab-body">
+          <div class="lab-hypothesis">"Misconfigured FTP services may have left anonymous user accounts open, potentially allowing unauthorised file uploads and downloads."</div>
+          <div class="lab-steps">
+            <div class="lab-step"><span class="lab-step-num">01</span><span>Filter FTP logs for anonymous login success events. Any anonymous login that succeeds is immediately a finding.</span></div>
+            <div class="lab-step"><span class="lab-step-num">02</span><span>Identify the source IP and geo-locate it. External IP from an unexpected country accessing your internal FTP is a strong indicator.</span></div>
+            <div class="lab-step"><span class="lab-step-num">03</span><span>Find the FTP server that allowed it — check its config file for when anonymous access was enabled.</span></div>
+            <div class="lab-step"><span class="lab-step-num">04</span><span>Go backwards in time — who modified the config file? When? How did they get access to do that?</span></div>
+            <div class="lab-step"><span class="lab-step-num">05</span><span>Trace the admin SSH session that modified the config — this connects Lab 2 and Lab 3. The tunnel IP from the compromised VPN is the same source that modified the FTP config.</span></div>
+          </div>
+          <div class="lab-finding">
+            <strong>Attack chain:</strong> VPN compromise (Lab 2) → SSH to internal server → modified /etc/proftpd/proftpd.conf as root → restarted proftpd → enabled anonymous FTP → external attacker from China (111.1.2.3) accessed FTP anonymously
+          </div>
+        </div>
+      </div>
+
+      <div class="callout callout-green">
+        <span class="callout-label">The big lesson</span>
+        <strong>Labs 2 and 3 are connected.</strong> The tunnel IP from the compromised VPN account (10.34.1.13) is the same IP that SSH'd in and modified the FTP config. This is how real attacks work — one compromise enables the next. Threat hunting is about following the chain, not just finding a single anomaly.
+      </div>
+
+      <hr>
+
+      <!-- ═══ SECTION 7 ═══ -->
+      <h2 id="mitre">MITRE ATT&CK — the threat hunter's map</h2>
+
+      <p>MITRE ATT&CK is the framework that organises everything attackers do into <strong>Tactics</strong> (what they want to achieve) → <strong>Techniques</strong> (how they do it) → <strong>Procedures</strong> (specific implementation).</p>
+
+      <p>For threat hunting, the most useful thing ATT&CK gives you is a <strong>starting point for hypotheses</strong>. Pick any technique, ask "do I have the logs to detect this?", then hunt for it.</p>
+
+      <ul>
+        <li><strong>T1078</strong> — Valid Accounts → hunt for impossible travel, logins at unusual hours</li>
+        <li><strong>T1046</strong> — Network Service Scanning → hunt for port scans from internal hosts</li>
+        <li><strong>T1057</strong> — Process Discovery → hunt for <code style="font-family:var(--mono);font-size:13px">ps</code>, <code style="font-family:var(--mono);font-size:13px">tasklist</code> commands run by non-admin accounts</li>
+        <li><strong>T1021</strong> — Remote Services → hunt for SSH/RDP sessions from unexpected sources</li>
+      </ul>
+
+      <hr>
+
+      <!-- ═══ SECTION 8 ═══ -->
+      <h2 id="takeaways">Key takeaways</h2>
+
+      <ul>
+        <li><strong>Every hunt starts with a hypothesis.</strong> No hypothesis = no direction = wasted time in logs.</li>
+        <li><strong>Correlation is everything.</strong> One log source alone rarely confirms an attack. It's when you connect firewall + auth + endpoint logs that the picture becomes clear.</li>
+        <li><strong>Follow the chain.</strong> A single anomaly is interesting. Three connected anomalies across different systems is an attack.</li>
+        <li><strong>False positives are useful.</strong> They refine your hypothesis and improve your next hunt.</li>
+        <li><strong>MITRE ATT&CK is your starting point,</strong> not your answer. It tells you what to look for — your logs tell you if it's there.</li>
+        <li><strong>Document everything,</strong> even disproved hypotheses. They teach you what normal looks like.</li>
+      </ul>
+
+      <!-- ── SHARE BAR ── -->
+      <div class="share-bar">
+        <span class="share-label">Found this useful?</span>
+        <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://somnitish.github.io/nitishsom.io/blog/threat-hunting-notes.html" target="_blank" class="share-btn share-li">Share on LinkedIn</a>
+        <a href="https://twitter.com/intent/tweet?text=Threat+Hunting+notes+%E2%80%94+hypotheses%2C+IoCs%2C+lifecycle%2C+and+3+real+SIEM+labs&url=https://somnitish.github.io/nitishsom.io/blog/threat-hunting-notes.html" target="_blank" class="share-btn share-tw">Share on X</a>
+      </div>
+
+      <!-- ── DISCLAIMER ── -->
+      <div class="disclaimer">
+        <div class="disclaimer-label">Sources & disclaimer</div>
+        <p>These are my <strong>personal learning notes</strong>, written in my own words as I worked through threat hunting material. The concepts covered here — hypothesis creation, IoC-based hunting, the threat hunting lifecycle — are <strong>widely documented, publicly available security knowledge</strong> found across industry frameworks, vendor documentation, and open educational resources.</p>
+        <p>I studied across <strong>multiple sources</strong> including <a href="https://letsdefend.io" target="_blank">LetsDefend</a> (their SOC Analyst and Threat Hunting courses), the <a href="https://attack.mitre.org" target="_blank">MITRE ATT&CK framework</a>, CrowdStrike and SANS public resources, and hands-on Wazuh lab practice. Lab scenario data and question structures referenced here are <strong>my own answers and analysis</strong>, not reproduced course content.</p>
+        <p>The <strong>lab findings</strong> (IP addresses, attack chains, tool names) are the results of my own investigation within those environments — they represent my analytical work, not copied solutions or course materials.</p>
+        <p>All trademarks and product names (LetsDefend, Wazuh, SentinelOne, MITRE ATT&CK, etc.) belong to their respective owners. This post is for <strong>educational purposes only</strong> as part of my learn-in-public practice. No course materials, proprietary content, or copyrighted text has been reproduced.</p>
+        <p style="color:var(--text3);font-size:11px;font-family:var(--mono);margin-top:8px">If you are a content owner and have concerns, please contact me at the email on my contact page.</p>
+      </div>
+
+    </article>
+
+    <!-- ── TABLE OF CONTENTS SIDEBAR ── -->
+    <aside>
+      <div class="toc">
+        <div class="toc-label">On this page</div>
+        <div class="toc-links">
+          <a href="#what-is-it" class="toc-link">What is threat hunting?</a>
+          <a href="#data-sources" class="toc-link">Data sources</a>
+          <a href="#ioc" class="toc-link">IoCs</a>
+          <a href="#hypotheses" class="toc-link">Hypotheses</a>
+          <a href="#lifecycle" class="toc-link">Hunting lifecycle</a>
+          <a href="#labs" class="toc-link">Lab walkthroughs</a>
+          <a href="#labs" class="toc-link toc-sub">Lab 1 — DMZ access</a>
+          <a href="#labs" class="toc-link toc-sub">Lab 2 — VPN compromise</a>
+          <a href="#labs" class="toc-link toc-sub">Lab 3 — FTP misconfiguration</a>
+          <a href="#mitre" class="toc-link">MITRE ATT&CK</a>
+          <a href="#takeaways" class="toc-link">Key takeaways</a>
+        </div>
+      </div>
+
+      <div style="margin-top:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;box-shadow:var(--sh)">
+        <div style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px">Part of series</div>
+        <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px;letter-spacing:-.01em">Threat hunting series</div>
+        <div style="font-size:11px;color:var(--text2);line-height:1.6;margin-bottom:12px">Covering the full LetsDefend + multi-source threat hunting curriculum as I complete it.</div>
+        <div style="font-size:11px;font-weight:600;color:var(--green)">More posts coming →</div>
+      </div>
+    </aside>
+
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <div>
+      <div class="footer-logo">monkey<em>cyber</em></div>
+      <div class="footer-copy">© 2025 · All rights reserved</div>
+    </div>
+    <div class="footer-tz">IST · UTC+5:30 · Remote ready</div>
+  </div>
+</footer>
+
+<script src="../assets/data.js"></script>
+<script>
+if(P.showHireBtn) document.getElementById('hire-btn').style.display='flex';
+if(P.showAvailBadge) document.getElementById('avail-badge').style.display='flex';
+
+/* active TOC link on scroll */
+const sections = document.querySelectorAll('h2[id]');
+const tocLinks  = document.querySelectorAll('.toc-link');
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if(e.isIntersecting){
+      tocLinks.forEach(l => l.classList.remove('active'));
+      const a = document.querySelector(`.toc-link[href="#${e.target.id}"]`);
+      if(a) a.classList.add('active');
+    }
+  });
+}, { rootMargin: '-30% 0px -60% 0px' });
+sections.forEach(s => obs.observe(s));
+</script>
+</body>
+</html>

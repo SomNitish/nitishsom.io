@@ -278,6 +278,20 @@ const P = {
 
   /* ── BLOG POSTS ────────────────────────── */
   posts: [
+    /* ↓ NEW POST — added 2025-04-20 */
+    {
+      id:       "threat-hunting-notes",
+      title:    "Threat Hunting — My Notes & Learnings",
+      date:     "2025-04-20",
+      readMins: 8,
+      cat:      "Threat Hunting",
+      catColor: "green",
+      summary:  "Everything I've learned about threat hunting distilled — hypotheses, IoCs, the full lifecycle, and 3 real SIEM lab walkthroughs in Wazuh. Learning in public.",
+      tags:     ["Threat hunting","SIEM","Wazuh","MITRE ATT&CK","Hypotheses","IoC"],
+      skills:   ["threat-hunting","log-parsing","correlation-rules","mitre-mapping"],
+      linkedin: "https://linkedin.com/in/yourprofile",
+    },
+    /* ↑ END NEW POST */
     {
       id:       "suricata-wazuh-integration",
       title:    "Integrating Suricata with Wazuh — a complete step-by-step guide",
@@ -363,6 +377,8 @@ const P = {
       { id:"wazuh-siem-lab",       label:"Wazuh SIEM lab",   type:"project", cat:"siem"   },
       { id:"soar-pipeline",        label:"SOAR pipeline",    type:"project", cat:"soar"   },
       { id:"sentinelone-hyperauto",label:"S1 Hyperauto",     type:"project", cat:"edr"    },
+      // Blog posts
+      { id:"blog-threat-hunting", label:"TH Notes post", type:"blog", cat:"hunting" },
     ],
     edges: [
       // Domains → skills
@@ -384,6 +400,11 @@ const P = {
       ["soar-automation","sentinelone-hyperauto"],["ir-playbooks","sentinelone-hyperauto"],["mitre-mapping","sentinelone-hyperauto"],
       // Projects → domains
       ["wazuh-siem-lab","d-detection"],["soar-pipeline","d-automation"],["sentinelone-hyperauto","d-response"],
+      // Blog post → skills
+      ["blog-threat-hunting","threat-hunting"],
+      ["blog-threat-hunting","mitre-mapping"],
+      ["blog-threat-hunting","log-parsing"],
+      ["letsdefend-soc","blog-threat-hunting"],
     ],
   },
 };
