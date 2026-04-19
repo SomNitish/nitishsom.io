@@ -128,7 +128,7 @@ button { font-family: var(--sans); cursor: pointer; border: none; background: no
 
 /* ── hire me button (controlled by P.showHireBtn) ── */
 #hire-btn {
-  display: none;
+  display: none; /* off by default — flip P.showHireBtn to show */
   align-items: center; gap: 7px;
   background: var(--text); color: var(--bg);
   font-size: 12px; font-weight: 600; letter-spacing: -.01em;
@@ -145,7 +145,7 @@ button { font-family: var(--sans); cursor: pointer; border: none; background: no
   50% { opacity: .4; transform: scale(.8); }
 }
 
-/* open to work badge */
+/* open to work badge (always visible when showAvailBadge: true) */
 #avail-badge {
   display: none;
   align-items: center; gap: 6px;
@@ -634,15 +634,17 @@ button { font-family: var(--sans); cursor: pointer; border: none; background: no
 <nav class="nav">
   <div class="container nav-inner">
     <div class="nav-logo">monkin<em>cyber</em></div>
-    <div class="nav-links">
-      <a href="#about" class="active">About</a>
-      <a href="#experience">Experience</a>
-      <a href="#stack">Stack</a>
-      <a href="#projects">Projects</a>
-      <a href="#certs">Certs</a>
-      <a href="#blog">Blog</a>
-      <a href="#contact">Contact</a>
-    </div>
+
+<div class="nav-links">
+  <a href="#about">About</a>
+  <a href="#experience">Experience</a>
+  <a href="#stack">Stack</a>
+  <a href="#projects">Projects</a>
+  <a href="#certs">Certs</a>
+  <a href="blog/index.html">Blog</a>
+  <a href="knowledge-graph.html">Graph</a>
+  <a href="#contact">Contact</a>
+</div>
     <div class="nav-right">
       <div id="avail-badge"><span class="pulse"></span>Open to remote</div>
       <button id="hire-btn"><span class="pulse"></span>Hire me</button>
@@ -696,6 +698,7 @@ button { font-family: var(--sans); cursor: pointer; border: none; background: no
 ══════════════════════════════════════════ -->
 <div class="marquee-wrap">
   <div class="marquee-track">
+    <!-- duplicated for seamless loop -->
     <span class="marquee-item"><span class="marquee-dot"></span>SentinelOne</span>
     <span class="marquee-item"><span class="marquee-dot"></span>Wazuh</span>
     <span class="marquee-item"><span class="marquee-dot"></span>Suricata</span>
@@ -881,6 +884,8 @@ button { font-family: var(--sans); cursor: pointer; border: none; background: no
     </div>
 
     <div class="stack-categories">
+
+      <!-- EDR / Endpoint -->
       <div>
         <div class="stack-cat-label">EDR · Endpoint security</div>
         <div class="stack-items">
@@ -902,6 +907,8 @@ button { font-family: var(--sans); cursor: pointer; border: none; background: no
           </div>
         </div>
       </div>
+
+      <!-- SIEM / XDR -->
       <div>
         <div class="stack-cat-label">SIEM · XDR · Log analysis</div>
         <div class="stack-items">
@@ -931,6 +938,8 @@ button { font-family: var(--sans); cursor: pointer; border: none; background: no
           </div>
         </div>
       </div>
+
+      <!-- SOAR & Automation -->
       <div>
         <div class="stack-cat-label">SOAR · Automation</div>
         <div class="stack-items">
@@ -960,6 +969,8 @@ button { font-family: var(--sans); cursor: pointer; border: none; background: no
           </div>
         </div>
       </div>
+
+      <!-- Network / NDR -->
       <div>
         <div class="stack-cat-label">Network security · NDR · IDS</div>
         <div class="stack-items">
@@ -981,6 +992,8 @@ button { font-family: var(--sans); cursor: pointer; border: none; background: no
           </div>
         </div>
       </div>
+
+      <!-- Scripting languages -->
       <div>
         <div class="stack-cat-label">Scripting · Learning in progress</div>
         <div class="stack-items">
@@ -1010,6 +1023,8 @@ button { font-family: var(--sans); cursor: pointer; border: none; background: no
           </div>
         </div>
       </div>
+
+      <!-- Frameworks -->
       <div>
         <div class="stack-cat-label">Frameworks · Methodologies</div>
         <div class="stack-items">
@@ -1020,6 +1035,8 @@ button { font-family: var(--sans); cursor: pointer; border: none; background: no
           <div class="stack-item"><div class="stack-icon si-proc">⚔</div>Kill Chain</div>
         </div>
       </div>
+
+      <!-- Process tools -->
       <div>
         <div class="stack-cat-label">Process · Documentation · Ticketing</div>
         <div class="stack-items">
@@ -1028,6 +1045,7 @@ button { font-family: var(--sans); cursor: pointer; border: none; background: no
           <div class="stack-item"><div class="stack-icon si-cloud">📄</div>SOP design</div>
         </div>
       </div>
+
     </div>
   </div>
 </section>
@@ -1145,21 +1163,35 @@ button { font-family: var(--sans); cursor: pointer; border: none; background: no
     </div>
     <div class="certs-grid">
 
-      <a href="/certifications/sentinelone.html" style="text-decoration:none;display:block;">
-        <div class="cert-card" style="cursor:pointer;">
-          <div class="cert-top">
-            <div>
-              <div class="cert-vendor-badge" style="background:#F0FDF4;color:#15803D;font-size:11px">S1</div>
-            </div>
-            <span class="cert-status cs-active">Active</span>
-          </div>
+      <!-- <div class="cert-card">
+        <div class="cert-top">
           <div>
-            <div class="cert-name">SentinelOne Certified Professional</div>
-            <div class="cert-issuer">SentinelOne</div>
+            <div class="cert-vendor-badge" style="background:#F0FDF4;color:#15803D;font-size:11px">S1</div>
           </div>
-          <div class="cert-year">2024 · View details →</div>
+          <span class="cert-status cs-active">Active</span>
         </div>
-      </a>
+        <div>
+          <div class="cert-name">SentinelOne Certified Professional</div>
+          <div class="cert-issuer">SentinelOne</div>
+        </div>
+        <div class="cert-year">2024</div>
+      </div> -->
+
+      <a href="/certifications/sentinelone.html" style="text-decoration:none;display:block;">
+  <div class="cert-card" style="cursor:pointer;">
+    <div class="cert-top">
+      <div>
+        <div class="cert-vendor-badge" style="background:#F0FDF4;color:#15803D;font-size:11px">S1</div>
+      </div>
+      <span class="cert-status cs-active">Active</span>
+    </div>
+    <div>
+      <div class="cert-name">SentinelOne Certified Professional</div>
+      <div class="cert-issuer">SentinelOne</div>
+    </div>
+    <div class="cert-year">2024 · View details →</div>
+  </div>
+</a>
 
       <div class="cert-card">
         <div class="cert-top">
@@ -1252,23 +1284,6 @@ button { font-family: var(--sans); cursor: pointer; border: none; background: no
       <a href="#" class="btn-secondary" style="font-size:13px;padding:10px 20px">All posts →</a>
     </div>
     <div class="blog-grid">
-
-      <!-- ↓ NEW — Threat Hunting Notes (added 2025-04-20) -->
-      <a href="/blog/threat-hunting-notes.html" style="text-decoration:none;color:inherit;">
-        <div class="blog-card">
-          <div class="blog-thumb" style="background:linear-gradient(135deg,#F0FDF4,#DCFCE7)">
-            <span class="blog-tag">Threat Hunting</span>
-          </div>
-          <div class="blog-body">
-            <div class="blog-title">Threat Hunting — My Notes & Learnings</div>
-            <div class="blog-meta">
-              <span class="blog-date">Apr 2025 · 8 min</span>
-              <span class="blog-read">Read →</span>
-            </div>
-          </div>
-        </div>
-      </a>
-      <!-- ↑ END NEW -->
 
       <div class="blog-card">
         <div class="blog-thumb" style="background:linear-gradient(135deg,#F0FDF4,#DCFCE7)">
@@ -1392,6 +1407,7 @@ button { font-family: var(--sans); cursor: pointer; border: none; background: no
   <div class="container site-footer">
     <div class="footer-left">
       <div class="footer-logo">monkin<em>cyber</em></div>
+
       <div class="footer-copy">© 2025 — Built with HTML, CSS & GitHub Pages</div>
     </div>
     <div class="footer-tz">IST · UTC+5:30 · Remote ready</div>
@@ -1402,19 +1418,35 @@ button { font-family: var(--sans); cursor: pointer; border: none; background: no
      JAVASCRIPT
 ══════════════════════════════════════════ -->
 <script>
+/* ════════════════════════════════════════
+   PORTFOLIO CONFIG — edit only this object
+════════════════════════════════════════ */
 const P = {
   name:           "monkincyber",
+
+  /* ── visibility flags ─────────────────
+     showHireBtn:    flip to true when actively job hunting
+     showAvailBadge: green "Open to remote" badge in nav
+     To deploy change: edit flag → git add . → git commit → git push
+  ─────────────────────────────────────── */
   showHireBtn:    false,
   showAvailBadge: true,
 };
 
+/* ════════════════════════════════════════
+   APPLY VISIBILITY FLAGS
+════════════════════════════════════════ */
 (function applyFlags() {
-  const hireBtn    = document.getElementById('hire-btn');
+  const hireBtn   = document.getElementById('hire-btn');
   const availBadge = document.getElementById('avail-badge');
+
   if (P.showHireBtn)    hireBtn.style.display    = 'flex';
   if (P.showAvailBadge) availBadge.style.display = 'flex';
 })();
 
+/* ════════════════════════════════════════
+   ACTIVE NAV LINK ON SCROLL
+════════════════════════════════════════ */
 const sections = document.querySelectorAll('section[id], div[id]');
 const navLinks = document.querySelectorAll('.nav-links a');
 const observer = new IntersectionObserver(entries => {
@@ -1428,6 +1460,9 @@ const observer = new IntersectionObserver(entries => {
 }, { rootMargin: '-50% 0px -50% 0px' });
 sections.forEach(s => observer.observe(s));
 
+/* ════════════════════════════════════════
+   FADE-UP ANIMATION ON SCROLL
+════════════════════════════════════════ */
 const fadeEls = document.querySelectorAll('.fade-up');
 const fadeObserver = new IntersectionObserver(entries => {
   entries.forEach(e => {
@@ -1439,6 +1474,10 @@ const fadeObserver = new IntersectionObserver(entries => {
 }, { threshold: 0.1 });
 fadeEls.forEach(el => fadeObserver.observe(el));
 
+/* ════════════════════════════════════════
+   STACK ITEM HOVER — subtle lift already
+   handled by CSS, JS just for analytics hook
+════════════════════════════════════════ */
 document.querySelectorAll('.stack-item').forEach(el => {
   el.style.cursor = 'default';
 });

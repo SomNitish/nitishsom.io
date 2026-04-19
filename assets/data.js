@@ -279,18 +279,18 @@ const P = {
   /* ── BLOG POSTS ────────────────────────── */
   posts: [
     /* ↓ NEW POST — added 2025-04-20 */
-    {
-      id:       "threat-hunting-notes",
-      title:    "Threat Hunting — My Notes & Learnings",
-      date:     "2025-04-20",
-      readMins: 8,
-      cat:      "Threat Hunting",
-      catColor: "green",
-      summary:  "Everything I've learned about threat hunting distilled — hypotheses, IoCs, the full lifecycle, and 3 real SIEM lab walkthroughs in Wazuh. Learning in public.",
-      tags:     ["Threat hunting","SIEM","Wazuh","MITRE ATT&CK","Hypotheses","IoC"],
-      skills:   ["threat-hunting","log-parsing","correlation-rules","mitre-mapping"],
-      linkedin: "https://linkedin.com/in/yourprofile",
-    },
+  {
+    id:       "threat-hunting-notes",
+    title:    "Threat Hunting — My Notes & Learnings",
+    date:     "2025-04-20",
+    readMins: 8,
+    cat:      "Threat Hunting",
+    catColor: "green",
+    summary:  "Hypotheses, IoCs, the full lifecycle, and 3 real Wazuh lab walkthroughs. Learning in public.",
+    tags:     ["Threat hunting","SIEM","Wazuh","MITRE ATT&CK"],
+    skills:   ["threat-hunting","log-parsing","mitre-mapping"],
+    linkedin: "https://linkedin.com/in/yourprofile",
+  },
     /* ↑ END NEW POST */
     {
       id:       "suricata-wazuh-integration",
