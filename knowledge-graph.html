@@ -3,474 +3,300 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Knowledge Graph — monkincyber</title>
+<base href="/nitishsom.io/">
+<title>Knowledge Graph — Nitish Som</title>
 <link rel="stylesheet" href="assets/shared.css">
+<script src="https://d3js.org/d3.v7.min.js"></script>
 <style>
-html,body{height:100%;overflow:hidden}
-.graph-page{display:flex;flex-direction:column;height:100vh}
-
-/* ── topbar ── */
-.g-topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-shrink:0;z-index:10}
-.g-back{font-family:var(--mono);font-size:11px;color:var(--text3);display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:var(--rp);background:var(--bg2);border:1px solid var(--border);transition:all .15s;text-decoration:none}
-.g-back:hover{color:var(--text);border-color:var(--border2)}
-.g-title{font-size:13px;font-weight:700;color:var(--text);letter-spacing:-.02em}
-.g-sub{font-size:11px;color:var(--text3);margin-top:1px}
-.legend{display:flex;gap:14px;flex-wrap:wrap}
-.leg{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)}
-.leg-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
-
-/* ── filters ── */
-.g-filters{background:var(--bg2);border-bottom:1px solid var(--border);padding:8px 16px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;flex-shrink:0}
-.gf-label{font-family:var(--mono);font-size:10px;color:var(--text3);margin-right:2px;text-transform:uppercase;letter-spacing:.06em}
-.gf-pill{padding:4px 12px;border-radius:var(--rp);font-size:11px;font-weight:500;border:1px solid var(--border);color:var(--text2);background:var(--surface);cursor:pointer;transition:all .15s}
-.gf-pill:hover{border-color:var(--border2);color:var(--text)}
-.gf-pill.on{background:var(--text);color:var(--bg);border-color:var(--text)}
-
-/* ── canvas ── */
-.g-wrap{flex:1;position:relative;overflow:hidden}
-#gc{display:block;width:100%;height:100%}
-
-/* ── tooltip ── */
-.g-tt{position:absolute;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:13px 15px;pointer-events:none;opacity:0;transition:opacity .12s;max-width:240px;box-shadow:var(--sh-lg);z-index:20}
-.gtt-name{font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px;letter-spacing:-.02em}
-.gtt-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:var(--rp);display:inline-block;margin-bottom:7px;text-transform:uppercase;letter-spacing:.04em}
-.gtt-desc{font-size:11px;color:var(--text2);line-height:1.6;margin-bottom:6px;font-weight:300}
-.gtt-conns{font-family:var(--mono);font-size:10px;color:var(--text3)}
-.gtt-hint{font-size:10px;color:var(--green);margin-top:5px;font-weight:600}
-
-/* ── detail panel ── */
-.g-panel{position:absolute;top:0;right:0;width:300px;height:100%;background:var(--surface);border-left:1px solid var(--border);transform:translateX(100%);transition:transform .22s ease;overflow-y:auto;z-index:15;display:flex;flex-direction:column}
-.g-panel.open{transform:translateX(0)}
-.gp-head{padding:18px;border-bottom:1px solid var(--border);background:var(--bg2);flex-shrink:0}
-.gp-close{float:right;font-size:20px;color:var(--text3);cursor:pointer;line-height:1;transition:color .15s}
-.gp-close:hover{color:var(--text)}
-.gp-type{font-size:10px;font-weight:700;padding:3px 9px;border-radius:var(--rp);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px;display:inline-block}
-.gp-name{font-size:16px;font-weight:800;color:var(--text);letter-spacing:-.03em;margin-bottom:6px;line-height:1.2;clear:both}
-.gp-desc{font-size:12px;font-weight:300;color:var(--text2);line-height:1.6}
-.gp-body{padding:16px;flex:1}
-.gp-sec-label{font-family:var(--mono);font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;margin-top:18px;padding-bottom:6px;border-bottom:1px solid var(--border)}
-.gp-sec-label:first-child{margin-top:0}
-.gp-item{display:flex;align-items:flex-start;gap:8px;padding:9px 10px;border-radius:8px;background:var(--bg2);border:1px solid var(--border);margin-bottom:6px;cursor:pointer;transition:all .15s;text-decoration:none}
-.gp-item:hover{border-color:var(--border2);background:var(--surface)}
-.gp-item-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:3px}
-.gp-item-name{font-size:12px;font-weight:500;color:var(--text);letter-spacing:-.01em}
-.gp-item-type{font-size:10px;color:var(--text3);margin-top:1px;font-family:var(--mono)}
-.gp-impact{font-family:var(--mono);font-size:11px;color:var(--green-t);background:var(--green-l);border:1px solid var(--green-b);padding:8px 10px;border-radius:8px;margin:8px 0}
-.gp-btn{display:block;text-align:center;padding:9px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:7px;transition:all .15s;cursor:pointer;text-decoration:none}
-.gp-btn:hover,.gp-btn.primary{background:var(--text);color:var(--bg);border-color:var(--text)}
-.gp-btn.primary:hover{opacity:.8}
+.graph-hero{padding:64px 0 48px;border-bottom:1px solid var(--border)}
+.graph-h1{font-size:clamp(32px,5vw,52px);font-weight:800;letter-spacing:-.04em;line-height:1.1;color:var(--text);margin-bottom:12px}
+.graph-sub{font-size:16px;font-weight:300;color:var(--text2);line-height:1.7;max-width:580px}
+.graph-container{position:relative;width:100%;height:700px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;box-shadow:var(--sh)}
+#graph-svg{width:100%;height:100%}
+.graph-legend{position:absolute;top:16px;right:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:14px;box-shadow:var(--sh);z-index:10}
+.legend-title{font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}
+.legend-item{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:12px;color:var(--text2)}
+.legend-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+.graph-controls{position:absolute;bottom:16px;left:16px;display:flex;gap:8px;z-index:10}
+.graph-btn{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:8px 14px;font-size:11px;font-weight:600;color:var(--text2);cursor:pointer;font-family:var(--sans);transition:all .15s;box-shadow:var(--sh)}
+.graph-btn:hover{background:var(--text);color:var(--bg);border-color:var(--text)}
+.node{cursor:pointer;transition:all .2s}
+.node:hover{stroke-width:3px !important}
+.node-label{font-family:var(--sans);font-size:11px;font-weight:500;fill:var(--text);pointer-events:none;text-anchor:middle;user-select:none}
+.link{stroke:var(--border2);stroke-opacity:0.6;stroke-width:1.5px}
+.link.active{stroke:var(--green);stroke-opacity:1;stroke-width:2.5px}
+.tooltip{position:absolute;background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:10px 14px;box-shadow:var(--sh-md);pointer-events:none;z-index:100;opacity:0;transition:opacity .2s;font-size:12px;color:var(--text)}
+.tooltip.show{opacity:1}
+.error-msg{padding:80px 40px;text-align:center;color:var(--red);font-size:14px}
+@media(max-width:768px){.graph-container{height:500px}.graph-legend{position:static;margin-bottom:16px}}
 </style>
 </head>
 <body>
-<div class="graph-page">
-  <div class="g-topbar">
-    <div style="display:flex;align-items:center;gap:14px">
-      <a href="index.html" class="g-back">← Portfolio</a>
-      <div>
-        <div class="g-title">Knowledge graph</div>
-        <div class="g-sub">Every skill, cert, and project — and how they connect</div>
-      </div>
-    </div>
-    <div class="legend">
-      <div class="leg"><div class="leg-dot" style="background:#7C3AED"></div>Domain</div>
-      <div class="leg"><div class="leg-dot" style="background:#6366F1"></div>Skill</div>
-      <div class="leg"><div class="leg-dot" style="background:#16A34A"></div>Cert</div>
-      <div class="leg"><div class="leg-dot" style="background:#2563EB"></div>Project</div>
-    </div>
-  </div>
 
-  <div class="g-filters">
-    <span class="gf-label">Show:</span>
-    <div class="gf-pill on" onclick="setFilter('all',this)">Everything</div>
-    <div class="gf-pill" onclick="setFilter('cert-to-skill',this)">Cert → Skill</div>
-    <div class="gf-pill" onclick="setFilter('skill-to-project',this)">Skill → Project</div>
-    <div class="gf-pill" onclick="setFilter('detection',this)">Detection</div>
-    <div class="gf-pill" onclick="setFilter('response',this)">Response</div>
-    <div class="gf-pill" onclick="setFilter('automation',this)">Automation</div>
-    <div class="gf-pill" onclick="setFilter('network',this)">Networking</div>
+<nav class="site-nav">
+  <div class="container nav-inner">
+    <a href="index.html" class="nav-logo"><span class="nav-logo-dot"></span>Nitish <em>Som</em></a>
+    <div class="nav-links">
+      <a href="index.html#about">About</a>
+      <a href="index.html#experience">Experience</a>
+      <a href="topics/index.html">Topics</a>
+      <a href="index.html#projects">Projects</a>
+      <a href="certifications/index.html">Certs</a>
+      <a href="blog/index.html">Blog</a>
+      <a href="roadmap.html">Roadmap</a>
+    </div>
+    <div class="nav-right">
+      <button class="cmdk-btn"><span>Search</span><kbd>⌘K</kbd></button>
+      <div id="avail-badge"><span class="pulse"></span>Open to remote</div>
+    </div>
   </div>
+</nav>
 
-  <div class="g-wrap">
-    <canvas id="gc"></canvas>
-    <div class="g-tt" id="gtt">
-      <div class="gtt-name" id="gtt-name"></div>
-      <div class="gtt-badge" id="gtt-badge"></div>
-      <div class="gtt-desc" id="gtt-desc"></div>
-      <div class="gtt-conns" id="gtt-conns"></div>
-      <div class="gtt-hint">Click to explore →</div>
-    </div>
-    <div class="g-panel" id="gpanel">
-      <div class="gp-head">
-        <span class="gp-close" onclick="closePanel()">×</span>
-        <div class="gp-type" id="gp-type"></div>
-        <div class="gp-name" id="gp-name"></div>
-        <div class="gp-desc" id="gp-desc"></div>
+<section class="graph-hero">
+  <div class="container fu">
+    <div class="eyebrow">Knowledge Graph</div>
+    <h1 class="graph-h1">How everything connects.</h1>
+    <p class="graph-sub">Interactive visualization showing how domains lead to skills, skills lead to certifications, and certifications lead to projects. Click any node to highlight its connections.</p>
+  </div>
+</section>
+
+<section class="section" style="border:none">
+  <div class="container fu">
+    <div class="graph-container">
+      <div class="graph-legend">
+        <div class="legend-title">Legend</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#16A34A"></div>Domains</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#2563EB"></div>Skills</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#7C3AED"></div>Certifications</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#D97706"></div>Projects</div>
       </div>
-      <div class="gp-body" id="gp-body"></div>
+      <div class="graph-controls">
+        <button class="graph-btn" onclick="resetGraph()">Reset View</button>
+        <button class="graph-btn" onclick="toggleLabels()">Toggle Labels</button>
+      </div>
+      <svg id="graph-svg"></svg>
+      <div class="tooltip" id="tooltip"></div>
     </div>
   </div>
-</div>
+</section>
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <div class="footer-left">
+      <div class="footer-logo">Nitish <em>Som</em></div>
+      <div class="footer-copy">© 2025 · monkincyber</div>
+    </div>
+    <div class="footer-links">
+      <a href="topics/index.html">Topics</a>
+      <a href="roadmap.html">Roadmap</a>
+      <a href="sitemap.html">Sitemap</a>
+      <a href="knowledge-graph.html">Knowledge graph</a>
+    </div>
+    <div class="footer-tz">IST · UTC+5:30</div>
+  </div>
+</footer>
 
 <script src="assets/data.js"></script>
+<script src="assets/cmdk.js"></script>
 <script>
-/* ════════════════════════════════════════
-   GRAPH ENGINE
-════════════════════════════════════════ */
-const canvas = document.getElementById('gc');
-const ctx    = canvas.getContext('2d');
-const tt     = document.getElementById('gtt');
-const panel  = document.getElementById('gpanel');
+try {
+  if(P.showAvailBadge)document.getElementById('avail-badge').style.display='flex';
 
-const dark = window.matchMedia('(prefers-color-scheme:dark)').matches;
-const C = {
-  bg:     dark?'#111110':'#FAFAF8',
-  surf:   dark?'#1F1E1B':'#FFFFFF',
-  border: dark?'#2E2C26':'#E8E6DF',
-  text:   dark?'#EEECEA':'#1A1916',
-  text2:  dark?'#948F86':'#6B6860',
-  text3:  dark?'#5A5750':'#B0ADA4',
-  edge:   dark?'#3D3A32':'#D6D3C8',
-  edgeHi: dark?'#818CF8':'#6366F1',
-};
+  // Check if data exists
+  if(!P || !P.graph || !P.graph.nodes || !P.graph.edges){
+    throw new Error('Graph data not found in data.js');
+  }
 
-const TCFG = {
-  domain:  {color:'#7C3AED', r:26},
-  skill:   {color:'#6366F1', r:19},
-  cert:    {color:'#16A34A', r:21},
-  project: {color:'#2563EB', r:21},
-  tool:    {color:'#D97706', r:16},
-};
-const TLABEL = {domain:'Domain',skill:'Skill',cert:'Certification',project:'Project',tool:'Tool'};
+  // Build graph data from P.graph
+  const nodes = P.graph.nodes.map(n => ({...n}));
+  const links = P.graph.edges.map(([source, target]) => ({source, target}));
 
-/* build nodes from P */
-let nodes = JSON.parse(JSON.stringify(P.graph.nodes));
-let edges = JSON.parse(JSON.stringify(P.graph.edges));
-const W0=900, H0=660;
+  if(nodes.length === 0){
+    throw new Error('No nodes found in graph data');
+  }
 
-/* position domains in a ring, others scattered */
-const doms = nodes.filter(n=>n.type==='domain');
-doms.forEach((n,i)=>{
-  const a=(i/doms.length)*Math.PI*2 - Math.PI/2;
-  n.x=W0/2+Math.cos(a)*200; n.y=H0/2+Math.sin(a)*160;
-});
-nodes.filter(n=>n.type!=='domain').forEach(n=>{
-  n.x=W0/2+(Math.random()-.5)*520;
-  n.y=H0/2+(Math.random()-.5)*380;
-});
-nodes.forEach(n=>{ n.vx=0; n.vy=0; });
+  console.log(`Loading graph with ${nodes.length} nodes and ${links.length} links`);
 
-/* force layout */
-function tick(){
-  const vis=new Set(visNodes().map(n=>n.id));
-  nodes.forEach(a=>{
-    if(!vis.has(a.id))return;
-    nodes.forEach(b=>{
-      if(a===b||!vis.has(b.id))return;
-      const dx=a.x-b.x,dy=a.y-b.y,d=Math.sqrt(dx*dx+dy*dy)||1;
-      const f=Math.min(3200,3200/(d*d));
-      a.vx+=dx/d*f; a.vy+=dy/d*f;
+  // Color mapping
+  const colorMap = {
+    domain: '#16A34A',
+    skill: '#2563EB',
+    cert: '#7C3AED',
+    project: '#D97706'
+  };
+
+  // Setup SVG
+  const svg = d3.select('#graph-svg');
+  const width = document.getElementById('graph-svg').clientWidth;
+  const height = document.getElementById('graph-svg').clientHeight;
+
+  const g = svg.append('g');
+
+  // Zoom behavior
+  const zoom = d3.zoom()
+    .scaleExtent([0.3, 3])
+    .on('zoom', (event) => {
+      g.attr('transform', event.transform);
     });
-  });
-  edges.forEach(([s,t])=>{
-    const a=nodes.find(n=>n.id===s),b=nodes.find(n=>n.id===t);
-    if(!a||!b||!vis.has(a.id)||!vis.has(b.id))return;
-    const dx=b.x-a.x,dy=b.y-a.y,d=Math.sqrt(dx*dx+dy*dy)||1;
-    const ideal=150,f=(d-ideal)*0.045;
-    a.vx+=dx/d*f; a.vy+=dy/d*f;
-    b.vx-=dx/d*f; b.vy-=dy/d*f;
-  });
-  nodes.forEach(n=>{
-    n.vx*=.76; n.vy*=.76;
-    n.x+=n.vx; n.y+=n.vy;
-    n.x=Math.max(36,Math.min(W0-36,n.x));
-    n.y=Math.max(36,Math.min(H0-36,n.y));
-  });
-}
-for(let i=0;i<220;i++)tick();
 
-/* state */
-let sc=1,ox=0,oy=0,drag=false,lx=0,ly=0;
-let hov=null,sel=null,filter='all',simT=0,simOn=true;
+  svg.call(zoom);
 
-function visNodes(){
-  if(filter==='all')return nodes;
-  if(filter==='cert-to-skill')return nodes.filter(n=>['cert','skill','domain'].includes(n.type));
-  if(filter==='skill-to-project')return nodes.filter(n=>['skill','project','domain'].includes(n.type));
-  const catMap={detection:['detection'],response:['response'],automation:['automation'],network:['network','net']};
-  const cats=catMap[filter]||[filter];
-  return nodes.filter(n=>n.type==='domain'||cats.some(c=>n.cat&&n.cat.includes(c))||
-    edges.some(([s,t])=>{
-      const dn=nodes.find(x=>x.id===s&&x.type==='domain'&&cats.some(c=>x.cat&&x.cat.includes(c)));
-      return dn&&(t===n.id);
-    }));
-}
+  // Force simulation
+  const simulation = d3.forceSimulation(nodes)
+    .force('link', d3.forceLink(links).id(d => d.id).distance(80))
+    .force('charge', d3.forceManyBody().strength(-300))
+    .force('center', d3.forceCenter(width / 2, height / 2))
+    .force('collision', d3.forceCollide().radius(30));
 
-function connOf(id){
-  const s=new Set();
-  edges.forEach(([a,b])=>{ if(a===id)s.add(b); if(b===id)s.add(a); });
-  return s;
-}
+  // Draw links
+  const link = g.append('g')
+    .selectAll('line')
+    .data(links)
+    .join('line')
+    .attr('class', 'link');
 
-function toS(x,y){
-  return [(x+ox)*sc+canvas.width/2-W0*sc/2, (y+oy)*sc+canvas.height/2-H0*sc/2];
-}
-function toW(sx,sy){
-  return [(sx-canvas.width/2+W0*sc/2)/sc-ox, (sy-canvas.height/2+H0*sc/2)/sc-oy];
-}
+  // Draw nodes
+  const node = g.append('g')
+    .selectAll('circle')
+    .data(nodes)
+    .join('circle')
+    .attr('class', 'node')
+    .attr('r', d => d.type === 'domain' ? 18 : d.type === 'skill' ? 12 : d.type === 'cert' ? 14 : 16)
+    .attr('fill', d => colorMap[d.type] || '#999')
+    .attr('stroke', '#fff')
+    .attr('stroke-width', 2)
+    .call(d3.drag()
+      .on('start', dragstarted)
+      .on('drag', dragged)
+      .on('end', dragended))
+    .on('click', highlightConnections)
+    .on('mouseenter', showTooltip)
+    .on('mouseleave', hideTooltip);
 
-function draw(){
-  const W=canvas.width,H=canvas.height;
-  ctx.clearRect(0,0,W,H);
-  ctx.fillStyle=C.bg; ctx.fillRect(0,0,W,H);
-  const vis=new Set(visNodes().map(n=>n.id));
-  const hiC=sel?connOf(sel.id):null;
-  const hiE=new Set();
-  if(sel)edges.forEach(([a,b],i)=>{
-    if((a===sel.id||b===sel.id)&&vis.has(a)&&vis.has(b)){hiE.add(i);if(hiC){hiC.add(a);hiC.add(b);}}
-  });
+  // Draw labels
+  let showLabels = true;
+  const labels = g.append('g')
+    .selectAll('text')
+    .data(nodes)
+    .join('text')
+    .attr('class', 'node-label')
+    .attr('dy', d => d.type === 'domain' ? 26 : d.type === 'skill' ? 20 : d.type === 'cert' ? 22 : 24)
+    .text(d => d.label.length > 15 ? d.label.substring(0, 15) + '...' : d.label);
 
-  /* edges */
-  edges.forEach(([a,b],i)=>{
-    const na=nodes.find(n=>n.id===a),nb=nodes.find(n=>n.id===b);
-    if(!na||!nb||!vis.has(a)||!vis.has(b))return;
-    const [ax,ay]=toS(na.x,na.y),[bx,by]=toS(nb.x,nb.y);
-    const hi=sel?hiE.has(i):true;
-    ctx.beginPath(); ctx.moveTo(ax,ay); ctx.lineTo(bx,by);
-    ctx.strokeStyle=hi?(sel?C.edgeHi:C.edge):C.edge;
-    ctx.globalAlpha=hi?(sel?.62:.28):.06;
-    ctx.lineWidth=hi&&sel?1.6:.75;
-    ctx.stroke(); ctx.globalAlpha=1;
+  // Update positions on tick
+  simulation.on('tick', () => {
+    link
+      .attr('x1', d => d.source.x)
+      .attr('y1', d => d.source.y)
+      .attr('x2', d => d.target.x)
+      .attr('y2', d => d.target.y);
+
+    node
+      .attr('cx', d => d.x)
+      .attr('cy', d => d.y);
+
+    labels
+      .attr('x', d => d.x)
+      .attr('y', d => d.y);
   });
 
-  /* nodes */
-  nodes.forEach(n=>{
-    if(!vis.has(n.id))return;
-    const [sx,sy]=toS(n.x,n.y);
-    const cfg=TCFG[n.type]||TCFG.skill;
-    const r=cfg.r*Math.min(sc*1.1,1.5);
-    const isH=hov===n,isS=sel===n;
-    const dim=sel&&hiC&&!hiC.has(n.id)&&n!==sel;
-    ctx.globalAlpha=dim?.15:1;
-    /* glow */
-    ctx.beginPath(); ctx.arc(sx,sy,r+5,0,Math.PI*2);
-    ctx.fillStyle=cfg.color;
-    ctx.globalAlpha=dim?.02:(isS?.18:isH?.1:.06);
-    ctx.fill(); ctx.globalAlpha=dim?.15:1;
-    /* bg */
-    ctx.beginPath(); ctx.arc(sx,sy,r,0,Math.PI*2);
-    ctx.fillStyle=C.surf; ctx.fill();
-    ctx.strokeStyle=cfg.color;
-    ctx.lineWidth=isS?2.5:isH?2:1.2; ctx.stroke();
-    /* inner */
-    ctx.beginPath(); ctx.arc(sx,sy,r*.52,0,Math.PI*2);
-    ctx.fillStyle=cfg.color;
-    ctx.globalAlpha=dim?.15:(isS?1:.8); ctx.fill(); ctx.globalAlpha=1;
-    /* label */
-    const fs=Math.max(9,Math.min(11,10*sc));
-    const lbl=n.label.length>17?n.label.slice(0,15)+'…':n.label;
-    ctx.font=`${isS?500:400} ${fs}px Sora,sans-serif`;
-    ctx.fillStyle=isS?C.text:C.text2;
-    ctx.textAlign='center';
-    ctx.globalAlpha=dim?.2:1;
-    ctx.fillText(lbl,sx,sy+r+13); ctx.globalAlpha=1;
-  });
-}
-
-/* tooltip */
-function showTT(n,sx,sy){
-  const cfg=TCFG[n.type]||TCFG.skill;
-  const tC={domain:'#7C3AED22',skill:'#6366F122',cert:'#16A34A22',project:'#2563EB22'};
-  document.getElementById('gtt-name').textContent=n.label;
-  const b=document.getElementById('gtt-badge');
-  b.textContent=TLABEL[n.type]||n.type;
-  b.style.background=tC[n.type]||'#88888822';
-  b.style.color=cfg.color;
-  let desc='';
-  if(n.type==='cert'){const c=P.certs.find(x=>x.id===n.id);if(c)desc=c.summary||'';}
-  else if(n.type==='skill'){const s=P.skills.find(x=>x.id===n.id);if(s)desc=s.desc||'';}
-  else if(n.type==='project'){const p=P.projects.find(x=>x.id===n.id);if(p)desc=p.tagline||'';}
-  document.getElementById('gtt-desc').textContent=desc.slice(0,90)+(desc.length>90?'…':'');
-  const cc=connOf(n.id).size;
-  document.getElementById('gtt-conns').textContent=`${cc} connection${cc!==1?'s':''}`;
-  const pw=canvas.parentElement.clientWidth;
-  const pct=sx/pw;
-  tt.style.left=pct>.58?'auto':(sx/pw*100+2)+'%';
-  tt.style.right=pct>.58?((1-sx/pw)*100+2)+'%':'auto';
-  tt.style.top=Math.min(sy/canvas.parentElement.clientHeight*100+3,60)+'%';
-  tt.style.opacity='1';
-}
-
-/* panel */
-function openPanel(n){
-  const cfg=TCFG[n.type]||TCFG.skill;
-  const tp=document.getElementById('gp-type');
-  tp.textContent=TLABEL[n.type]||n.type;
-  tp.style.background=cfg.color+'22'; tp.style.color=cfg.color;
-  document.getElementById('gp-name').textContent=n.label;
-  let desc='',body='';
-  const cc=[...connOf(n.id)].map(id=>nodes.find(x=>x.id===id)).filter(Boolean);
-
-  if(n.type==='cert'){
-    const c=P.certs.find(x=>x.id===n.id);
-    if(c){
-      desc=c.summary||'';
-      const skills=(c.learned||[]).map(sid=>{
-        const s=P.skills.find(x=>x.id===sid);
-        return s?`<div class="gp-item" onclick="focusNode('${s.id}')"><div class="gp-item-dot" style="background:#6366F1"></div><div><div class="gp-item-name">${s.name}</div><div class="gp-item-type">skill learned</div></div></div>`:''
-      }).join('');
-      const projs=(c.appliedIn||[]).map(pid=>{
-        const p=P.projects.find(x=>x.id===pid);
-        return p?`<div class="gp-item" onclick="focusNode('${p.id}')"><div class="gp-item-dot" style="background:#2563EB"></div><div><div class="gp-item-name">${p.name}</div><div class="gp-item-type">applied in project</div></div></div>`:''
-      }).join('');
-      body=`${skills?`<div class="gp-sec-label">Skills from this cert</div>${skills}`:''}
-            ${projs?`<div class="gp-sec-label">Applied in projects</div>${projs}`:''}
-            <div class="gp-sec-label">Actions</div>
-            <a href="certifications/${c.id}.html" class="gp-btn primary">View full cert page →</a>`;
-    }
-  } else if(n.type==='skill'){
-    const s=P.skills.find(x=>x.id===n.id);
-    if(s){
-      desc=s.desc||'';
-      const from=P.certs.filter(c=>(c.learned||[]).includes(n.id)).map(c=>
-        `<div class="gp-item" onclick="focusNode('${c.id}')"><div class="gp-item-dot" style="background:#16A34A"></div><div><div class="gp-item-name">${c.name}</div><div class="gp-item-type">learned from cert</div></div></div>`).join('');
-      const used=P.projects.filter(p=>(p.skills||[]).includes(n.id)).map(p=>
-        `<div class="gp-item" onclick="focusNode('${p.id}')"><div class="gp-item-dot" style="background:#2563EB"></div><div><div class="gp-item-name">${p.name}</div><div class="gp-item-type">used in project</div></div></div>`).join('');
-      body=`${from?`<div class="gp-sec-label">Where I learned this</div>${from}`:''}
-            ${used?`<div class="gp-sec-label">Where I applied this</div>${used}`:''}`;
-    }
-  } else if(n.type==='project'){
-    const p=P.projects.find(x=>x.id===n.id);
-    if(p){
-      desc=p.tagline||'';
-      const skills=(p.skills||[]).map(sid=>{
-        const s=P.skills.find(x=>x.id===sid);
-        return s?`<div class="gp-item" onclick="focusNode('${s.id}')"><div class="gp-item-dot" style="background:#6366F1"></div><div><div class="gp-item-name">${s.name}</div><div class="gp-item-type">skill used</div></div></div>`:''
-      }).join('');
-      body=`${skills?`<div class="gp-sec-label">Skills used</div>${skills}`:''}
-            <div class="gp-impact">${p.impact||''}</div>
-            <div class="gp-sec-label">Actions</div>
-            <a href="projects/index.html#${p.id}" class="gp-btn primary">View project →</a>
-            ${p.blog?`<a href="${p.blog}" class="gp-btn">Read write-up →</a>`:''}`;
-    }
-  } else {
-    desc=`${cc.length} direct connections`;
-    body=`<div class="gp-sec-label">Connected nodes</div>`+cc.slice(0,10).map(cn=>{
-      const c2=TCFG[cn.type]||TCFG.skill;
-      return `<div class="gp-item" onclick="focusNode('${cn.id}')"><div class="gp-item-dot" style="background:${c2.color}"></div><div><div class="gp-item-name">${cn.label}</div><div class="gp-item-type">${TLABEL[cn.type]||cn.type}</div></div></div>`;
-    }).join('');
+  // Drag functions
+  function dragstarted(event, d) {
+    if (!event.active) simulation.alphaTarget(0.3).restart();
+    d.fx = d.x;
+    d.fy = d.y;
   }
 
-  document.getElementById('gp-desc').textContent=desc;
-  document.getElementById('gp-body').innerHTML=body;
-  panel.classList.add('open');
-}
-
-function closePanel(){ panel.classList.remove('open'); sel=null; draw(); }
-window.focusNode=function(id){ const n=nodes.find(x=>x.id===id); if(n){sel=n;openPanel(n);draw();} };
-window.setFilter=function(f,el){
-  filter=f; sel=null; hov=null; panel.classList.remove('open');
-  document.querySelectorAll('.gf-pill').forEach(p=>p.classList.remove('on'));
-  el.classList.add('on'); draw();
-};
-
-/* check URL param ?focus=id */
-const fp=new URLSearchParams(location.search).get('focus');
-if(fp)setTimeout(()=>focusNode(fp),400);
-
-/* resize */
-function resize(){
-  canvas.width=canvas.parentElement.clientWidth;
-  canvas.height=canvas.parentElement.clientHeight;
-  draw();
-}
-
-/* mouse */
-function nodeAt(mx,my){
-  const [wx,wy]=toW(mx,my);
-  let best=null,bd=Infinity;
-  visNodes().forEach(n=>{
-    const d=Math.hypot(n.x-wx,n.y-wy);
-    const r=(TCFG[n.type]||TCFG.skill).r/sc;
-    if(d<r+10/sc&&d<bd){bd=d;best=n;}
-  });
-  return best;
-}
-
-canvas.addEventListener('mousemove',e=>{
-  const r=canvas.getBoundingClientRect();
-  const mx=(e.clientX-r.left)*(canvas.width/r.width);
-  const my=(e.clientY-r.top)*(canvas.height/r.height);
-  if(drag){ox+=(mx-lx)/sc;oy+=(my-ly)/sc;lx=mx;ly=my;draw();return;}
-  const n=nodeAt(mx,my); hov=n;
-  canvas.style.cursor=n?'pointer':'grab';
-  if(n)showTT(n,mx,my); else tt.style.opacity='0';
-  draw();
-});
-canvas.addEventListener('mousedown',e=>{
-  const r=canvas.getBoundingClientRect();
-  lx=(e.clientX-r.left)*(canvas.width/r.width);
-  ly=(e.clientY-r.top)*(canvas.height/r.height);
-  drag=true;
-});
-canvas.addEventListener('mouseup',e=>{
-  const r=canvas.getBoundingClientRect();
-  const mx=(e.clientX-r.left)*(canvas.width/r.width);
-  const my=(e.clientY-r.top)*(canvas.height/r.height);
-  if(Math.hypot(mx-lx,my-ly)<4){
-    const n=nodeAt(mx,my);
-    if(n){sel=n;openPanel(n);}else{sel=null;panel.classList.remove('open');}
-    draw();
+  function dragged(event, d) {
+    d.fx = event.x;
+    d.fy = event.y;
   }
-  drag=false;
-});
-canvas.addEventListener('wheel',e=>{
-  e.preventDefault();
-  const r=canvas.getBoundingClientRect();
-  const mx=(e.clientX-r.left)*(canvas.width/r.width);
-  const my=(e.clientY-r.top)*(canvas.height/r.height);
-  const [wx,wy]=toW(mx,my);
-  sc*=e.deltaY<0?1.1:.9; sc=Math.max(.3,Math.min(3.5,sc));
-  ox=mx/sc-canvas.width/(2*sc)-wx+W0/2;
-  oy=my/sc-canvas.height/(2*sc)-wy+H0/2;
-  draw();
-},{passive:false});
-canvas.addEventListener('mouseleave',()=>{drag=false;hov=null;tt.style.opacity='0';draw();});
 
-/* touch */
-let ts={x:0,y:0};
-canvas.addEventListener('touchstart',e=>{
-  const t=e.touches[0],r=canvas.getBoundingClientRect();
-  ts={x:(t.clientX-r.left)*(canvas.width/r.width),y:(t.clientY-r.top)*(canvas.height/r.height)};
-  lx=ts.x;ly=ts.y;drag=true;
-},{passive:true});
-canvas.addEventListener('touchmove',e=>{
-  e.preventDefault();
-  const t=e.touches[0],r=canvas.getBoundingClientRect();
-  const mx=(t.clientX-r.left)*(canvas.width/r.width),my=(t.clientY-r.top)*(canvas.height/r.height);
-  ox+=(mx-lx)/sc;oy+=(my-ly)/sc;lx=mx;ly=my;draw();
-},{passive:false});
-canvas.addEventListener('touchend',e=>{
-  drag=false;
-  if(e.changedTouches.length){
-    const t=e.changedTouches[0],r=canvas.getBoundingClientRect();
-    const mx=(t.clientX-r.left)*(canvas.width/r.width),my=(t.clientY-r.top)*(canvas.height/r.height);
-    if(Math.hypot(mx-ts.x,my-ts.y)<8){
-      const n=nodeAt(mx,my);
-      if(n){sel=n;openPanel(n);}else{sel=null;panel.classList.remove('open');}
-      draw();
+  function dragended(event, d) {
+    if (!event.active) simulation.alphaTarget(0);
+    d.fx = null;
+    d.fy = null;
+  }
+
+  // Highlight connections
+  let selectedNode = null;
+  function highlightConnections(event, d) {
+    if (selectedNode === d) {
+      // Deselect
+      selectedNode = null;
+      link.classed('active', false).attr('stroke-opacity', 0.6);
+      node.attr('opacity', 1);
+      labels.attr('opacity', showLabels ? 1 : 0);
+    } else {
+      // Select
+      selectedNode = d;
+      const connectedNodes = new Set([d.id]);
+      
+      links.forEach(l => {
+        if (l.source.id === d.id) connectedNodes.add(l.target.id);
+        if (l.target.id === d.id) connectedNodes.add(l.source.id);
+      });
+
+      link.classed('active', l => l.source.id === d.id || l.target.id === d.id)
+        .attr('stroke-opacity', l => (l.source.id === d.id || l.target.id === d.id) ? 1 : 0.1);
+      
+      node.attr('opacity', n => connectedNodes.has(n.id) ? 1 : 0.2);
+      labels.attr('opacity', n => (connectedNodes.has(n.id) && showLabels) ? 1 : 0);
     }
   }
-});
 
-/* sim loop */
-function loop(){
-  if(simOn&&simT<100){tick();simT++;draw();}
-  else if(simOn){simOn=false;draw();}
-  requestAnimationFrame(loop);
+  // Tooltip
+  const tooltip = document.getElementById('tooltip');
+  function showTooltip(event, d) {
+    tooltip.innerHTML = `<strong>${d.label}</strong><br><span style="font-size:10px;color:var(--text3)">${d.type}</span>`;
+    tooltip.classList.add('show');
+    updateTooltipPosition(event);
+  }
+
+  function hideTooltip() {
+    tooltip.classList.remove('show');
+  }
+
+  function updateTooltipPosition(event) {
+    const x = event.pageX + 15;
+    const y = event.pageY + 15;
+    tooltip.style.left = x + 'px';
+    tooltip.style.top = y + 'px';
+  }
+
+  // Controls
+  window.resetGraph = function() {
+    selectedNode = null;
+    link.classed('active', false).attr('stroke-opacity', 0.6);
+    node.attr('opacity', 1);
+    labels.attr('opacity', showLabels ? 1 : 0);
+    svg.transition().duration(750).call(zoom.transform, d3.zoomIdentity);
+  }
+
+  window.toggleLabels = function() {
+    showLabels = !showLabels;
+    labels.attr('opacity', showLabels ? 1 : 0);
+  }
+
+  console.log('Knowledge graph loaded successfully');
+
+} catch(error) {
+  console.error('Knowledge graph error:', error);
+  document.querySelector('.graph-container').innerHTML = `
+    <div class="error-msg">
+      <h3 style="margin-bottom:12px">Failed to load knowledge graph</h3>
+      <p>Error: ${error.message}</p>
+      <p style="margin-top:16px;font-size:12px;color:var(--text3)">
+        Check browser console (F12) for details, or 
+        <a href="index.html" style="color:var(--green);text-decoration:underline">return to homepage</a>
+      </p>
+    </div>
+  `;
 }
-window.addEventListener('resize',resize);
-resize();
-loop();
+
+// Fade-up observer
+const fObs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('vis');fObs.unobserve(e.target);}});},{threshold:.08});
+document.querySelectorAll('.fu').forEach(el=>fObs.observe(el));
 </script>
 </body>
 </html>
