@@ -83,7 +83,7 @@
 .compliance-row{display:flex;gap:7px;flex-wrap:wrap;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}
 .impact-chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--green-t);background:var(--green-l);border:1px solid var(--green-b);padding:5px 10px;border-radius:var(--rs);margin-top:8px}
 /* ── STACK ── */
-.stack-grid{display:flex;flex-direction:column;gap:24px}
+/* .stack-grid{display:flex;flex-direction:column;gap:24px}
 .stack-cat-label{font-family:var(--mono);font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px;padding-bottom:7px;border-bottom:1px solid var(--border)}
 .stack-items{display:flex;flex-wrap:wrap;gap:8px}
 .stack-item{display:flex;align-items:center;gap:9px;background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:9px 13px;font-size:13px;font-weight:500;color:var(--text2);transition:all .15s;box-shadow:var(--sh)}
@@ -91,7 +91,20 @@
 .stack-icon{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;background:var(--bg2);overflow:hidden}
 .stack-icon img{width:20px;height:20px;object-fit:contain}
 .s-bar{height:2px;background:var(--border);border-radius:1px;overflow:hidden;margin-top:4px;width:46px}
-.s-fill{height:100%;border-radius:1px;background:var(--green)}
+.s-fill{height:100%;border-radius:1px;background:var(--green)} */
+/* ── STACK ── */
+.stack-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
+.stack-cat{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;box-shadow:var(--sh);transition:all .2s}
+.stack-cat:hover{box-shadow:var(--sh-md);transform:translateY(-2px)}
+.stack-cat-label{font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.stack-cat-icon{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0}
+.stack-items{display:flex;flex-direction:column;gap:10px}
+.stack-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:var(--rs);background:var(--bg2);border:1px solid transparent;transition:all .15s}
+.stack-item:hover{background:var(--surface);border-color:var(--border);transform:translateX(2px)}
+.stack-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--surface);border:1px solid var(--border);overflow:hidden}
+.stack-icon img{width:22px;height:22px;object-fit:contain}
+.stack-name{font-size:13px;font-weight:500;color:var(--text);flex:1}
+.stack-level{font-family:var(--mono);font-size:10px;color:var(--text3);padding:3px 8px;background:var(--surface);border:1px solid var(--border);border-radius:var(--rxs)}
 /* ── PROJECTS ── */
 .projects-list{display:flex;flex-direction:column;gap:14px}
 .proj-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:22px;box-shadow:var(--sh);transition:all .2s;display:grid;grid-template-columns:1fr auto;gap:16px;align-items:start}
@@ -544,14 +557,44 @@ document.getElementById('topics-grid').innerHTML=P.topics.slice(0,6).map(t=>`
       </div>
     </div>
   </a>`).join('');
+// const stackCats=[
+//   {label:'EDR · Endpoint security',ids:['sentinelone','cortex-xdr']},
+//   {label:'SIEM · XDR · Log analysis',ids:['wazuh','splunk','elastic']},
+//   {label:'SOAR · Automation',ids:['n8n','thehive','jira']},
+//   {label:'Network · NDR · IDS',ids:['suricata','fortinet']},
+//   {label:'Scripting · Learning',ids:['python','bash','powershell']},
+//   {label:'Frameworks · Compliance',ids:['mitre','nist','pcidss','iso27001']},
+//   {label:'Cloud · Platform',ids:['docker','ms365']},
+// ];
+// const toolById=id=>P.tools.find(t=>t.id===id);
+// const stackGrid=document.getElementById('stack-grid');
+// stackCats.forEach(cat=>{
+//   const tools=cat.ids.map(toolById).filter(Boolean);
+//   if(!tools.length)return;
+//   const div=document.createElement('div');
+//   div.innerHTML=`<div class="stack-cat-label">${cat.label}</div>
+//     <div class="stack-items">${tools.map(t=>`
+//       <div class="stack-item">
+//         <div class="stack-icon">
+//           ${t.icon?`<img src="assets/icons/${t.icon}" alt="${t.name}" onerror="this.parentNode.innerHTML='<span style=font-size:11px;font-weight:700;color:var(--text2)>${t.name.slice(0,2)}</span>'">`:`<span style="font-size:11px;font-weight:700;color:var(--text2)">${t.name.slice(0,2)}</span>`}
+//         </div>
+//         ${t.name}
+//         <div>
+//           <div style="font-size:9px;color:var(--text3);font-family:var(--mono)">${t.lvl>=80?'Expert':t.lvl>=65?'Advanced':t.lvl>=45?'Intermediate':'Learning'}</div>
+//           <div class="s-bar"><div class="s-fill" style="width:${t.lvl}%"></div></div>
+//         </div>
+//       </div>`).join('')}
+//     </div>`;
+//   stackGrid.appendChild(div);
+// });
 const stackCats=[
-  {label:'EDR · Endpoint security',ids:['sentinelone','cortex-xdr']},
-  {label:'SIEM · XDR · Log analysis',ids:['wazuh','splunk','elastic']},
-  {label:'SOAR · Automation',ids:['n8n','thehive','jira']},
-  {label:'Network · NDR · IDS',ids:['suricata','fortinet']},
-  {label:'Scripting · Learning',ids:['python','bash','powershell']},
-  {label:'Frameworks · Compliance',ids:['mitre','nist','pcidss','iso27001']},
-  {label:'Cloud · Platform',ids:['docker','ms365']},
+  {label:'EDR / XDR',icon:'🛡',ids:['sentinelone','cortex-xdr']},
+  {label:'SIEM / Log Analysis',icon:'📊',ids:['wazuh','splunk','elastic']},
+  {label:'SOAR / Automation',icon:'⚡',ids:['n8n','thehive','jira']},
+  {label:'Network / IDS',icon:'🌐',ids:['suricata','fortinet']},
+  {label:'Scripting',icon:'💻',ids:['python','bash','powershell']},
+  {label:'Frameworks',icon:'📋',ids:['mitre','nist','pcidss','iso27001']},
+  {label:'Platform / Cloud',icon:'☁',ids:['docker','ms365']},
 ];
 const toolById=id=>P.tools.find(t=>t.id===id);
 const stackGrid=document.getElementById('stack-grid');
@@ -559,17 +602,15 @@ stackCats.forEach(cat=>{
   const tools=cat.ids.map(toolById).filter(Boolean);
   if(!tools.length)return;
   const div=document.createElement('div');
-  div.innerHTML=`<div class="stack-cat-label">${cat.label}</div>
+  div.className='stack-cat';
+  div.innerHTML=`<div class="stack-cat-label"><span class="stack-cat-icon"></span>${cat.label}</div>
     <div class="stack-items">${tools.map(t=>`
       <div class="stack-item">
         <div class="stack-icon">
-          ${t.icon?`<img src="assets/icons/${t.icon}" alt="${t.name}" onerror="this.parentNode.innerHTML='<span style=font-size:11px;font-weight:700;color:var(--text2)>${t.name.slice(0,2)}</span>'">`:`<span style="font-size:11px;font-weight:700;color:var(--text2)">${t.name.slice(0,2)}</span>`}
+          ${t.icon?`<img src="assets/icons/${t.icon}" alt="${t.name}" onerror="this.parentNode.innerHTML='<span style=font-size:13px;font-weight:700;color:var(--text2)>${t.name.slice(0,2).toUpperCase()}</span>'">`:`<span style="font-size:13px;font-weight:700;color:var(--text2)">${t.name.slice(0,2).toUpperCase()}</span>`}
         </div>
-        ${t.name}
-        <div>
-          <div style="font-size:9px;color:var(--text3);font-family:var(--mono)">${t.lvl>=80?'Expert':t.lvl>=65?'Advanced':t.lvl>=45?'Intermediate':'Learning'}</div>
-          <div class="s-bar"><div class="s-fill" style="width:${t.lvl}%"></div></div>
-        </div>
+        <span class="stack-name">${t.name}</span>
+        <span class="stack-level">${t.lvl>=80?'Expert':t.lvl>=65?'Advanced':t.lvl>=45?'Intermediate':'Learning'}</span>
       </div>`).join('')}
     </div>`;
   stackGrid.appendChild(div);

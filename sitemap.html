@@ -6,13 +6,18 @@
 <base href="/nitishsom.io/">
 <title>Sitemap — Nitish Som</title>
 <link rel="stylesheet" href="assets/shared.css">
-<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 <style>
-.page-hero{padding:56px 0 48px;border-bottom:1px solid var(--border);background:var(--surface)}
-.page-hero h1{font-size:clamp(32px,5vw,48px);font-weight:800;letter-spacing:-.04em;color:var(--text);margin-bottom:12px}
-.page-hero p{font-size:16px;color:var(--text2);max-width:580px;line-height:1.7}
-.diagram-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:32px;box-shadow:var(--sh);margin-top:40px;overflow-x:auto}
-#sitemap-diagram{display:flex;justify-content:center}
+.sitemap-hero{padding:64px 0 48px;border-bottom:1px solid var(--border)}
+.sitemap-h1{font-size:clamp(32px,5vw,52px);font-weight:800;letter-spacing:-.04em;line-height:1.1;color:var(--text);margin-bottom:12px}
+.sitemap-sub{font-size:16px;font-weight:300;color:var(--text2);line-height:1.7;max-width:580px}
+.sitemap-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:24px;margin-top:48px}
+.sitemap-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:24px;box-shadow:var(--sh)}
+.section-title{font-size:16px;font-weight:700;color:var(--text);margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.section-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;border:1px solid var(--border)}
+.sitemap-links{display:flex;flex-direction:column;gap:8px}
+.sitemap-link{font-size:13px;color:var(--text2);padding:8px 12px;border-radius:var(--rs);background:var(--bg2);border:1px solid transparent;transition:all .15s;display:block;text-decoration:none}
+.sitemap-link:hover{background:var(--surface);border-color:var(--border2);color:var(--text);transform:translateX(3px)}
+.sitemap-link.indent{padding-left:28px;font-size:12px;background:transparent}
 </style>
 </head>
 <body>
@@ -36,16 +41,88 @@
   </div>
 </nav>
 
-<div class="page-hero">
-  <div class="container">
-    <h1 class="fu">Site Map</h1>
-    <p class="fu" style="transition-delay:.1s">Complete structure of the portfolio — all pages, sections, and interconnections visualized.</p>
+<section class="sitemap-hero">
+  <div class="container fu">
+    <div class="eyebrow">Sitemap</div>
+    <h1 class="sitemap-h1">All pages.</h1>
+    <p class="sitemap-sub">Complete navigation structure — every page on the site organized by section.</p>
   </div>
-</div>
+</section>
 
 <section class="section" style="border:none">
-  <div class="container">
-    <div class="diagram-wrap fu" id="sitemap-diagram"></div>
+  <div class="container fu">
+    <div class="sitemap-grid">
+      
+      <div class="sitemap-section">
+        <div class="section-title">
+          <div class="section-icon" style="background:var(--green-l);color:var(--green)">⌂</div>
+          Main Pages
+        </div>
+        <div class="sitemap-links">
+          <a href="index.html" class="sitemap-link">Homepage</a>
+          <a href="index.html#about" class="sitemap-link indent">About</a>
+          <a href="index.html#experience" class="sitemap-link indent">Experience</a>
+          <a href="index.html#projects" class="sitemap-link indent">Projects</a>
+          <a href="index.html#contact" class="sitemap-link indent">Contact</a>
+        </div>
+      </div>
+
+      <div class="sitemap-section">
+        <div class="section-title">
+          <div class="section-icon" style="background:var(--teal-l);color:var(--teal)">📚</div>
+          Topics
+        </div>
+        <div class="sitemap-links">
+          <a href="topics/index.html" class="sitemap-link">All Topics</a>
+          <a href="topics/threat-hunting.html" class="sitemap-link indent">Threat Hunting</a>
+          <a href="topics/wazuh.html" class="sitemap-link indent">Wazuh Deep Dive</a>
+          <a href="topics/malware-analysis.html" class="sitemap-link indent">Malware Analysis</a>
+          <a href="topics/grc.html" class="sitemap-link indent">GRC</a>
+          <a href="topics/siem-engineering.html" class="sitemap-link indent">SIEM Engineering</a>
+          <a href="topics/aws-security.html" class="sitemap-link indent">AWS Security</a>
+        </div>
+      </div>
+
+      <div class="sitemap-section">
+        <div class="section-title">
+          <div class="section-icon" style="background:var(--purple-l);color:var(--purple)">🏆</div>
+          Certifications
+        </div>
+        <div class="sitemap-links">
+          <a href="certifications/index.html" class="sitemap-link">All Certifications</a>
+          <a href="certifications/sentinelone.html" class="sitemap-link indent">SentinelOne Certified</a>
+          <a href="certifications/fortinet-nse.html" class="sitemap-link indent">Fortinet NSE</a>
+          <a href="certifications/palo-alto-cortex.html" class="sitemap-link indent">Cortex XDR</a>
+          <a href="certifications/letsdefend-soc.html" class="sitemap-link indent">LetsDefend SOC Path</a>
+          <a href="certifications/letsdefend-ir.html" class="sitemap-link indent">LetsDefend IR Path</a>
+          <a href="certifications/security-plus.html" class="sitemap-link indent">Security+ (In Progress)</a>
+        </div>
+      </div>
+
+      <div class="sitemap-section">
+        <div class="section-title">
+          <div class="section-icon" style="background:var(--blue-l);color:var(--blue)">✎</div>
+          Blog
+        </div>
+        <div class="sitemap-links">
+          <a href="blog/index.html" class="sitemap-link">All Posts</a>
+          <a href="blog/threat-hunting-notes.html" class="sitemap-link indent">Threat Hunting Notes</a>
+        </div>
+      </div>
+
+      <div class="sitemap-section">
+        <div class="section-title">
+          <div class="section-icon" style="background:var(--amber-l);color:var(--amber)">🗺</div>
+          Learning
+        </div>
+        <div class="sitemap-links">
+          <a href="roadmap.html" class="sitemap-link">Learning Roadmap</a>
+          <a href="knowledge-graph.html" class="sitemap-link">Knowledge Graph</a>
+          <a href="sitemap.html" class="sitemap-link">Sitemap</a>
+        </div>
+      </div>
+
+    </div>
   </div>
 </section>
 
@@ -59,7 +136,6 @@
       <a href="topics/index.html">Topics</a>
       <a href="roadmap.html">Roadmap</a>
       <a href="sitemap.html">Sitemap</a>
-      <a href="skill-tree.html">Skill tree</a>
       <a href="knowledge-graph.html">Knowledge graph</a>
     </div>
     <div class="footer-tz">IST · UTC+5:30</div>
@@ -70,66 +146,6 @@
 <script src="assets/cmdk.js"></script>
 <script>
 if(P.showAvailBadge)document.getElementById('avail-badge').style.display='flex';
-mermaid.initialize({startOnLoad:false,theme:'base',themeVariables:{
-  primaryColor:'#F0FDF4',primaryTextColor:'#14532D',primaryBorderColor:'#BBF7D0',
-  lineColor:'#D6D3C8',secondaryColor:'#EFF6FF',tertiaryColor:'#F5F3FF',
-  background:'#FAFAF8',mainBkg:'#FFFFFF',secondBkg:'#F3F2EE',
-  nodeBorder:'#E8E6DF',clusterBkg:'#F8F7F2',clusterBorder:'#D6D3C8',
-  titleColor:'#1A1916',edgeLabelBackground:'#FFFFFF',fontFamily:'Sora,sans-serif'
-}});
-const diagram=`graph TB
-  Home[🏠 Homepage]
-  Topics[📚 Topics Hub]
-  TH[🎯 Threat Hunting]
-  WZ[🛡 Wazuh Deep Dive]
-  MA[🔬 Malware Analysis]
-  GRC[📋 GRC]
-  SE[📊 SIEM Engineering]
-  AWS[☁ AWS Security]
-  Blog[✎ Blog]
-  Certs[🏆 Certifications]
-  Projects[📦 Projects]
-  Roadmap[🗺 Learning Roadmap]
-  Sitemap[🌳 Sitemap]
-  SkillTree[🌲 Skill Tree]
-  Graph[⬡ Knowledge Graph]
-  Contact[✉ Contact]
-
-  Home --> Topics
-  Home --> Blog
-  Home --> Certs
-  Home --> Projects
-  Home --> Roadmap
-  Home --> Contact
-  
-  Topics --> TH
-  Topics --> WZ
-  Topics --> MA
-  Topics --> GRC
-  Topics --> SE
-  Topics --> AWS
-  
-  TH --> Blog
-  WZ --> Blog
-  MA --> Blog
-  
-  Certs --> Graph
-  Projects --> Graph
-  
-  Home -.-> Sitemap
-  Home -.-> SkillTree
-  Home -.-> Graph
-
-  classDef homeStyle fill:#F0FDF4,stroke:#BBF7D0,stroke-width:3px,color:#14532D
-  classDef topicStyle fill:#F0FDFA,stroke:#99F6E4,stroke-width:2px,color:#115E59
-  classDef pageStyle fill:#EFF6FF,stroke:#BFDBFE,stroke-width:2px,color:#1D4ED8
-  
-  class Home homeStyle
-  class Topics,TH,WZ,MA,GRC,SE,AWS topicStyle
-  class Blog,Certs,Projects,Roadmap,Sitemap,SkillTree,Graph,Contact pageStyle
-`;
-const el=document.getElementById('sitemap-diagram');
-mermaid.render('sitemap-svg',diagram).then(({svg})=>{el.innerHTML=svg;});
 const fObs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('vis');fObs.unobserve(e.target);}});},{threshold:.08});
 document.querySelectorAll('.fu').forEach(el=>fObs.observe(el));
 </script>
