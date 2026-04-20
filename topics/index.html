@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<base href="/nitishsom.io/">
+<title>Learning Topics — Nitish Som</title>
+<link rel="stylesheet" href="../assets/shared.css">
+<style>
+.page-hero{padding:56px 0 48px;border-bottom:1px solid var(--border);background:var(--surface)}
+.page-hero h1{font-size:clamp(32px,5vw,48px);font-weight:800;letter-spacing:-.04em;color:var(--text);margin-bottom:12px}
+.page-hero p{font-size:16px;color:var(--text2);max-width:620px;line-height:1.7}
+.topics-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px;margin-top:40px}
+.topic-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:28px;box-shadow:var(--sh);transition:all .25s;display:flex;flex-direction:column;gap:16px;text-decoration:none;color:inherit;position:relative;overflow:hidden}
+.topic-card:hover{box-shadow:var(--sh-lg);transform:translateY(-4px);border-color:var(--border2)}
+.topic-card-head{display:flex;align-items:flex-start;gap:16px}
+.topic-icon{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;border:1px solid var(--border)}
+.topic-content{flex:1}
+.topic-name{font-size:18px;font-weight:700;color:var(--text);letter-spacing:-.02em;margin-bottom:4px}
+.topic-tagline{font-size:13px;font-weight:400;color:var(--text2);line-height:1.5}
+.topic-desc{font-size:13px;font-weight:300;color:var(--text2);line-height:1.6;letter-spacing:-.01em}
+.topic-sources{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.topic-source-tag{font-size:10px;font-weight:500;padding:4px 9px;border-radius:var(--rp);background:var(--bg2);color:var(--text3);border:1px solid var(--border)}
+.topic-meta{display:flex;justify-content:space-between;align-items:center;padding-top:16px;border-top:1px solid var(--border);font-size:12px;color:var(--text3);font-family:var(--mono)}
+.topic-progress{display:flex;align-items:center;gap:10px}
+.tp-bar{width:80px;height:4px;background:var(--bg2);border-radius:2px;overflow:hidden}
+.tp-fill{height:100%;border-radius:2px}
+.topic-status{font-size:10px;font-weight:700;padding:4px 10px;border-radius:var(--rp);text-transform:uppercase;letter-spacing:.04em}
+.ts-active{background:var(--green-l);color:var(--green-t);border:1px solid var(--green-b)}
+.ts-planned{background:var(--bg2);color:var(--text3);border:1px solid var(--border)}
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <div class="container nav-inner">
+    <a href="../index.html" class="nav-logo"><span class="nav-logo-dot"></span>Nitish <em>Som</em></a>
+    <div class="nav-links">
+      <a href="../index.html#about">About</a>
+      <a href="../index.html#experience">Experience</a>
+      <a href="index.html" class="act">Topics</a>
+      <a href="../index.html#projects">Projects</a>
+      <a href="../certifications/index.html">Certs</a>
+      <a href="../blog/index.html">Blog</a>
+      <a href="../roadmap.html">Roadmap</a>
+    </div>
+    <div class="nav-right">
+      <button class="cmdk-btn"><span>Search</span><kbd>⌘K</kbd></button>
+      <div id="avail-badge"><span class="pulse"></span>Open to remote</div>
+    </div>
+  </div>
+</nav>
+
+<div class="page-hero">
+  <div class="container">
+    <h1 class="fu">Learning Topics</h1>
+    <p class="fu" style="transition-delay:.1s">Deep dives into security domains I'm actively learning. Each topic has its own hub with lessons, posts, progress tracking, and sources. Learning in public.</p>
+  </div>
+</div>
+
+<section class="section" style="border:none">
+  <div class="container">
+    <div class="topics-grid fu-stagger" id="topics-grid"></div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <div class="footer-left">
+      <div class="footer-logo">Nitish <em>Som</em></div>
+      <div class="footer-copy">© 2025 · monkincyber</div>
+    </div>
+    <div class="footer-links">
+      <a href="index.html">Topics</a>
+      <a href="../roadmap.html">Roadmap</a>
+      <a href="../sitemap.html">Sitemap</a>
+      <a href="../skill-tree.html">Skill tree</a>
+      <a href="../knowledge-graph.html">Knowledge graph</a>
+    </div>
+    <div class="footer-tz">IST · UTC+5:30</div>
+  </div>
+</footer>
+
+<script src="../assets/data.js"></script>
+<script src="../assets/cmdk.js"></script>
+<script>
+if(P.showAvailBadge)document.getElementById('avail-badge').style.display='flex';
+const colorMap={green:'var(--green)',blue:'var(--blue)',purple:'var(--purple)',amber:'var(--amber)',teal:'var(--teal)',pink:'var(--pink)'};
+document.getElementById('topics-grid').innerHTML=P.topics.map(t=>`
+  <a class="topic-card" href="${t.id}.html" style="border-top:4px solid ${colorMap[t.color]||'var(--green)'}">
+    <div class="topic-card-head">
+      <div class="topic-icon" style="background:var(--${t.color}-l);border-color:var(--${t.color}-b);color:${colorMap[t.color]}">${t.icon}</div>
+      <div class="topic-content">
+        <div class="topic-name">${t.name}</div>
+        <div class="topic-tagline">${t.tagline}</div>
+      </div>
+    </div>
+    <div class="topic-desc">${t.description}</div>
+    <div class="topic-sources">
+      ${t.sources.map(s=>`<span class="topic-source-tag">${s}</span>`).join('')}
+    </div>
+    <div class="topic-meta">
+      <span class="topic-status ${t.status==='active'?'ts-active':'ts-planned'}">${t.status==='active'?'Active':'Planned'}</span>
+      <div class="topic-progress">
+        <span>${t.progress}%</span>
+        <div class="tp-bar"><div class="tp-fill" style="width:${t.progress}%;background:${colorMap[t.color]}"></div></div>
+      </div>
+    </div>
+  </a>`).join('');
+const fObs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('vis');fObs.unobserve(e.target);}});},{threshold:.08});
+document.querySelectorAll('.fu,.fu-stagger').forEach(el=>fObs.observe(el));
+</script>
+</body>
+</html>

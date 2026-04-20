@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<base href="/nitishsom.io/">
+<title>Sitemap — Nitish Som</title>
+<link rel="stylesheet" href="assets/shared.css">
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+.page-hero{padding:56px 0 48px;border-bottom:1px solid var(--border);background:var(--surface)}
+.page-hero h1{font-size:clamp(32px,5vw,48px);font-weight:800;letter-spacing:-.04em;color:var(--text);margin-bottom:12px}
+.page-hero p{font-size:16px;color:var(--text2);max-width:580px;line-height:1.7}
+.diagram-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:32px;box-shadow:var(--sh);margin-top:40px;overflow-x:auto}
+#sitemap-diagram{display:flex;justify-content:center}
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <div class="container nav-inner">
+    <a href="index.html" class="nav-logo"><span class="nav-logo-dot"></span>Nitish <em>Som</em></a>
+    <div class="nav-links">
+      <a href="index.html#about">About</a>
+      <a href="index.html#experience">Experience</a>
+      <a href="topics/index.html">Topics</a>
+      <a href="index.html#projects">Projects</a>
+      <a href="certifications/index.html">Certs</a>
+      <a href="blog/index.html">Blog</a>
+      <a href="roadmap.html">Roadmap</a>
+    </div>
+    <div class="nav-right">
+      <button class="cmdk-btn"><span>Search</span><kbd>⌘K</kbd></button>
+      <div id="avail-badge"><span class="pulse"></span>Open to remote</div>
+    </div>
+  </div>
+</nav>
+
+<div class="page-hero">
+  <div class="container">
+    <h1 class="fu">Site Map</h1>
+    <p class="fu" style="transition-delay:.1s">Complete structure of the portfolio — all pages, sections, and interconnections visualized.</p>
+  </div>
+</div>
+
+<section class="section" style="border:none">
+  <div class="container">
+    <div class="diagram-wrap fu" id="sitemap-diagram"></div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <div class="footer-left">
+      <div class="footer-logo">Nitish <em>Som</em></div>
+      <div class="footer-copy">© 2025 · monkincyber</div>
+    </div>
+    <div class="footer-links">
+      <a href="topics/index.html">Topics</a>
+      <a href="roadmap.html">Roadmap</a>
+      <a href="sitemap.html">Sitemap</a>
+      <a href="skill-tree.html">Skill tree</a>
+      <a href="knowledge-graph.html">Knowledge graph</a>
+    </div>
+    <div class="footer-tz">IST · UTC+5:30</div>
+  </div>
+</footer>
+
+<script src="assets/data.js"></script>
+<script src="assets/cmdk.js"></script>
+<script>
+if(P.showAvailBadge)document.getElementById('avail-badge').style.display='flex';
+mermaid.initialize({startOnLoad:false,theme:'base',themeVariables:{
+  primaryColor:'#F0FDF4',primaryTextColor:'#14532D',primaryBorderColor:'#BBF7D0',
+  lineColor:'#D6D3C8',secondaryColor:'#EFF6FF',tertiaryColor:'#F5F3FF',
+  background:'#FAFAF8',mainBkg:'#FFFFFF',secondBkg:'#F3F2EE',
+  nodeBorder:'#E8E6DF',clusterBkg:'#F8F7F2',clusterBorder:'#D6D3C8',
+  titleColor:'#1A1916',edgeLabelBackground:'#FFFFFF',fontFamily:'Sora,sans-serif'
+}});
+const diagram=`graph TB
+  Home[🏠 Homepage]
+  Topics[📚 Topics Hub]
+  TH[🎯 Threat Hunting]
+  WZ[🛡 Wazuh Deep Dive]
+  MA[🔬 Malware Analysis]
+  GRC[📋 GRC]
+  SE[📊 SIEM Engineering]
+  AWS[☁ AWS Security]
+  Blog[✎ Blog]
+  Certs[🏆 Certifications]
+  Projects[📦 Projects]
+  Roadmap[🗺 Learning Roadmap]
+  Sitemap[🌳 Sitemap]
+  SkillTree[🌲 Skill Tree]
+  Graph[⬡ Knowledge Graph]
+  Contact[✉ Contact]
+
+  Home --> Topics
+  Home --> Blog
+  Home --> Certs
+  Home --> Projects
+  Home --> Roadmap
+  Home --> Contact
+  
+  Topics --> TH
+  Topics --> WZ
+  Topics --> MA
+  Topics --> GRC
+  Topics --> SE
+  Topics --> AWS
+  
+  TH --> Blog
+  WZ --> Blog
+  MA --> Blog
+  
+  Certs --> Graph
+  Projects --> Graph
+  
+  Home -.-> Sitemap
+  Home -.-> SkillTree
+  Home -.-> Graph
+
+  classDef homeStyle fill:#F0FDF4,stroke:#BBF7D0,stroke-width:3px,color:#14532D
+  classDef topicStyle fill:#F0FDFA,stroke:#99F6E4,stroke-width:2px,color:#115E59
+  classDef pageStyle fill:#EFF6FF,stroke:#BFDBFE,stroke-width:2px,color:#1D4ED8
+  
+  class Home homeStyle
+  class Topics,TH,WZ,MA,GRC,SE,AWS topicStyle
+  class Blog,Certs,Projects,Roadmap,Sitemap,SkillTree,Graph,Contact pageStyle
+`;
+const el=document.getElementById('sitemap-diagram');
+mermaid.render('sitemap-svg',diagram).then(({svg})=>{el.innerHTML=svg;});
+const fObs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('vis');fObs.unobserve(e.target);}});},{threshold:.08});
+document.querySelectorAll('.fu').forEach(el=>fObs.observe(el));
+</script>
+</body>
+</html>

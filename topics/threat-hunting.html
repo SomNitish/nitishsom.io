@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<base href="/nitishsom.io/">
+<title>Threat Hunting — Nitish Som</title>
+<link rel="stylesheet" href="../assets/shared.css">
+<style>
+.topic-hero{padding:56px 0 48px;border-bottom:1px solid var(--border);background:var(--surface);position:relative}
+.topic-hero-icon{width:64px;height:64px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:32px;margin-bottom:20px;border:1px solid var(--border)}
+.topic-hero h1{font-size:clamp(32px,5vw,48px);font-weight:800;letter-spacing:-.04em;color:var(--text);margin-bottom:12px}
+.topic-hero-tagline{font-size:18px;color:var(--text2);margin-bottom:16px;font-weight:300}
+.topic-hero-desc{font-size:15px;color:var(--text2);max-width:680px;line-height:1.7}
+.topic-meta-row{display:flex;gap:16px;flex-wrap:wrap;margin-top:24px}
+.topic-meta-item{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2)}
+.topic-meta-item strong{color:var(--text);font-weight:600}
+.sources-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+.source-tag{font-size:11px;font-weight:500;padding:5px 12px;border-radius:var(--rp);background:var(--green-l);color:var(--green-t);border:1px solid var(--green-b)}
+.lessons-grid{display:grid;grid-template-columns:1fr;gap:12px;margin-top:32px}
+.lesson-item{display:flex;align-items:center;gap:16px;padding:16px 20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);box-shadow:var(--sh);transition:all .2s}
+.lesson-item:hover{box-shadow:var(--sh-md);transform:translateX(3px)}
+.lesson-num{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;font-family:var(--mono)}
+.lesson-content{flex:1}
+.lesson-title{font-size:14px;font-weight:600;color:var(--text);letter-spacing:-.01em;margin-bottom:2px}
+.lesson-est{font-size:11px;color:var(--text3);font-family:var(--mono)}
+.lesson-status{font-size:10px;font-weight:700;padding:4px 10px;border-radius:var(--rp);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+.ls-done{background:var(--green-l);color:var(--green-t);border:1px solid var(--green-b)}
+.ls-progress{background:var(--blue-l);color:var(--blue-t);border:1px solid var(--blue-b)}
+.ls-planned{background:var(--bg2);color:var(--text3);border:1px solid var(--border)}
+.posts-section{margin-top:48px}
+.posts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-top:24px}
+.post-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;box-shadow:var(--sh);transition:all .2s;text-decoration:none;color:inherit;display:flex;flex-direction:column}
+.post-card:hover{box-shadow:var(--sh-md);transform:translateY(-2px)}
+.post-thumb{height:80px;padding:16px;display:flex;align-items:flex-end;background:linear-gradient(135deg,#F0FDF4,#DCFCE7)}
+.post-cat-tag{font-size:10px;font-weight:700;padding:4px 10px;border-radius:var(--rp);background:rgba(255,255,255,.9);color:#14532D;text-transform:uppercase;letter-spacing:.04em}
+.post-body{padding:18px;flex:1}
+.post-title{font-size:14px;font-weight:600;color:var(--text);line-height:1.4;margin-bottom:8px}
+.post-summary{font-size:12px;color:var(--text2);line-height:1.6}
+.post-footer{padding:12px 18px;border-top:1px solid var(--border);background:var(--bg2);display:flex;justify-content:space-between;align-items:center;font-size:11px}
+.post-date{font-family:var(--mono);color:var(--text3)}
+.post-read{font-weight:600;color:var(--green)}
+.empty-state{text-align:center;padding:48px 24px;color:var(--text3);font-size:14px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r)}
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <div class="container nav-inner">
+    <a href="../index.html" class="nav-logo"><span class="nav-logo-dot"></span>Nitish <em>Som</em></a>
+    <div class="nav-links">
+      <a href="../index.html#about">About</a>
+      <a href="../index.html#experience">Experience</a>
+      <a href="index.html">Topics</a>
+      <a href="../index.html#projects">Projects</a>
+      <a href="../certifications/index.html">Certs</a>
+      <a href="../blog/index.html">Blog</a>
+      <a href="../roadmap.html">Roadmap</a>
+    </div>
+    <div class="nav-right">
+      <button class="cmdk-btn"><span>Search</span><kbd>⌘K</kbd></button>
+      <div id="avail-badge"><span class="pulse"></span>Open to remote</div>
+    </div>
+  </div>
+</nav>
+
+<div class="topic-hero">
+  <div class="container fu" id="topic-hero-content"></div>
+</div>
+
+<section class="section">
+  <div class="container fu">
+    <div class="eyebrow">Learning path</div>
+    <h2 class="section-h2">All lessons</h2>
+    <p class="section-sub">Complete roadmap from fundamentals to advanced attack-specific hunts.</p>
+    <div class="lessons-grid" id="lessons-grid"></div>
+  </div>
+</section>
+
+<section class="section" style="border:none" id="posts-section">
+  <div class="container fu">
+    <div class="eyebrow">Related posts</div>
+    <h2 class="section-h2">What I've written</h2>
+    <p class="section-sub">All blog posts tagged with this topic.</p>
+    <div class="posts-grid" id="posts-grid"></div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <div class="footer-left">
+      <div class="footer-logo">Nitish <em>Som</em></div>
+      <div class="footer-copy">© 2025 · monkincyber</div>
+    </div>
+    <div class="footer-links">
+      <a href="index.html">Topics</a>
+      <a href="../roadmap.html">Roadmap</a>
+      <a href="../sitemap.html">Sitemap</a>
+      <a href="../skill-tree.html">Skill tree</a>
+      <a href="../knowledge-graph.html">Knowledge graph</a>
+    </div>
+    <div class="footer-tz">IST · UTC+5:30</div>
+  </div>
+</footer>
+
+<script src="../assets/data.js"></script>
+<script src="../assets/cmdk.js"></script>
+<script>
+if(P.showAvailBadge)document.getElementById('avail-badge').style.display='flex';
+const topicId='threat-hunting';
+const topic=P.topics.find(t=>t.id===topicId);
+const colorMap={green:'var(--green)',blue:'var(--blue)',purple:'var(--purple)',amber:'var(--amber)',teal:'var(--teal)',pink:'var(--pink)'};
+if(topic){
+  document.getElementById('topic-hero-content').innerHTML=`
+    <div class="topic-hero-icon" style="background:var(--${topic.color}-l);border-color:var(--${topic.color}-b);color:${colorMap[topic.color]}">${topic.icon}</div>
+    <h1>${topic.name}</h1>
+    <div class="topic-hero-tagline">${topic.tagline}</div>
+    <div class="topic-hero-desc">${topic.description}</div>
+    <div class="topic-meta-row">
+      <div class="topic-meta-item"><strong>Status:</strong> ${topic.status==='active'?'Active learning':'Planned'}</div>
+      <div class="topic-meta-item"><strong>Progress:</strong> ${topic.progress}%</div>
+      <div class="topic-meta-item"><strong>Lessons:</strong> ${topic.lessons.length}</div>
+    </div>
+    <div class="sources-list">
+      ${topic.sources.map(s=>`<span class="source-tag">${s}</span>`).join('')}
+    </div>
+  `;
+  document.getElementById('lessons-grid').innerHTML=topic.lessons.map((l,i)=>`
+    <div class="lesson-item">
+      <div class="lesson-num" style="background:var(--${topic.color}-l);color:${colorMap[topic.color]};border:1px solid var(--${topic.color}-b)">${(i+1).toString().padStart(2,'0')}</div>
+      <div class="lesson-content">
+        <div class="lesson-title">${l.title}</div>
+        <div class="lesson-est">${l.est}</div>
+      </div>
+      <span class="lesson-status ${l.status==='done'?'ls-done':l.status==='in-progress'?'ls-progress':'ls-planned'}">${l.status==='done'?'Done':l.status==='in-progress'?'In progress':'Planned'}</span>
+    </div>
+  `).join('');
+}
+const posts=P.posts.filter(p=>p.topics&&p.topics.includes(topicId));
+const postsGrid=document.getElementById('posts-grid');
+if(posts.length){
+  postsGrid.innerHTML=posts.map(post=>`
+    <a class="post-card" href="../blog/${post.id}.html">
+      <div class="post-thumb">
+        <span class="post-cat-tag">${post.cat}</span>
+      </div>
+      <div class="post-body">
+        <div class="post-title">${post.title}</div>
+        <div class="post-summary">${post.summary}</div>
+      </div>
+      <div class="post-footer">
+        <span class="post-date">${new Date(post.date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})} · ${post.readMins} min</span>
+        <span class="post-read">Read →</span>
+      </div>
+    </a>
+  `).join('');
+}else{
+  postsGrid.innerHTML='<div class="empty-state">No posts yet — coming soon as I continue learning.</div>';
+}
+const fObs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('vis');fObs.unobserve(e.target);}});},{threshold:.08});
+document.querySelectorAll('.fu').forEach(el=>fObs.observe(el));
+</script>
+</body>
+</html>
