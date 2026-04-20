@@ -1,0 +1,168 @@
+Badges
+
+Responder - Linux
+
+
+Responder - Windows
+
+
+SOC Member
+
+
+Phishing Expert
+
+
+SIEM 101
+
+
+Malware Analyzer
+
+
+Wireshark Expert
+
+
+Network Analyzer
+
+
+Job Hunter
+
+
+Network Cable
+
+
+Splunk Engineer
+
+
+Web Server Analyzer
+
+
+Network Engineer
+
+
+Lab Builder
+
+
+Protocol Engineer
+
+
+Protocol Handler
+
+
+Cyber Incident Handler
+
+
+Wazuh
+
+
+Packet Analyzer
+
+
+Secure Network Designer
+
+
+Linux/Unix System Security
+
+
+Network Security
+
+
+Introduction to System Security
+
+
+Introduction to System Security - 2
+
+
+Authentication and Authorization
+
+
+Password Management
+
+
+Windows System Security
+
+
+Advanced Linux/Unix System Security
+
+
+XDR-EDR Basics
+
+
+XDR/EDR Threat Analysis & Custom Rule
+
+
+Threat Hunting and IR with XDR/EDR
+
+
+Attack Surface Management
+
+
+Cyber Threat Intelligence for Detection
+
+
+Vulnerability Management
+
+
+SIEM Basics, Installation and Configuration
+
+
+SIEM Log Collection and Parsing
+
+
+SIEM Log Search, Analysis and Reporting
+
+
+SIEM Alert Tuning
+
+
+SOAR Fundamentals
+
+
+Open Source SOAR: TheHive
+
+
+Advanced SOAR
+
+
+SIEM Alert Generation
+
+
+Threat Hunting for C2 with RITA
+
+
+Network Forensics
+
+
+New Generation IT Infrastructures
+
+
+Introduction to Threat Hunting
+
+
+Threat Hunting Tools
+
+
+Threat Hunting with SIEM
+
+
+Threat Hunting with EDR
+
+
+Detector
+
+
+XLS Detector
+
+
+Shocker
+
+
+Phishing Analyzer
+
+
+First Blood
+
+
+Incident Handler
+
+
+SIEM Engineer

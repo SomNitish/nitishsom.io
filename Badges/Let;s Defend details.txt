@@ -1,0 +1,40 @@
+Know How
+Authentication and authorization
+SIEM Log Search, Analysis and Reporting
+Threat Hunting with SIEM
+Network Log Analysis
+SOAR Fundamentals
+Threat Hunting for C2 with RITA
+Network Fundamentals
+Secure network design
+SIEM alert generation
+Password management
+Packet analysis
+Vulnerability management
+XDR-EDR Basics
+System security
+Cyber threat intelligence
+Introduction to Threat Hunting
+Threat Hunting with EDR
+Incident Response
+Cyber incident handling
+Linux security
+Network security
+Wazuh
+Linux/Unix system security
+Network Essentials
+New Generation IT Infrastructures
+Threat Hunting and IR with XDR/EDR
+Threat Hunting Tools
+Network Forensics
+Attack surface management
+Alert tuning
+Application-Level Protocols
+XDR/EDR Threat analysis and rule creation
+Windows system security
+SIEM Log Collection and Parsing
+Open source SOAR
+Advanced SOAR
+Malware Analysis Fundamentals
+SIEM basics
+SIEM Engineer
