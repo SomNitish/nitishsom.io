@@ -6,43 +6,6 @@
 <base href="/nitishsom.io/">
 <title>Threat Hunting — Nitish Som</title>
 <link rel="stylesheet" href="assets/shared.css">
-<style>
-.topic-hero{padding:64px 0 48px;border-bottom:1px solid var(--border);background:linear-gradient(135deg,var(--green-l) 0%,var(--bg) 100%)}
-.topic-hero-inner{display:grid;grid-template-columns:auto 1fr;gap:24px;align-items:start}
-.hero-icon{width:72px;height:72px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:36px;background:var(--surface);border:1px solid var(--green-b);box-shadow:var(--sh)}
-.hero-content h1{font-size:clamp(32px,5vw,48px);font-weight:800;letter-spacing:-.04em;line-height:1.1;color:var(--text);margin-bottom:8px}
-.hero-tagline{font-size:16px;font-weight:300;color:var(--text2);margin-bottom:16px}
-.hero-meta{display:flex;gap:12px;flex-wrap:wrap;margin-top:16px}
-.hero-sources{display:flex;flex-wrap:wrap;gap:6px}
-.source-tag{font-size:10px;font-weight:500;padding:4px 9px;border-radius:var(--rp);background:var(--green-l);color:var(--green-t);border:1px solid var(--green-b)}
-.lessons-section{padding:48px 0;border-bottom:1px solid var(--border)}
-.lessons-grid{display:grid;gap:10px;margin-top:32px}
-.lesson-item{background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--border2);border-radius:var(--rs);padding:16px 18px;display:flex;align-items:center;justify-content:space-between;gap:16px;transition:all .2s}
-.lesson-item:hover{box-shadow:var(--sh-md);transform:translateX(3px)}
-.lesson-item.done{border-left-color:var(--green)}
-.lesson-item.in-progress{border-left-color:var(--amber)}
-.lesson-left{flex:1}
-.lesson-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:3px}
-.lesson-est{font-family:var(--mono);font-size:10px;color:var(--text3)}
-.lesson-badge{font-size:9px;font-weight:700;padding:3px 8px;border-radius:var(--rp);text-transform:uppercase;letter-spacing:.04em}
-.badge-done{background:var(--green-l);color:var(--green-t);border:1px solid var(--green-b)}
-.badge-progress{background:var(--amber-l);color:var(--amber);border:1px solid var(--amber-b)}
-.badge-planned{background:var(--bg2);color:var(--text3);border:1px solid var(--border)}
-.posts-section{padding:48px 0}
-.posts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-top:32px}
-.post-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;box-shadow:var(--sh);transition:all .2s;text-decoration:none;color:inherit;display:flex;flex-direction:column}
-.post-card:hover{box-shadow:var(--sh-md);transform:translateY(-2px)}
-.post-thumb{height:80px;background:linear-gradient(135deg,var(--green-l),var(--green-bg));padding:16px;display:flex;align-items:flex-end}
-.post-cat{font-size:9px;font-weight:700;padding:3px 8px;border-radius:var(--rp);background:rgba(255,255,255,.9);color:var(--green-t);letter-spacing:.03em;text-transform:uppercase}
-.post-body{padding:18px;flex:1}
-.post-title{font-size:14px;font-weight:600;color:var(--text);line-height:1.35;margin-bottom:6px}
-.post-summary{font-size:12px;font-weight:300;color:var(--text2);line-height:1.6}
-.post-footer{padding:12px 18px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--bg2)}
-.post-date{font-family:var(--mono);font-size:10px;color:var(--text3)}
-.post-read{font-size:11px;font-weight:600;color:var(--green)}
-.empty-state{text-align:center;padding:48px 24px;color:var(--text3);font-size:14px}
-@media(max-width:768px){.topic-hero-inner{grid-template-columns:1fr}}
-</style>
 </head>
 <body>
 
@@ -52,7 +15,7 @@
     <div class="nav-links">
       <a href="index.html#about">About</a>
       <a href="index.html#experience">Experience</a>
-      <a href="topics/index.html">Topics</a>
+      <a href="topics/index.html" class="act">Topics</a>
       <a href="index.html#projects">Projects</a>
       <a href="certifications/index.html">Certs</a>
       <a href="blog/index.html">Blog</a>
@@ -67,25 +30,42 @@
 
 <section class="topic-hero">
   <div class="container fu">
-    <div class="topic-hero-inner" id="hero"></div>
+    <a href="topics/index.html" class="back-link">← All topics</a>
+    <div class="topic-icon">🎯</div>
+    <h1 class="topic-title">Threat Hunting</h1>
+    <p class="topic-tagline">Proactive detection beyond automated alerts</p>
+    <p class="topic-desc">Hypothesis-driven hunting using SIEM, EDR, NDR, and threat intel. Covers the full hunting lifecycle, MITRE ATT&CK mapping, and attack-specific hunts.</p>
+    
+    <div class="topic-meta">
+      <div class="topic-meta-item">
+        <div class="topic-meta-label">Sources</div>
+        <div class="topic-meta-value">LetsDefend · SANS SEC508 · INE eCTHP · MITRE ATT&CK · CrowdStrike research</div>
+      </div>
+      <div class="topic-meta-item">
+        <div class="topic-meta-label">Progress</div>
+        <div class="topic-meta-value">
+          <div class="progress-bar"><div class="progress-fill" style="width:15%"></div></div>
+          <span class="progress-text">15%</span>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 
-<section class="lessons-section">
-  <div class="container fu">
-    <div class="eyebrow">Learning path</div>
-    <h2 class="section-h2">All lessons & modules.</h2>
-    <p class="section-sub">20 modules covering the full threat hunting lifecycle and tool-specific techniques.</p>
-    <div class="lessons-grid" id="lessons-grid"></div>
-  </div>
-</section>
+<section class="topic-content">
+  <div class="container">
+    
+    <!-- BLOG POSTS -->
+    <div class="topic-section">
+      <h2 class="section-title">Blog Posts</h2>
+      <div id="blog-posts" class="blog-grid"></div>
+      <div id="no-posts" class="empty-state" style="display:none">
+        <div class="empty-icon">📝</div>
+        <div class="empty-title">No posts yet</div>
+        <div class="empty-text">Blog posts about threat hunting will appear here as they're published.</div>
+      </div>
+    </div>
 
-<section class="posts-section">
-  <div class="container fu">
-    <div class="eyebrow">Posts on this topic</div>
-    <h2 class="section-h2">What I've written.</h2>
-    <p class="section-sub">Posts filtered to this topic — learning in public.</p>
-    <div class="posts-grid" id="posts-grid"></div>
   </div>
 </section>
 
@@ -108,68 +88,89 @@
 <script src="assets/data.js"></script>
 <script src="assets/cmdk.js"></script>
 <script>
+// Show availability badge if enabled
 if(P.showAvailBadge)document.getElementById('avail-badge').style.display='flex';
 
-const topic=P.topics.find(t=>t.id==='threat-hunting');
-if(!topic){document.body.innerHTML='<div class="container" style="padding:100px 0;text-align:center">Topic not found</div>';throw new Error('Topic not found');}
+// Filter blog posts for this topic
+const topicId = 'threat-hunting';
+const topicPosts = P.posts.filter(post => post.topics && post.topics.includes(topicId));
 
-document.getElementById('hero').innerHTML=`
-  <div class="hero-icon">${topic.icon}</div>
-  <div class="hero-content">
-    <h1>${topic.name}</h1>
-    <div class="hero-tagline">${topic.tagline}</div>
-    <p class="section-sub" style="margin:0;max-width:none">${topic.description}</p>
-    <div class="hero-meta">
-      <div>
-        <div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:6px">Learning from:</div>
-        <div class="hero-sources">
-          ${topic.sources.map(s=>`<span class="source-tag">${s}</span>`).join('')}
+const postsContainer = document.getElementById('blog-posts');
+const noPostsEl = document.getElementById('no-posts');
+
+if (topicPosts.length === 0) {
+  noPostsEl.style.display = 'block';
+} else {
+  postsContainer.innerHTML = topicPosts.map(post => {
+    const catColor = post.catColor || 'gray';
+    return `
+      <a href="blog/${post.id}.html" class="blog-card">
+        <div class="blog-card-meta">
+          <span class="blog-cat blog-cat-${catColor}">${post.cat}</span>
+          <span class="blog-date">${post.date}</span>
         </div>
-      </div>
-      <div style="margin-left:auto;text-align:center">
-        <div style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-bottom:4px">Progress</div>
-        <div style="font-size:24px;font-weight:800;color:var(--green)">${topic.progress}%</div>
-        <div style="font-family:var(--mono);font-size:10px;color:var(--text3)">${topic.lessons.filter(l=>l.status==='done').length}/${topic.lessons.length} done</div>
-      </div>
-    </div>
-  </div>
-`;
-
-document.getElementById('lessons-grid').innerHTML=topic.lessons.map(l=>`
-  <div class="lesson-item ${l.status}">
-    <div class="lesson-left">
-      <div class="lesson-title">${l.title}</div>
-      <div class="lesson-est">${l.est}</div>
-    </div>
-    <span class="lesson-badge badge-${l.status==='done'?'done':l.status==='in-progress'?'progress':'planned'}">
-      ${l.status==='done'?'✓ Done':l.status==='in-progress'?'In progress':'Planned'}
-    </span>
-  </div>
-`).join('');
-
-const filteredPosts=P.posts.filter(p=>p.topics&&p.topics.includes('threat-hunting'));
-if(filteredPosts.length){
-  document.getElementById('posts-grid').innerHTML=filteredPosts.map(post=>`
-    <a class="post-card" href="blog/${post.id}.html">
-      <div class="post-thumb">
-        <span class="post-cat">${post.cat}</span>
-      </div>
-      <div class="post-body">
-        <div class="post-title">${post.title}</div>
-        <div class="post-summary">${post.summary}</div>
-      </div>
-      <div class="post-footer">
-        <span class="post-date">${new Date(post.date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})} · ${post.readMins} min</span>
-        <span class="post-read">Read →</span>
-      </div>
-    </a>
-  `).join('');
-}else{
-  document.getElementById('posts-grid').innerHTML='<div class="empty-state">No posts yet on this topic. Check back soon!</div>';
+        <h3 class="blog-card-title">${post.title}</h3>
+        <p class="blog-card-summary">${post.summary}</p>
+        <div class="blog-card-footer">
+          <span class="blog-read">${post.readMins} min read</span>
+          ${post.featured ? '<span class="blog-featured">★ Featured</span>' : ''}
+        </div>
+      </a>
+    `;
+  }).join('');
 }
 
+// Fade-up animations
 const fObs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('vis');fObs.unobserve(e.target);}});},{threshold:.08});
 document.querySelectorAll('.fu').forEach(el=>fObs.observe(el));
 </script>
+
+<style>
+/* Topic hero */
+.topic-hero{padding:80px 0 60px;border-bottom:1px solid var(--border)}
+.back-link{font-family:var(--mono);font-size:11px;color:var(--text3);display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:var(--rp);background:var(--bg2);border:1px solid var(--border);margin-bottom:20px;text-decoration:none;transition:all .15s}
+.back-link:hover{color:var(--text);border-color:var(--border2)}
+.topic-icon{font-size:56px;margin-bottom:16px}
+.topic-title{font-size:clamp(32px,5vw,48px);font-weight:800;letter-spacing:-.04em;line-height:1.1;color:var(--text);margin-bottom:12px}
+.topic-tagline{font-size:18px;font-weight:500;color:var(--text2);margin-bottom:16px;letter-spacing:-.01em}
+.topic-desc{font-size:15px;font-weight:300;color:var(--text3);line-height:1.7;max-width:680px;margin-bottom:32px}
+.topic-meta{display:flex;gap:40px;flex-wrap:wrap}
+.topic-meta-item{display:flex;flex-direction:column;gap:8px}
+.topic-meta-label{font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text3)}
+.topic-meta-value{font-size:14px;font-weight:400;color:var(--text2)}
+.progress-bar{width:200px;height:6px;background:var(--bg2);border-radius:3px;overflow:hidden;border:1px solid var(--border);display:inline-block;vertical-align:middle}
+.progress-fill{height:100%;background:var(--green);transition:width .3s}
+.progress-text{font-family:var(--mono);font-size:12px;color:var(--text3);margin-left:10px;vertical-align:middle}
+
+/* Topic content */
+.topic-content{padding:60px 0}
+.topic-section{margin-bottom:60px}
+.section-title{font-size:24px;font-weight:800;color:var(--text);margin-bottom:24px;letter-spacing:-.03em}
+
+/* Blog grid */
+.blog-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:24px}
+.blog-card{display:block;padding:24px;border-radius:var(--r);border:1px solid var(--border);background:var(--surface);transition:all .2s;text-decoration:none;box-shadow:var(--sh)}
+.blog-card:hover{border-color:var(--border2);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.12)}
+.blog-card-meta{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.blog-cat{font-size:10px;font-weight:700;padding:4px 10px;border-radius:var(--rp);text-transform:uppercase;letter-spacing:.05em;border:1px solid}
+.blog-cat-green{background:var(--green-l);color:var(--green-t);border-color:var(--green-b)}
+.blog-cat-teal{background:var(--teal-l);color:var(--teal-t);border-color:var(--teal-b)}
+.blog-cat-blue{background:var(--blue-l);color:var(--blue-t);border-color:var(--blue-b)}
+.blog-cat-purple{background:var(--purple-l);color:var(--purple-t);border-color:var(--purple-b)}
+.blog-cat-amber{background:var(--amber-l);color:var(--amber-t);border-color:var(--amber-b)}
+.blog-date{font-family:var(--mono);font-size:11px;color:var(--text3)}
+.blog-card-title{font-size:18px;font-weight:700;color:var(--text);margin-bottom:10px;line-height:1.3;letter-spacing:-.02em}
+.blog-card-summary{font-size:14px;font-weight:300;color:var(--text2);line-height:1.6;margin-bottom:16px}
+.blog-card-footer{display:flex;align-items:center;gap:12px}
+.blog-read{font-family:var(--mono);font-size:11px;color:var(--text3)}
+.blog-featured{font-size:11px;font-weight:600;color:var(--green-t);background:var(--green-l);border:1px solid var(--green-b);padding:3px 8px;border-radius:var(--rp)}
+
+/* Empty state */
+.empty-state{text-align:center;padding:80px 20px;opacity:.6}
+.empty-icon{font-size:48px;margin-bottom:16px}
+.empty-title{font-size:18px;font-weight:700;color:var(--text2);margin-bottom:8px}
+.empty-text{font-size:14px;font-weight:300;color:var(--text3);max-width:400px;margin:0 auto}
+</style>
+
 </body>
 </html>
