@@ -6,7 +6,7 @@ const P = {
   tagline:"2+ years securing enterprise environments.",
   location:"India", tz:"IST / UTC+5:30",
   showHireBtn:false, 
-  showAvailBadge:true,           // Shows on portfolio pages (homepage, roadmap, etc.)
+  showAvailBadge:false,           // Shows on portfolio pages (homepage, roadmap, etc.)
   showAvailBadgeOnBlog:false,    // Hidden on blog posts (when sharing with org)
   contact:{
     email:"nitishsom123@gmail.com",
