@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<base href="/nitishsom.io/">
+<title>Building Complete SIEM Visibility for n8n SOC Automation — Nitish Som</title>
+<meta name="description" content="A deep dive into building a complete log forwarding pipeline from n8n's SQLite database to Wazuh SIEM — giving our SOC full visibility into the automation layer with 11 custom alert rules, owner identity tracking, and bi-daily health reports.">
+<link rel="stylesheet" href="assets/shared.css">
+
+<!-- Open Graph for LinkedIn sharing -->
+<meta property="og:title" content="Building Complete SIEM Visibility for n8n SOC Automation">
+<meta property="og:description" content="How I built a complete n8n → Wazuh integration with 11 custom alert rules, owner identity tracking, and bi-daily health reports for SOC automation visibility.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://somnitish.github.io/nitishsom.io/blog/n8n-wazuh-integration.html">
+
+<style>
+/* ── post layout ── */
+.post-hero{padding:56px 0 40px;border-bottom:1px solid var(--border)}
+.back-link{font-family:var(--mono);font-size:11px;color:var(--text3);display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:var(--rp);background:var(--bg2);border:1px solid var(--border);margin-bottom:20px;text-decoration:none;transition:all .15s}
+.back-link:hover{color:var(--text);border-color:var(--border2)}
+.post-meta{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+.post-cat{font-size:10px;font-weight:700;padding:4px 11px;border-radius:var(--rp);background:var(--green-l);color:var(--green-t);border:1px solid var(--green-b);text-transform:uppercase;letter-spacing:.05em}
+.post-date{font-family:var(--mono);font-size:11px;color:var(--text3)}
+.post-read{font-family:var(--mono);font-size:11px;color:var(--text3)}
+.post-title{font-size:clamp(26px,5vw,44px);font-weight:800;letter-spacing:-.04em;line-height:1.1;color:var(--text);margin-bottom:14px}
+.post-subtitle{font-size:16px;font-weight:300;color:var(--text2);line-height:1.7;max-width:680px;letter-spacing:-.01em}
+
+/* ── post body layout ── */
+.post-body{display:grid;grid-template-columns:1fr 260px;gap:56px;padding:52px 0;align-items:start}
+@media(max-width:900px){.post-body{grid-template-columns:1fr}}
+
+/* ── prose ── */
+.prose{max-width:720px}
+.prose h2{font-size:24px;font-weight:800;color:var(--text);letter-spacing:-.03em;margin:48px 0 16px;padding-top:8px;line-height:1.2;border-top:1px solid var(--border)}
+.prose h2:first-child{margin-top:0;border-top:none;padding-top:0}
+.prose h3{font-size:18px;font-weight:700;color:var(--text);letter-spacing:-.02em;margin:32px 0 12px}
+.prose h4{font-size:15px;font-weight:700;color:var(--text);letter-spacing:-.01em;margin:24px 0 10px}
+.prose p{font-size:15px;font-weight:300;color:var(--text2);line-height:1.8;margin-bottom:18px;letter-spacing:-.01em}
+.prose p strong{color:var(--text);font-weight:600}
+.prose ul,.prose ol{padding-left:24px;margin-bottom:18px}
+.prose li{font-size:15px;font-weight:300;color:var(--text2);line-height:1.8;margin-bottom:8px;letter-spacing:-.01em}
+.prose li strong{color:var(--text);font-weight:600}
+.prose hr{border:none;border-top:1px solid var(--border);margin:40px 0}
+.prose a{color:var(--green);font-weight:500;text-decoration:underline;text-decoration-color:var(--green-b);transition:opacity .15s}
+.prose a:hover{opacity:.7}
+
+/* ── code blocks ── */
+.prose pre{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rs);padding:16px 18px;margin:20px 0;overflow-x:auto;font-family:var(--mono);font-size:13px;line-height:1.6;color:var(--text2)}
+.prose code{font-family:var(--mono);font-size:13px;background:var(--bg2);padding:2px 6px;border-radius:3px;color:var(--green-t);border:1px solid var(--border)}
+.prose pre code{background:none;padding:0;border:none;color:var(--text2)}
+
+/* ── copy button ── */
+.code-block-wrapper{position:relative;margin:20px 0}
+.copy-btn{position:absolute;top:12px;right:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:6px 12px;font-size:11px;font-weight:600;color:var(--text3);cursor:pointer;transition:all .15s;font-family:var(--mono)}
+.copy-btn:hover{background:var(--text);color:var(--bg);border-color:var(--text)}
+.copy-btn.copied{background:var(--green-l);color:var(--green-t);border-color:var(--green-b)}
+
+/* ── callout boxes ── */
+.callout{padding:18px 20px;border-radius:var(--rs);margin:24px 0;font-size:14px;font-weight:400;line-height:1.7;border-left:4px solid}
+.callout-green{background:var(--green-l);border-color:var(--green);color:var(--green-t)}
+.callout-green strong{color:var(--green-t);font-weight:700}
+.callout-blue{background:var(--blue-l);border-color:var(--blue);color:var(--blue-t)}
+.callout-blue strong{color:var(--blue-t);font-weight:700}
+.callout-amber{background:var(--amber-l);border-color:var(--amber);color:var(--amber)}
+.callout-amber strong{font-weight:700}
+.callout-label{font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;display:block;opacity:.8}
+
+/* ── table ── */
+.prose table{width:100%;border-collapse:collapse;margin:24px 0;font-size:13px}
+.prose th{background:var(--bg2);border:1px solid var(--border);padding:10px 12px;text-align:left;font-weight:700;color:var(--text);font-size:12px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.05em}
+.prose td{border:1px solid var(--border);padding:10px 12px;color:var(--text2);line-height:1.6}
+.prose tr:nth-child(even){background:var(--bg2)}
+
+/* ── toc sidebar ── */
+.toc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;position:sticky;top:80px;box-shadow:var(--sh);max-height:calc(100vh - 120px);overflow-y:auto}
+.toc-label{font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:14px}
+.toc-links{display:flex;flex-direction:column;gap:2px}
+.toc-link{font-size:12px;font-weight:500;color:var(--text2);padding:6px 10px;border-radius:var(--rs);transition:all .15s;text-decoration:none;letter-spacing:-.01em;display:block}
+.toc-link:hover,.toc-link.active{color:var(--green);background:var(--green-l)}
+.toc-sub{padding-left:16px;font-size:11px;color:var(--text3);font-weight:400}
+.toc-sub:hover,.toc-sub.active{color:var(--green);background:var(--green-l)}
+
+/* ── share bar ── */
+.share-bar{display:flex;align-items:center;gap:10px;padding:24px 0;border-top:1px solid var(--border);margin-top:56px;flex-wrap:wrap}
+.share-label{font-size:13px;font-weight:600;color:var(--text2)}
+.share-btn{display:inline-flex;align-items:center;gap:8px;padding:9px 18px;border-radius:var(--rp);font-size:12px;font-weight:600;border:1px solid;transition:all .15s;text-decoration:none}
+.share-li{background:var(--blue-l);color:var(--blue-t);border-color:var(--blue-b)}
+.share-li:hover{background:var(--blue);color:#fff}
+.share-tw{background:var(--bg2);color:var(--text2);border-color:var(--border)}
+.share-tw:hover{background:var(--text);color:var(--bg)}
+
+/* ── tech stack tags ── */
+.tech-stack{display:flex;flex-wrap:wrap;gap:8px;margin:24px 0}
+.tech-tag{font-family:var(--mono);font-size:11px;font-weight:600;padding:5px 12px;border-radius:var(--rp);background:var(--surface);border:1px solid var(--border);color:var(--text3)}
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <div class="container nav-inner">
+    <a href="index.html" class="nav-logo"><span class="nav-logo-dot"></span>Nitish <em>Som</em></a>
+    <div class="nav-links">
+      <a href="index.html#about">About</a>
+      <a href="index.html#experience">Experience</a>
+      <a href="topics/index.html">Topics</a>
+      <a href="index.html#projects">Projects</a>
+      <a href="certifications/index.html">Certs</a>
+      <a href="blog/index.html" class="act">Blog</a>
+      <a href="roadmap.html">Roadmap</a>
+    </div>
+    <div class="nav-right">
+      <button class="cmdk-btn"><span>Search</span><kbd>⌘K</kbd></button>
+      <div id="avail-badge"><span class="pulse"></span>Open to remote</div>
+    </div>
+  </div>
+</nav>
+
+<section class="post-hero">
+  <div class="container fu">
+    <a href="blog/index.html" class="back-link">← All posts</a>
+    <div class="post-meta">
+      <span class="post-cat">Detection Engineering</span>
+      <span class="post-date">April 22, 2025</span>
+      <span class="post-read">25 min read</span>
+    </div>
+    <h1 class="post-title">Building Complete SIEM Visibility for Your SOC Automation Platform</h1>
+    <p class="post-subtitle">A deep dive into n8n → Wazuh integration: 11 custom alert rules, owner identity tracking, bi-daily health reports, and complete automation layer visibility</p>
+  </div>
+</section>
+
+<section class="post-body">
+  <div class="container">
+    <div class="post-body">
+      
+      <!-- MAIN CONTENT -->
+      <div class="prose">
+
+        <div class="callout callout-green">
+          <span class="callout-label">TL;DR</span>
+          <strong>The Problem:</strong> We were monitoring our infrastructure through Wazuh SIEM, but had zero visibility into n8n — the automation engine that responds to our security alerts. If workflows failed silently, our automated incident response stopped, and our SIEM had no record of it.<br><br>
+          <strong>The Solution:</strong> I built a complete log forwarding pipeline from n8n's SQLite database to Wazuh, giving our SOC full visibility into the automation layer with 11 custom alert rules, owner identity tracking, and bi-daily health reports.<br><br>
+          <strong>Tech Stack:</strong> Python 3 · SQLite · Wazuh 4.14.2 · n8n (Docker) · systemd · cron<br>
+          <strong>Impact:</strong> 6 analysts, 116+ workflows, zero blind spots, complete audit trail
+        </div>
+
+        <h2 id="problem">Wait... Are We Actually Monitoring Everything?</h2>
+
+        <p>Here's a question most SOC teams don't ask: <strong>Are you monitoring the system that responds to your security alerts?</strong></p>
+
+        <p>We deployed multiple open-source security tools — Wazuh for SIEM, SentinelOne for EDR, Suricata for network monitoring, n8n for automation. Each tool had dashboards, alerts, and logging. Everything looked good on paper.</p>
+
+        <p>But here's what nobody talks about: <strong>We were monitoring our infrastructure, but not the automation layer itself.</strong></p>
+
+        <p>Our n8n instance handled:</p>
+        <ul>
+          <li>Phishing email triage</li>
+          <li>SentinelOne alert routing</li>
+          <li>Agent disconnection reporting</li>
+          <li>Cisco Meraki daily/weekly reports</li>
+          <li>JIRA ticketing automation</li>
+          <li>SOC hourly health reports</li>
+        </ul>
+
+        <p>If a workflow silently started failing every day — <strong>nobody knew</strong>.<br>
+        If an analyst manually triggered a sensitive workflow at 3 AM — <strong>no audit trail</strong>.<br>
+        If n8n itself crashed and our entire automated response pipeline went dark — <strong>Wazuh had no idea</strong>.</p>
+
+        <p>We had a blind spot over the system that responds to our infrastructure alerts.</p>
+
+        <hr>
+
+        <h2 id="architecture">The Architecture: What We're Actually Monitoring</h2>
+
+        <h3>What is database.sqlite?</h3>
+
+        <p>n8n stores ALL execution data in a single SQLite database file inside its Docker container:</p>
+
+<div class="code-block-wrapper">
+<button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code>/opt/n8n-server/n8n-data/database.sqlite</code></pre>
+</div>
+
+        <p>This database contains:</p>
+        <ul>
+          <li><strong>execution_entity</strong> — Every workflow run (success/failure/running)</li>
+          <li><strong>workflow_entity</strong> — Workflow definitions and metadata</li>
+          <li><strong>user</strong> — User accounts and identity</li>
+          <li><strong>project / project_relation / shared_workflow</strong> — Ownership chains</li>
+        </ul>
+
+        <p>The entire execution history is right there. We just needed to read it and forward it to Wazuh.</p>
+
+        <h3>Enabling SQLite in n8n (Docker)</h3>
+
+        <p>By default, n8n uses SQLite when no database is configured. If you're running n8n in Docker, here's how to ensure SQLite persistence:</p>
+
+<div class="code-block-wrapper">
+<button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code>version: '3.8'
+
+services:
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n-server
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=your_password
+      - GENERIC_TIMEZONE=Asia/Kolkata
+      - TZ=Asia/Kolkata
+    volumes:
+      - /opt/n8n-server/n8n-data:/home/node/.n8n
+    networks:
+      - n8n-network
+
+networks:
+  n8n-network:
+    driver: bridge</code></pre>
+</div>
+
+        <div class="callout callout-blue">
+          <span class="callout-label">Key Points</span>
+          <strong>Volume mount:</strong> <code>/opt/n8n-server/n8n-data:/home/node/.n8n</code><br>
+          <strong>SQLite file:</strong> <code>/opt/n8n-server/n8n-data/database.sqlite</code><br>
+          <strong>Persistence:</strong> File survives container restarts<br>
+          <strong>No external DB:</strong> SQLite is built-in, no PostgreSQL/MySQL needed
+        </div>
+
+        <h3>Verification Commands</h3>
+
+<div class="code-block-wrapper">
+<button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code># Check if database file exists
+sudo ls -lh /opt/n8n-server/n8n-data/database.sqlite
+
+# Read-only SQLite query (safe, won't lock)
+sqlite3 file:/opt/n8n-server/n8n-data/database.sqlite?mode=ro \
+  "SELECT COUNT(*) FROM execution_entity;"
+
+# Check recent executions
+sqlite3 file:/opt/n8n-server/n8n-data/database.sqlite?mode=ro \
+  "SELECT id, workflowId, status, startedAt FROM execution_entity ORDER BY id DESC LIMIT 5;"</code></pre>
+</div>
+
+        <hr>
+
+        <h2 id="pipeline">The Pipeline: Three Python Scripts + Two State Files</h2>
+
+        <p>The integration consists of 3 Python scripts that run continuously or on schedule:</p>
+
+        <ol>
+          <li><strong>poller.py</strong> — Systemd daemon, polls SQLite every 15 seconds</li>
+          <li><strong>heartbeat.py</strong> — Cron hourly, detects dead silence (no executions in 2hrs)</li>
+          <li><strong>summary.py</strong> — Cron 2x daily (10:00 & 22:00 IST), generates 12hr health reports</li>
+          <li><strong>workflow_map_builder.py</strong> — Cron every 48hrs, builds owner identity cache</li>
+        </ol>
+
+        <p>Plus 2 state files:</p>
+        <ul>
+          <li><strong>last_id.txt</strong> — Cursor tracking (last processed execution ID)</li>
+          <li><strong>seen_workflows.json</strong> — First-ever-seen detection</li>
+          <li><strong>workflow_map.json</strong> — Cached workflow → owner identity map</li>
+        </ul>
+
+        <div class="callout callout-amber">
+          <span class="callout-label">Why Multiple Scripts?</span>
+          <strong>poller.py</strong> handles real-time execution forwarding<br>
+          <strong>heartbeat.py</strong> solves the "absence detection" problem — event-driven systems can't detect silence<br>
+          <strong>summary.py</strong> provides timed snapshots for night shift without requiring dashboard access<br>
+          <strong>workflow_map_builder.py</strong> avoids expensive 5-table joins on every poll
+        </div>
+
+        <hr>
+
+        <h2 id="installation">Installation & Setup Guide</h2>
+
+        <h3>Step 1: Prepare the Agent Machine</h3>
+
+<div class="code-block-wrapper">
+<button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code># Create working directory
+sudo mkdir -p /opt/n8n-wazuh
+cd /opt/n8n-wazuh
+
+# Install dependencies
+sudo apt update
+sudo apt install python3 python3-pip sqlite3 -y
+
+# Verify SQLite access
+sqlite3 file:/opt/n8n-server/n8n-data/database.sqlite?mode=ro \
+  "SELECT COUNT(*) FROM execution_entity;"</code></pre>
+</div>
+
+        <h3>Step 2: Deploy poller.py</h3>
+
+        <p><strong>Purpose:</strong> Continuously polls n8n's SQLite database every 15 seconds, enriches execution records with IST timestamps, duration, owner identity, and new workflow detection. Writes JSON events to monitored log file.</p>
+
+<div class="code-block-wrapper">
+<button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code>#!/usr/bin/env python3
+import sqlite3, json, time, os
+from datetime import datetime, timezone, timedelta
+
+DB_PATH   = "/opt/n8n-server/n8n-data/database.sqlite"
+LOG_PATH  = "/var/log/n8n-executions.log"
+CURSOR_F  = "/opt/n8n-wazuh/last_id.txt"
+SEEN_WF_F = "/opt/n8n-wazuh/seen_workflows.json"
+MAP_PATH  = "/opt/n8n-wazuh/workflow_map.json"
+INTERVAL  = 15
+IST       = timezone(timedelta(hours=5, minutes=30))
+
+def load_cursor():
+    try:
+        return int(open(CURSOR_F).read().strip())
+    except:
+        return 0
+
+def save_cursor(last_id):
+    with open(CURSOR_F, "w") as f:
+        f.write(str(last_id))
+
+def load_seen_workflows():
+    try:
+        return json.load(open(SEEN_WF_F))
+    except:
+        return {}
+
+def save_seen_workflows(seen):
+    with open(SEEN_WF_F, "w") as f:
+        json.dump(seen, f)
+
+def load_workflow_map():
+    try:
+        return json.load(open(MAP_PATH))
+    except:
+        return {}
+
+def parse_dt_utc(val):
+    if not val or val == "null":
+        return None
+    for fmt in ("%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S",
+                "%Y-%m-%dT%H:%M:%S.%fZ", "%Y-%m-%dT%H:%M:%SZ"):
+        try:
+            return datetime.strptime(val, fmt).replace(tzinfo=timezone.utc)
+        except:
+            continue
+    return None
+
+def to_ist(dt_utc):
+    if dt_utc is None:
+        return None
+    return dt_utc.astimezone(IST)
+
+def calc_duration(started, stopped):
+    s = parse_dt_utc(started)
+    e = parse_dt_utc(stopped)
+    if s and e:
+        return round((e - s).total_seconds(), 2)
+    return None
+
+def poll():
+    last_id        = load_cursor()
+    seen_workflows = load_seen_workflows()
+    workflow_map   = load_workflow_map()
+
+    con = sqlite3.connect("file:" + DB_PATH + "?mode=ro", uri=True)
+    con.row_factory = sqlite3.Row
+    rows = con.execute(
+        "SELECT e.id, e.workflowId, w.name AS workflowName, "
+        "e.status, e.mode, e.finished, e.startedAt, e.stoppedAt, e.retryOf "
+        "FROM execution_entity e "
+        "LEFT JOIN workflow_entity w ON w.id = e.workflowId "
+        "WHERE e.id > ? ORDER BY e.id ASC",
+        (last_id,)
+    ).fetchall()
+    con.close()
+
+    if not rows:
+        return
+
+    with open(LOG_PATH, "a") as lf:
+        for row in rows:
+            duration     = calc_duration(row["startedAt"], row["stoppedAt"])
+            now_ist      = datetime.now(IST)
+            started_utc  = parse_dt_utc(row["startedAt"])
+            started_ist  = to_ist(started_utc)
+            wf_id        = row["workflowId"]
+            wf_name      = row["workflowName"] or "unknown"
+
+            wf_info      = workflow_map.get(wf_id, {})
+            owner_email  = wf_info.get("owner_email",  "unknown")
+            owner_name   = wf_info.get("owner_name",   "unknown")
+            project_name = wf_info.get("project_name", "unknown")
+
+            is_new_workflow = wf_id not in seen_workflows
+            if is_new_workflow:
+                seen_workflows[wf_id] = {
+                    "name":       wf_name,
+                    "first_seen": now_ist.isoformat()
+                }
+
+            event = {
+                "timestamp":       now_ist.isoformat(),
+                "integration":     "n8n",
+                "exec_id":         row["id"],
+                "workflow_id":     wf_id,
+                "workflow_name":   wf_name,
+                "exec_status":     row["status"],
+                "mode":            row["mode"],
+                "finished":        bool(row["finished"]),
+                "started_at_utc":  row["startedAt"],
+                "started_at_ist":  started_ist.strftime("%Y-%m-%d %H:%M:%S IST") if started_ist else None,
+                "stopped_at_utc":  row["stoppedAt"],
+                "duration_sec":    duration,
+                "retry_of":        row["retryOf"] if row["retryOf"] else "",
+                "is_new_workflow": is_new_workflow,
+                "owner_email":     owner_email,
+                "owner_name":      owner_name,
+                "project_name":    project_name,
+            }
+            lf.write(json.dumps(event) + "\n")
+            last_id = row["id"]
+
+    save_cursor(last_id)
+    save_seen_workflows(seen_workflows)
+
+if __name__ == "__main__":
+    os.makedirs(os.path.dirname(CURSOR_F), exist_ok=True)
+    print("n8n Wazuh poller started (IST)")
+    while True:
+        try:
+            poll()
+        except Exception as e:
+            print(f"[ERROR] {e}")
+        time.sleep(INTERVAL)</code></pre>
+</div>
+
+        <p><strong>Save and configure:</strong></p>
+
+<div class="code-block-wrapper">
+<button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code>sudo nano /opt/n8n-wazuh/poller.py
+# Paste code above
+sudo chmod +x /opt/n8n-wazuh/poller.py</code></pre>
+</div>
+
+        <p class="continue-reading"><em>The full blog post continues with heartbeat.py, summary.py, workflow_map_builder.py, systemd configuration, Wazuh decoder/rules, technical challenges, use cases, and complete implementation guide...</em></p>
+
+        <div class="callout callout-green">
+          <span class="callout-label">Download Full Guide</span>
+          <strong>Complete implementation guide available:</strong> The full blog post with all 4 Python scripts, Wazuh configuration, decoder/rules XML, debugging walkthrough, and 6 real-world use cases is available as a downloadable Markdown file. All code is copy-paste ready with one-click copying.
+        </div>
+
+        <hr>
+
+        <h2 id="challenges">Technical Challenges Solved</h2>
+
+        <h3>Challenge 1: IST Timezone Bug</h3>
+
+        <p><strong>Problem:</strong> n8n stores all timestamps in UTC. The original poller calculated hour_of_day from raw UTC strings, causing alerts like "workflow ran at hour 3" when it was actually 8:30 AM IST.</p>
+
+        <p><strong>Root Cause:</strong> Python's datetime.strptime() creates timezone-naive datetime objects by default. Without explicit timezone attachment, all calculations were in naive UTC.</p>
+
+        <p><strong>Fix:</strong></p>
+
+<div class="code-block-wrapper">
+<button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code># BEFORE (broken)
+started_utc = parse_dt_utc(row["startedAt"])  # Returns naive datetime
+hour = started_utc.hour  # UTC hour, not IST
+
+# AFTER (fixed)
+def parse_dt_utc(val):
+    # ... parsing logic ...
+    return datetime.strptime(val, fmt).replace(tzinfo=timezone.utc)  # Attach UTC
+
+def to_ist(dt_utc):
+    IST = timezone(timedelta(hours=5, minutes=30))
+    return dt_utc.astimezone(IST)  # Convert to IST
+
+started_utc = parse_dt_utc(row["startedAt"])
+started_ist = to_ist(started_utc)
+hour_ist = started_ist.hour  # Correct IST hour</code></pre>
+</div>
+
+        <p><strong>Lesson:</strong> Always attach timezone info when parsing timestamps. Naive datetimes cause silent bugs.</p>
+
+        <h3>Challenge 2: Rule 86600 Silent Swallowing</h3>
+
+        <p><strong>Problem:</strong> All n8n events were being matched and suppressed by Wazuh's built-in rule 86600 ("Suricata messages") at level 0, preventing all custom rules from ever firing.</p>
+
+        <p><strong>Discovery:</strong> Ran wazuh-logtest manually, saw Phase 3 output matching rule 86600 first.</p>
+
+        <p><strong>Fix:</strong> Created overwrite rules that intercept 86600 specifically for n8n events:</p>
+
+<div class="code-block-wrapper">
+<button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code>&lt;rule id="86601" level="0" overwrite="yes"&gt;
+  &lt;if_sid&gt;86600&lt;/if_sid&gt;
+  &lt;field name="integration"&gt;^n8n$&lt;/field&gt;
+  &lt;description&gt;Suricata message (overridden for n8n integration)&lt;/description&gt;
+&lt;/rule&gt;</code></pre>
+</div>
+
+        <p><strong>Lesson:</strong> Use wazuh-logtest to debug rule evaluation chains. Overwrite rules can prevent generic catch-alls from swallowing specific events.</p>
+
+        <h3>Challenge 3: User Identity Without Direct Foreign Key</h3>
+
+        <p><strong>Problem:</strong> n8n's execution_entity table has no userId column. How do we know which analyst triggered a specific execution?</p>
+
+        <p><strong>Solution:</strong> Traced the full ownership chain across 5 tables:</p>
+
+<div class="code-block-wrapper">
+<button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code>execution_entity 
+  → workflow_entity (via workflowId)
+  → shared_workflow (via workflowId) 
+  → project (via projectId)
+  → project_relation (via projectId)
+  → user (via userId)</code></pre>
+</div>
+
+        <p><strong>Implementation:</strong> workflow_map_builder.py runs this 5-table join every 48 hours and caches the result as JSON. poller.py does O(1) dict lookups instead of repeated joins.</p>
+
+        <p><strong>Lesson:</strong> When direct foreign keys don't exist, trace entity relationships. Cache expensive joins.</p>
+
+        <hr>
+
+        <h2 id="rules">Complete Wazuh Rules Reference</h2>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Rule ID</th>
+              <th>Level</th>
+              <th>Purpose</th>
+              <th>Trigger</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>86601/86602</td><td>0</td><td>Override generic rule 86600</td><td>integration: n8n</td></tr>
+            <tr><td>100200</td><td>3</td><td>Base execution logged</td><td>Any n8n event</td></tr>
+            <tr><td>100202</td><td>7</td><td>Workflow failure</td><td>exec_status: error</td></tr>
+            <tr><td>100206</td><td>4</td><td>Retry recovery</td><td>success + retry_of</td></tr>
+            <tr><td>100207</td><td>10</td><td>Retry failure (persistent)</td><td>error + retry_of</td></tr>
+            <tr><td>100220</td><td>9</td><td>Recurring failure</td><td>2+ failures/24h</td></tr>
+            <tr><td>100221</td><td>11</td><td>Dead silence</td><td>0 executions/2hrs</td></tr>
+            <tr><td>100223</td><td>5</td><td>Manual trigger audit</td><td>mode: manual</td></tr>
+            <tr><td>100232</td><td>8</td><td>New workflow detection</td><td>is_new_workflow: true</td></tr>
+            <tr><td>100240</td><td>12</td><td>12hr summary</td><td>event_type: 12hr_summary</td></tr>
+            <tr><td>100241</td><td>13</td><td>Summary with failures</td><td>total_failed > 0</td></tr>
+            <tr><td>100242</td><td>11</td><td>Zero executions in 12hrs</td><td>total_executions: 0</td></tr>
+          </tbody>
+        </table>
+
+        <hr>
+
+        <h2 id="impact">Outcome & Impact</h2>
+
+        <p><strong>Production Deployment:</strong></p>
+        <ul>
+          <li>6 SOC analysts across day/night shifts</li>
+          <li>116+ active workflows monitored</li>
+          <li>Zero blind spots in the automation layer</li>
+          <li>Complete audit trail with analyst identity</li>
+          <li>Bi-daily health reports at shift change (10:00 & 22:00 IST)</li>
+        </ul>
+
+        <div class="callout callout-green">
+          <span class="callout-label">Before This Integration</span>
+          • Workflow failures discovered hours/days later<br>
+          • No audit trail of manual triggers<br>
+          • No alerting if n8n crashed<br>
+          • No visibility into automation health
+        </div>
+
+        <div class="callout callout-green">
+          <span class="callout-label">After This Integration</span>
+          • Real-time alerts within 15 seconds<br>
+          • Full owner identity on every execution<br>
+          • Dead silence detection<br>
+          • Night shift sees complete health snapshot<br>
+          • Security team reviews all new workflows
+        </div>
+
+        <hr>
+
+        <h2 id="skills">Skills Demonstrated</h2>
+
+        <div class="tech-stack">
+          <span class="tech-tag">Detection Engineering</span>
+          <span class="tech-tag">Python Scripting</span>
+          <span class="tech-tag">Wazuh Architecture</span>
+          <span class="tech-tag">Docker</span>
+          <span class="tech-tag">systemd</span>
+          <span class="tech-tag">SQLite</span>
+          <span class="tech-tag">Timezone Handling</span>
+          <span class="tech-tag">Log Pipeline Design</span>
+          <span class="tech-tag">SOC Automation</span>
+          <span class="tech-tag">Incident Visibility</span>
+          <span class="tech-tag">Custom SIEM Rules</span>
+          <span class="tech-tag">JSON Serialization</span>
+          <span class="tech-tag">State Management</span>
+          <span class="tech-tag">Audit Trails</span>
+        </div>
+
+        <hr>
+
+        <h2 id="conclusion">Final Thoughts</h2>
+
+        <p>If you're running n8n or any automation platform in your SOC and it's not feeding into your SIEM — <strong>you have a blind spot</strong>.</p>
+
+        <p>Your SIEM monitors threats. Your automation responds to threats. But who monitors the automation itself?</p>
+
+        <p>This integration gives you that missing piece. Every execution. Every failure. Every manual trigger. Every analyst. Complete visibility.</p>
+
+        <div class="callout callout-blue">
+          <span class="callout-label">Download Complete Guide</span>
+          The full implementation guide with all 4 Python scripts, Wazuh decoder/rules XML, debugging walkthrough, and 6 real-world use cases is available in my GitHub repository. All code is copy-paste ready.
+        </div>
+
+        <!-- SHARE BAR -->
+        <div class="share-bar">
+          <span class="share-label">Share this post:</span>
+          <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://somnitish.github.io/nitishsom.io/blog/n8n-wazuh-integration.html" target="_blank" class="share-btn share-li">
+            <span>Share on LinkedIn</span>
+          </a>
+          <a href="https://twitter.com/intent/tweet?url=https://somnitish.github.io/nitishsom.io/blog/n8n-wazuh-integration.html&text=Building%20Complete%20SIEM%20Visibility%20for%20n8n%20SOC%20Automation" target="_blank" class="share-btn share-tw">
+            <span>Share on Twitter</span>
+          </a>
+        </div>
+
+      </div>
+
+      <!-- TABLE OF CONTENTS -->
+      <aside class="toc">
+        <div class="toc-label">Table of Contents</div>
+        <div class="toc-links">
+          <a href="#problem" class="toc-link">The Problem</a>
+          <a href="#architecture" class="toc-link">Architecture</a>
+          <a href="#pipeline" class="toc-link">The Pipeline</a>
+          <a href="#installation" class="toc-link">Installation Guide</a>
+          <a href="#challenges" class="toc-link">Technical Challenges</a>
+          <a href="#rules" class="toc-link">Wazuh Rules</a>
+          <a href="#impact" class="toc-link">Outcome & Impact</a>
+          <a href="#skills" class="toc-link">Skills Demonstrated</a>
+          <a href="#conclusion" class="toc-link">Final Thoughts</a>
+        </div>
+      </aside>
+
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <div class="footer-left">
+      <div class="footer-logo">Nitish <em>Som</em></div>
+      <div class="footer-copy">© 2025</div>
+    </div>
+    <div class="footer-links">
+      <a href="topics/index.html">Topics</a>
+      <a href="roadmap.html">Roadmap</a>
+      <a href="sitemap.html">Sitemap</a>
+      <a href="knowledge-graph.html">Knowledge graph</a>
+    </div>
+    <div class="footer-tz">IST · UTC+5:30</div>
+  </div>
+</footer>
+
+<script src="assets/data.js"></script>
+<script src="assets/cmdk.js"></script>
+<script>
+if(P.showAvailBadge)document.getElementById('avail-badge').style.display='flex';
+
+// Copy code button functionality
+function copyCode(btn) {
+  const codeBlock = btn.nextElementSibling.querySelector('code');
+  const text = codeBlock.textContent;
+  
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = 'Copy';
+      btn.classList.remove('copied');
+    }, 2000);
+  });
+}
+
+// Smooth scroll for TOC links
+document.querySelectorAll('.toc-link').forEach(link => {
+  link.addEventListener('click', (e) => {
+    e.preventDefault();
+    const target = document.querySelector(link.getAttribute('href'));
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      
+      // Update active state
+      document.querySelectorAll('.toc-link').forEach(l => l.classList.remove('active'));
+      link.classList.add('active');
+    }
+  });
+});
+
+// Highlight active section in TOC on scroll
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const id = entry.target.getAttribute('id');
+      document.querySelectorAll('.toc-link').forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('href') === '#' + id) {
+          link.classList.add('active');
+        }
+      });
+    }
+  });
+}, { rootMargin: '-20% 0px -80% 0px' });
+
+document.querySelectorAll('h2[id]').forEach(heading => {
+  observer.observe(heading);
+});
+
+// Fade-up animations
+const fObs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('vis');fObs.unobserve(e.target);}});},{threshold:.08});
+document.querySelectorAll('.fu').forEach(el=>fObs.observe(el));
+</script>
+</body>
+</html>

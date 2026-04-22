@@ -207,7 +207,27 @@ const P = {
 
   /* ── BLOG POSTS ── */
   posts:[
-    {id:"threat-hunting-notes",title:"Threat Hunting — My Notes & Learnings",date:"2025-04-20",readMins:8,cat:"Threat Hunting",catColor:"green",summary:"Hypotheses, IoCs, the full lifecycle, and 3 real Wazuh lab walkthroughs.",tags:["Threat hunting","SIEM","Wazuh","MITRE ATT&CK"],skills:["threat-hunting","log-parsing","mitre-mapping"],topics:["threat-hunting"],linkedin:"https://www.linkedin.com/in/nitishsom/"},
+    {
+      id:"threat-hunting-notes",
+      title:"Threat Hunting — My Notes & Learnings",
+      date:"2025-04-20",readMins:8,
+      cat:"Threat Hunting",
+      catColor:"green",
+      summary:"Hypotheses, IoCs, the full lifecycle, and 3 real Wazuh lab walkthroughs.",
+      tags:["Threat hunting","SIEM","Wazuh","MITRE ATT&CK"],
+      skills:["threat-hunting","log-parsing","mitre-mapping"],
+      topics:["threat-hunting"],
+      linkedin:"https://www.linkedin.com/in/nitishsom/"},
+    {
+      id: 'n8n-wazuh-integration',
+      title: 'Building Complete SIEM Visibility for Your SOC Automation Platform',
+      summary: 'A deep dive into n8n → Wazuh integration: 11 custom alert rules, owner identity tracking, and complete automation layer visibility.',
+      cat: 'Detection Engineering',
+      date: '2025-04-22',
+      readMins: 25,
+      topics: ['wazuh', 'siem-engineering'],
+      featured: true,
+    },
   ],
 
   /* ── KNOWLEDGE GRAPH ── */
