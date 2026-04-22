@@ -122,7 +122,7 @@
     <div class="post-meta">
       <span class="post-cat">Detection Engineering</span>
       <span class="post-date">April 22, 2025</span>
-      <span class="post-read">25 min read</span>
+      <span class="post-read">30 min read</span>
     </div>
     <h1 class="post-title">Building Complete SIEM Visibility for Your SOC Automation Platform</h1>
     <p class="post-subtitle">A deep dive into n8n → Wazuh integration: 11 custom alert rules, owner identity tracking, bi-daily health reports, and complete automation layer visibility</p>
@@ -135,13 +135,57 @@
       
       <!-- MAIN CONTENT -->
       <div class="prose">
-
         <div class="callout callout-green">
           <span class="callout-label">TL;DR</span>
           <strong>The Problem:</strong> We were monitoring our infrastructure through Wazuh SIEM, but had zero visibility into n8n — the automation engine that responds to our security alerts. If workflows failed silently, our automated incident response stopped, and our SIEM had no record of it.<br><br>
           <strong>The Solution:</strong> I built a complete log forwarding pipeline from n8n's SQLite database to Wazuh, giving our SOC full visibility into the automation layer with 11 custom alert rules, owner identity tracking, and bi-daily health reports.<br><br>
           <strong>Tech Stack:</strong> Python 3 · SQLite · Wazuh 4.14.2 · n8n (Docker) · systemd · cron<br>
           <strong>Impact:</strong> 6 analysts, 116+ workflows, zero blind spots, complete audit trail
+        </div>
+
+        <div class="callout callout-amber">
+          <span class="callout-label">⚙️ Path Configuration — Customize Before Starting</span>
+          <p><strong>This guide uses example paths.</strong> Replace them with your actual paths throughout:</p>
+          
+          <table style="font-size:13px;margin-top:12px">
+            <tr>
+              <th>Variable</th>
+              <th>Example in Guide</th>
+              <th>What to Change</th>
+            </tr>
+            <tr>
+              <td><code>N8N_DATA_PATH</code></td>
+              <td><code>/opt/n8n-server/n8n-data</code></td>
+              <td>Your n8n Docker volume mount path</td>
+            </tr>
+            <tr>
+              <td><code>SCRIPTS_PATH</code></td>
+              <td><code>/opt/n8n-wazuh</code></td>
+              <td>Where you'll save Python scripts</td>
+            </tr>
+            <tr>
+              <td><code>DB_FILE</code></td>
+              <td><code>database.sqlite</code></td>
+              <td>Your n8n database filename</td>
+            </tr>
+            <tr>
+              <td><code>LOG_PATH</code></td>
+              <td><code>/var/log/n8n-executions.log</code></td>
+              <td>Where to write JSON events</td>
+            </tr>
+          </table>
+
+          <p style="margin-top:12px"><strong>Find your n8n data path:</strong></p>
+<div class="code-block-wrapper">
+<button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code># Check your Docker volume mount
+docker inspect n8n-server | grep -A 5 Mounts
+
+# Or check docker-compose.yml
+grep -A 2 "volumes:" docker-compose.yml</code></pre>
+</div>
+
+          <p style="margin-top:12px"><strong>In all Python scripts below:</strong> Update the path variables at the top before running!</p>
         </div>
 
         <h2 id="problem">Wait... Are We Actually Monitoring Everything?</h2>
@@ -178,7 +222,7 @@
 
 <div class="code-block-wrapper">
 <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-<pre><code>/opt/n8n-server/n8n-data/database.sqlite</code></pre>
+<pre><code>/opt/n8n-server/YOUR_N8N_DATA_PATH/database.sqlite</code></pre>
 </div>
 
         <p>This database contains:</p>
@@ -213,7 +257,7 @@ services:
       - GENERIC_TIMEZONE=Asia/Kolkata
       - TZ=Asia/Kolkata
     volumes:
-      - /opt/n8n-server/n8n-data:/home/node/.n8n
+      - /opt/n8n-server/YOUR_N8N_DATA_PATH:/home/node/.n8n
     networks:
       - n8n-network
 
@@ -224,8 +268,8 @@ networks:
 
         <div class="callout callout-blue">
           <span class="callout-label">Key Points</span>
-          <strong>Volume mount:</strong> <code>/opt/n8n-server/n8n-data:/home/node/.n8n</code><br>
-          <strong>SQLite file:</strong> <code>/opt/n8n-server/n8n-data/database.sqlite</code><br>
+          <strong>Volume mount:</strong> <code>/opt/n8n-server/YOUR_N8N_DATA_PATH:/home/node/.n8n</code><br>
+          <strong>SQLite file:</strong> Inside the volume at <code>database.sqlite</code><br>
           <strong>Persistence:</strong> File survives container restarts<br>
           <strong>No external DB:</strong> SQLite is built-in, no PostgreSQL/MySQL needed
         </div>
@@ -234,44 +278,44 @@ networks:
 
 <div class="code-block-wrapper">
 <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-<pre><code># Check if database file exists
-sudo ls -lh /opt/n8n-server/n8n-data/database.sqlite
+<pre><code># Check if database file exists (update path!)
+sudo ls -lh /opt/n8n-server/YOUR_N8N_DATA_PATH/database.sqlite
 
 # Read-only SQLite query (safe, won't lock)
-sqlite3 file:/opt/n8n-server/n8n-data/database.sqlite?mode=ro \
+sqlite3 file:/opt/n8n-server/YOUR_N8N_DATA_PATH/database.sqlite?mode=ro \
   "SELECT COUNT(*) FROM execution_entity;"
 
 # Check recent executions
-sqlite3 file:/opt/n8n-server/n8n-data/database.sqlite?mode=ro \
+sqlite3 file:/opt/n8n-server/YOUR_N8N_DATA_PATH/database.sqlite?mode=ro \
   "SELECT id, workflowId, status, startedAt FROM execution_entity ORDER BY id DESC LIMIT 5;"</code></pre>
 </div>
 
         <hr>
 
-        <h2 id="pipeline">The Pipeline: Three Python Scripts + Two State Files</h2>
+        <h2 id="pipeline">The Pipeline: Architecture Overview</h2>
 
-        <p>The integration consists of 3 Python scripts that run continuously or on schedule:</p>
+        <p>The integration consists of 3 Python scripts that run continuously or on schedule, plus 1 cache builder:</p>
 
         <ol>
-          <li><strong>poller.py</strong> — Systemd daemon, polls SQLite every 15 seconds</li>
+          <li><strong>poller.py</strong> — Systemd daemon, polls SQLite every 15 seconds, enriches and forwards events</li>
           <li><strong>heartbeat.py</strong> — Cron hourly, detects dead silence (no executions in 2hrs)</li>
           <li><strong>summary.py</strong> — Cron 2x daily (10:00 & 22:00 IST), generates 12hr health reports</li>
           <li><strong>workflow_map_builder.py</strong> — Cron every 48hrs, builds owner identity cache</li>
         </ol>
 
-        <p>Plus 2 state files:</p>
+        <p>Plus 3 state files:</p>
         <ul>
           <li><strong>last_id.txt</strong> — Cursor tracking (last processed execution ID)</li>
-          <li><strong>seen_workflows.json</strong> — First-ever-seen detection</li>
-          <li><strong>workflow_map.json</strong> — Cached workflow → owner identity map</li>
+          <li><strong>seen_workflows.json</strong> — First-ever-seen detection for new workflows</li>
+          <li><strong>workflow_map.json</strong> — Cached workflow → owner identity map (avoids expensive joins)</li>
         </ul>
 
         <div class="callout callout-amber">
           <span class="callout-label">Why Multiple Scripts?</span>
-          <strong>poller.py</strong> handles real-time execution forwarding<br>
+          <strong>poller.py</strong> handles real-time execution forwarding (every 15 seconds)<br>
           <strong>heartbeat.py</strong> solves the "absence detection" problem — event-driven systems can't detect silence<br>
           <strong>summary.py</strong> provides timed snapshots for night shift without requiring dashboard access<br>
-          <strong>workflow_map_builder.py</strong> avoids expensive 5-table joins on every poll
+          <strong>workflow_map_builder.py</strong> avoids expensive 5-table joins on every poll cycle
         </div>
 
         <hr>
@@ -282,36 +326,64 @@ sqlite3 file:/opt/n8n-server/n8n-data/database.sqlite?mode=ro \
 
 <div class="code-block-wrapper">
 <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-<pre><code># Create working directory
-sudo mkdir -p /opt/n8n-wazuh
-cd /opt/n8n-wazuh
+<pre><code># Create working directory (update path!)
+sudo mkdir -p /opt/YOUR_SCRIPTS_PATH
+cd /opt/YOUR_SCRIPTS_PATH
 
 # Install dependencies
 sudo apt update
 sudo apt install python3 python3-pip sqlite3 -y
 
-# Verify SQLite access
-sqlite3 file:/opt/n8n-server/n8n-data/database.sqlite?mode=ro \
+# Verify SQLite access (update path!)
+sqlite3 file:/opt/n8n-server/YOUR_N8N_DATA_PATH/database.sqlite?mode=ro \
   "SELECT COUNT(*) FROM execution_entity;"</code></pre>
 </div>
 
-        <h3>Step 2: Deploy poller.py</h3>
+        <p><strong>Next:</strong> We'll deploy all 4 Python scripts. Each script has path variables at the top — <strong>update them before running!</strong></p>
+        <hr>
 
-        <p><strong>Purpose:</strong> Continuously polls n8n's SQLite database every 15 seconds, enriches execution records with IST timestamps, duration, owner identity, and new workflow detection. Writes JSON events to monitored log file.</p>
+        <h2 id="scripts">The Python Scripts — Complete Code</h2>
+
+        <p>All 4 scripts below are production-ready. <strong>Before running:</strong> Update the path variables at the top of each script to match your environment.</p>
+
+        <h3 id="poller">Script 1: poller.py — Core Collection Engine</h3>
+
+        <p><strong>Purpose:</strong> Runs continuously as a systemd service. Polls SQLite every 15 seconds, enriches execution records with IST timestamps, duration, owner identity, and new workflow detection. Writes JSON events to monitored log file.</p>
+
+        <p><strong>Save as:</strong> <code>/opt/YOUR_SCRIPTS_PATH/poller.py</code></p>
 
 <div class="code-block-wrapper">
 <button class="copy-btn" onclick="copyCode(this)">Copy</button>
 <pre><code>#!/usr/bin/env python3
+"""
+n8n → Wazuh Integration: Poller Script
+Continuously polls n8n's SQLite database and forwards enriched execution events to Wazuh.
+
+BEFORE RUNNING: Update these path variables for your environment!
+"""
 import sqlite3, json, time, os
 from datetime import datetime, timezone, timedelta
 
-DB_PATH   = "/opt/n8n-server/n8n-data/database.sqlite"
-LOG_PATH  = "/var/log/n8n-executions.log"
-CURSOR_F  = "/opt/n8n-wazuh/last_id.txt"
-SEEN_WF_F = "/opt/n8n-wazuh/seen_workflows.json"
-MAP_PATH  = "/opt/n8n-wazuh/workflow_map.json"
-INTERVAL  = 15
-IST       = timezone(timedelta(hours=5, minutes=30))
+# ═══════════════════════════════════════════════════════════
+# PATH CONFIGURATION — UPDATE THESE FOR YOUR ENVIRONMENT
+# ═══════════════════════════════════════════════════════════
+
+DB_PATH   = "/opt/n8n-server/YOUR_N8N_DATA_PATH/database.sqlite"  # ← UPDATE THIS
+LOG_PATH  = "/var/log/n8n-executions.log"                          # ← UPDATE THIS
+CURSOR_F  = "/opt/YOUR_SCRIPTS_PATH/last_id.txt"                   # ← UPDATE THIS
+SEEN_WF_F = "/opt/YOUR_SCRIPTS_PATH/seen_workflows.json"           # ← UPDATE THIS
+MAP_PATH  = "/opt/YOUR_SCRIPTS_PATH/workflow_map.json"             # ← UPDATE THIS
+
+# ═══════════════════════════════════════════════════════════
+# Script Configuration
+# ═══════════════════════════════════════════════════════════
+
+INTERVAL = 15  # Poll interval in seconds
+IST      = timezone(timedelta(hours=5, minutes=30))
+
+# ═══════════════════════════════════════════════════════════
+# Helper Functions
+# ═══════════════════════════════════════════════════════════
 
 def load_cursor():
     try:
@@ -340,6 +412,7 @@ def load_workflow_map():
         return {}
 
 def parse_dt_utc(val):
+    """Parse datetime string and attach UTC timezone"""
     if not val or val == "null":
         return None
     for fmt in ("%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S",
@@ -351,22 +424,30 @@ def parse_dt_utc(val):
     return None
 
 def to_ist(dt_utc):
+    """Convert UTC datetime to IST"""
     if dt_utc is None:
         return None
     return dt_utc.astimezone(IST)
 
 def calc_duration(started, stopped):
+    """Calculate execution duration in seconds"""
     s = parse_dt_utc(started)
     e = parse_dt_utc(stopped)
     if s and e:
         return round((e - s).total_seconds(), 2)
     return None
 
+# ═══════════════════════════════════════════════════════════
+# Main Polling Function
+# ═══════════════════════════════════════════════════════════
+
 def poll():
+    """Poll SQLite for new executions and forward to Wazuh"""
     last_id        = load_cursor()
     seen_workflows = load_seen_workflows()
     workflow_map   = load_workflow_map()
 
+    # Read-only SQLite connection
     con = sqlite3.connect("file:" + DB_PATH + "?mode=ro", uri=True)
     con.row_factory = sqlite3.Row
     rows = con.execute(
@@ -384,18 +465,25 @@ def poll():
 
     with open(LOG_PATH, "a") as lf:
         for row in rows:
+            # Calculate duration
             duration     = calc_duration(row["startedAt"], row["stoppedAt"])
+            
+            # Get timestamps
             now_ist      = datetime.now(IST)
             started_utc  = parse_dt_utc(row["startedAt"])
             started_ist  = to_ist(started_utc)
+            
+            # Get workflow info
             wf_id        = row["workflowId"]
             wf_name      = row["workflowName"] or "unknown"
 
+            # Get owner identity from cached map
             wf_info      = workflow_map.get(wf_id, {})
             owner_email  = wf_info.get("owner_email",  "unknown")
             owner_name   = wf_info.get("owner_name",   "unknown")
             project_name = wf_info.get("project_name", "unknown")
 
+            # Detect new workflows
             is_new_workflow = wf_id not in seen_workflows
             if is_new_workflow:
                 seen_workflows[wf_id] = {
@@ -403,6 +491,7 @@ def poll():
                     "first_seen": now_ist.isoformat()
                 }
 
+            # Build enriched event
             event = {
                 "timestamp":       now_ist.isoformat(),
                 "integration":     "n8n",
@@ -422,11 +511,18 @@ def poll():
                 "owner_name":      owner_name,
                 "project_name":    project_name,
             }
+            
+            # Write JSON event to log
             lf.write(json.dumps(event) + "\n")
             last_id = row["id"]
 
+    # Save state
     save_cursor(last_id)
     save_seen_workflows(seen_workflows)
+
+# ═══════════════════════════════════════════════════════════
+# Main Loop
+# ═══════════════════════════════════════════════════════════
 
 if __name__ == "__main__":
     os.makedirs(os.path.dirname(CURSOR_F), exist_ok=True)
@@ -439,31 +535,801 @@ if __name__ == "__main__":
         time.sleep(INTERVAL)</code></pre>
 </div>
 
-        <p><strong>Save and configure:</strong></p>
+        <p><strong>Make executable:</strong></p>
+<div class="code-block-wrapper">
+<button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code>sudo chmod +x /opt/YOUR_SCRIPTS_PATH/poller.py</code></pre>
+</div>
+
+        <hr>
+
+        <h3 id="heartbeat">Script 2: heartbeat.py — Dead Silence Detector</h3>
+
+        <p><strong>Purpose:</strong> Runs hourly via cron. If no executions occurred in the past 2 hours, writes a synthetic <code>dead_silence</code> alert. This solves the fundamental problem that event-driven systems cannot detect the absence of events.</p>
+
+        <p><strong>Save as:</strong> <code>/opt/YOUR_SCRIPTS_PATH/heartbeat.py</code></p>
 
 <div class="code-block-wrapper">
 <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-<pre><code>sudo nano /opt/n8n-wazuh/poller.py
-# Paste code above
-sudo chmod +x /opt/n8n-wazuh/poller.py</code></pre>
+<pre><code>#!/usr/bin/env python3
+"""
+n8n → Wazuh Integration: Heartbeat Script
+Detects dead silence (no executions in past 2 hours) and injects synthetic alert.
+
+BEFORE RUNNING: Update these path variables for your environment!
+"""
+import sqlite3, json, os
+from datetime import datetime, timezone, timedelta
+
+# ═══════════════════════════════════════════════════════════
+# PATH CONFIGURATION — UPDATE THESE FOR YOUR ENVIRONMENT
+# ═══════════════════════════════════════════════════════════
+
+DB_PATH  = "/opt/n8n-server/YOUR_N8N_DATA_PATH/database.sqlite"  # ← UPDATE THIS
+LOG_PATH = "/var/log/n8n-executions.log"                          # ← UPDATE THIS
+
+IST = timezone(timedelta(hours=5, minutes=30))
+
+# ═══════════════════════════════════════════════════════════
+# Silence Detection
+# ═══════════════════════════════════════════════════════════
+
+def check_silence():
+    """Check if any executions occurred in past 2 hours"""
+    now_ist  = datetime.now(IST)
+    cutoff   = now_ist - timedelta(hours=2)
+    cutoff_str = cutoff.strftime("%Y-%m-%d %H:%M:%S")
+
+    con = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True)
+    count = con.execute(
+        "SELECT COUNT(*) FROM execution_entity WHERE startedAt > ?",
+        (cutoff_str,)
+    ).fetchone()[0]
+    con.close()
+
+    if count == 0:
+        # No executions - write alert
+        event = {
+            "timestamp":    now_ist.isoformat(),
+            "integration":  "n8n",
+            "event_type":   "dead_silence",
+            "message":      "No workflow executions detected in the past 2 hours",
+            "window_hours": 2,
+        }
+        with open(LOG_PATH, "a") as lf:
+            lf.write(json.dumps(event) + "\n")
+        print(f"[ALERT] Dead silence detected — 0 executions in past 2 hours")
+    else:
+        print(f"[OK] {count} executions in past 2 hours — system active")
+
+if __name__ == "__main__":
+    check_silence()</code></pre>
 </div>
 
-        <p class="continue-reading"><em>The full blog post continues with heartbeat.py, summary.py, workflow_map_builder.py, systemd configuration, Wazuh decoder/rules, technical challenges, use cases, and complete implementation guide...</em></p>
+        <p><strong>Make executable:</strong></p>
+<div class="code-block-wrapper">
+<button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code>sudo chmod +x /opt/YOUR_SCRIPTS_PATH/heartbeat.py</code></pre>
+</div>
 
-        <div class="callout callout-green">
-          <span class="callout-label">Download Full Guide</span>
-          <strong>Complete implementation guide available:</strong> The full blog post with all 4 Python scripts, Wazuh configuration, decoder/rules XML, debugging walkthrough, and 6 real-world use cases is available as a downloadable Markdown file. All code is copy-paste ready with one-click copying.
-        </div>
+        <hr>
 
+        <h3 id="summary">Script 3: summary.py — 12-Hour Health Report Generator</h3>
+
+        <p><strong>Purpose:</strong> Runs at 10:00 and 22:00 IST daily. Produces a rich JSON event containing: total execution counts, success/failure split, per-workflow breakdown, compute time, longest/shortest execution, and full failure list.</p>
+
+        <p><strong>Save as:</strong> <code>/opt/YOUR_SCRIPTS_PATH/summary.py</code></p>
+
+<div class="code-block-wrapper">
+<button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code>#!/usr/bin/env python3
+"""
+n8n → Wazuh Integration: Summary Report Script
+Generates 12-hour health reports with aggregate statistics.
+
+BEFORE RUNNING: Update these path variables for your environment!
+"""
+import sqlite3, json, os
+from datetime import datetime, timezone, timedelta
+
+# ═══════════════════════════════════════════════════════════
+# PATH CONFIGURATION — UPDATE THESE FOR YOUR ENVIRONMENT
+# ═══════════════════════════════════════════════════════════
+
+DB_PATH  = "/opt/n8n-server/YOUR_N8N_DATA_PATH/database.sqlite"  # ← UPDATE THIS
+LOG_PATH = "/var/log/n8n-executions.log"                          # ← UPDATE THIS
+
+IST = timezone(timedelta(hours=5, minutes=30))
+
+# ═══════════════════════════════════════════════════════════
+# Helper Functions
+# ═══════════════════════════════════════════════════════════
+
+def parse_dt(val):
+    """Parse datetime string"""
+    if not val:
+        return None
+    for fmt in ("%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S",
+                "%Y-%m-%dT%H:%M:%S.%fZ", "%Y-%m-%dT%H:%M:%SZ"):
+        try:
+            return datetime.strptime(val, fmt)
+        except:
+            continue
+    return None
+
+def calc_duration(started, stopped):
+    """Calculate duration in seconds"""
+    s = parse_dt(started)
+    e = parse_dt(stopped)
+    if s and e:
+        return round((e - s).total_seconds(), 2)
+    return 0.0
+
+# ═══════════════════════════════════════════════════════════
+# Summary Generation
+# ═══════════════════════════════════════════════════════════
+
+def generate_summary():
+    """Generate 12-hour summary report"""
+    now    = datetime.now(IST)
+    cutoff = now - timedelta(hours=12)
+    cutoff_str = cutoff.strftime("%Y-%m-%d %H:%M:%S")
+
+    # Query all executions in 12hr window
+    con = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True)
+    con.row_factory = sqlite3.Row
+    rows = con.execute("""
+        SELECT e.id, e.workflowId, w.name AS workflowName,
+               e.status, e.mode, e.finished,
+               e.startedAt, e.stoppedAt, e.retryOf
+        FROM execution_entity e
+        LEFT JOIN workflow_entity w ON w.id = e.workflowId
+        WHERE e.startedAt > ?
+        AND e.deletedAt IS NULL
+        ORDER BY e.startedAt ASC
+    """, (cutoff_str,)).fetchall()
+    con.close()
+
+    # Initialize counters
+    total_executions  = len(rows)
+    total_success     = 0
+    total_failed      = 0
+    total_retries     = 0
+    total_duration    = 0.0
+    longest_exec      = {"workflow_name": None, "exec_id": None, "duration_sec": 0}
+    shortest_exec     = {"workflow_name": None, "exec_id": None, "duration_sec": float("inf")}
+    workflow_stats    = {}
+    failed_workflows  = []
+    executions_detail = []
+
+    # Process each execution
+    for row in rows:
+        wf_name  = row["workflowName"] or "unknown"
+        duration = calc_duration(row["startedAt"], row["stoppedAt"])
+        status   = row["status"]
+
+        total_duration += duration
+
+        # Count by status
+        if status == "success":
+            total_success += 1
+        elif status == "error":
+            total_failed += 1
+            failed_workflows.append({
+                "exec_id":       row["id"],
+                "workflow_name": wf_name,
+                "started_at":    row["startedAt"],
+                "stopped_at":    row["stoppedAt"],
+                "duration_sec":  duration,
+                "retry_of":      row["retryOf"],
+            })
+
+        if row["retryOf"]:
+            total_retries += 1
+
+        # Per-workflow stats
+        if wf_name not in workflow_stats:
+            workflow_stats[wf_name] = {
+                "total": 0, "success": 0, "failed": 0,
+                "total_duration_sec": 0.0, "avg_duration_sec": 0.0
+            }
+        workflow_stats[wf_name]["total"]              += 1
+        workflow_stats[wf_name]["total_duration_sec"] += duration
+        if status == "success":
+            workflow_stats[wf_name]["success"] += 1
+        elif status == "error":
+            workflow_stats[wf_name]["failed"]  += 1
+
+        # Track longest/shortest
+        if duration > longest_exec["duration_sec"]:
+            longest_exec = {
+                "workflow_name": wf_name,
+                "exec_id": row["id"],
+                "duration_sec": duration
+            }
+        if duration > 0 and duration < shortest_exec["duration_sec"]:
+            shortest_exec = {
+                "workflow_name": wf_name,
+                "exec_id": row["id"],
+                "duration_sec": duration
+            }
+
+        # Store execution detail
+        executions_detail.append({
+            "exec_id":       row["id"],
+            "workflow_name": wf_name,
+            "status":        status,
+            "mode":          row["mode"],
+            "started_at":    row["startedAt"],
+            "stopped_at":    row["stoppedAt"],
+            "duration_sec":  duration,
+            "retry_of":      row["retryOf"],
+        })
+
+    # Calculate averages
+    for wf in workflow_stats:
+        t = workflow_stats[wf]["total"]
+        if t > 0:
+            workflow_stats[wf]["avg_duration_sec"] = round(
+                workflow_stats[wf]["total_duration_sec"] / t, 2)
+        workflow_stats[wf]["total_duration_sec"] = round(
+            workflow_stats[wf]["total_duration_sec"], 2)
+
+    if shortest_exec["duration_sec"] == float("inf"):
+        shortest_exec = {"workflow_name": None, "exec_id": None, "duration_sec": 0}
+
+    # Build summary event
+    summary = {
+        "timestamp":          now.isoformat(),
+        "integration":        "n8n",
+        "event_type":         "12hr_summary",
+        "summary_from":       cutoff.isoformat(),
+        "summary_to":         now.isoformat(),
+        "window_hours":       12,
+        "total_executions":   total_executions,
+        "total_success":      total_success,
+        "total_failed":       total_failed,
+        "total_retries":      total_retries,
+        "total_duration_sec": round(total_duration, 2),
+        "total_duration_min": round(total_duration / 60, 2),
+        "avg_duration_sec":   round(total_duration / total_executions, 2) if total_executions else 0,
+        "longest_execution":  longest_exec,
+        "shortest_execution": shortest_exec,
+        "workflow_breakdown": workflow_stats,
+        "failed_executions":  failed_workflows,
+        "executions":         executions_detail,
+    }
+
+    # Write to log
+    with open(LOG_PATH, "a") as lf:
+        lf.write(json.dumps(summary) + "\n")
+
+    print(f"[OK] Summary written — {total_executions} executions, "
+          f"{total_success} success, {total_failed} failed, "
+          f"total time: {round(total_duration/60, 2)} min")
+
+if __name__ == "__main__":
+    generate_summary()</code></pre>
+</div>
+
+        <p><strong>Make executable:</strong></p>
+<div class="code-block-wrapper">
+<button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code>sudo chmod +x /opt/YOUR_SCRIPTS_PATH/summary.py</code></pre>
+</div>
+
+        <hr>
+
+        <h3 id="workflow-map">Script 4: workflow_map_builder.py — Owner Identity Cache</h3>
+
+        <p><strong>Purpose:</strong> Runs every 48 hours via cron. Queries a 5-table join to build a complete map of workflow_id → owner email/name/project. Saves to <code>workflow_map.json</code>. The poller reads this file for O(1) enrichment instead of repeated DB joins.</p>
+
+        <p><strong>Save as:</strong> <code>/opt/YOUR_SCRIPTS_PATH/workflow_map_builder.py</code></p>
+
+<div class="code-block-wrapper">
+<button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code>#!/usr/bin/env python3
+"""
+n8n → Wazuh Integration: Workflow Map Builder
+Builds cached map of workflow_id → owner identity to avoid expensive joins.
+
+BEFORE RUNNING: Update these path variables for your environment!
+"""
+import sqlite3, json, os
+from datetime import datetime, timezone, timedelta
+
+# ═══════════════════════════════════════════════════════════
+# PATH CONFIGURATION — UPDATE THESE FOR YOUR ENVIRONMENT
+# ═══════════════════════════════════════════════════════════
+
+DB_PATH  = "/opt/n8n-server/YOUR_N8N_DATA_PATH/database.sqlite"  # ← UPDATE THIS
+MAP_PATH = "/opt/YOUR_SCRIPTS_PATH/workflow_map.json"             # ← UPDATE THIS
+
+IST = timezone(timedelta(hours=5, minutes=30))
+
+# ═══════════════════════════════════════════════════════════
+# Map Building
+# ═══════════════════════════════════════════════════════════
+
+def load_existing_map():
+    """Load existing map if present"""
+    try:
+        return json.load(open(MAP_PATH))
+    except:
+        return {}
+
+def build_map():
+    """Build complete workflow → owner identity map"""
+    existing = load_existing_map()
+    now_ist  = datetime.now(IST).isoformat()
+
+    con = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True)
+    con.row_factory = sqlite3.Row
+
+    # 5-table join to get workflow ownership
+    rows = con.execute("""
+        SELECT
+            w.id          AS workflow_id,
+            w.name        AS workflow_name,
+            w.active      AS is_active,
+            w.createdAt   AS created_at,
+            u.email       AS owner_email,
+            u.firstName   AS owner_first,
+            u.lastName    AS owner_last,
+            p.name        AS project_name,
+            p.type        AS project_type
+        FROM workflow_entity w
+        LEFT JOIN shared_workflow sw ON sw.workflowId = w.id
+        LEFT JOIN project p ON p.id = sw.projectId
+        LEFT JOIN project_relation pr ON pr.projectId = p.id
+        LEFT JOIN user u ON u.id = pr.userId
+        WHERE (p.type = 'personal' OR p.type IS NULL)
+        AND (w.isArchived = 0 OR w.isArchived IS NULL OR w.isArchived = 'false')
+        ORDER BY w.createdAt ASC
+    """).fetchall()
+    con.close()
+
+    print(f"Found {len(rows)} workflow rows from DB")
+
+    new_map      = {}
+    new_count    = 0
+    update_count = 0
+
+    for row in rows:
+        wf_id      = row["workflow_id"]
+        owner_fn   = row["owner_first"] or ""
+        owner_ln   = row["owner_last"]  or ""
+        owner_name = f"{owner_fn} {owner_ln}".strip() or "unknown"
+
+        entry = {
+            "workflow_name":  row["workflow_name"] or "unknown",
+            "is_active":      bool(row["is_active"]),
+            "created_at":     row["created_at"],
+            "owner_email":    row["owner_email"] or "unknown",
+            "owner_name":     owner_name,
+            "project_name":   row["project_name"] or "unknown",
+            "project_type":   row["project_type"] or "unknown",
+            "map_updated_at": now_ist,
+        }
+
+        if wf_id not in existing:
+            new_count += 1
+            entry["first_mapped_at"] = now_ist
+            print(f"  [NEW]     {entry['workflow_name']} -> {entry['owner_email']}")
+        else:
+            entry["first_mapped_at"] = existing[wf_id].get("first_mapped_at", now_ist)
+            old = existing[wf_id]
+            if old.get("owner_email") != entry["owner_email"] or \
+               old.get("workflow_name") != entry["workflow_name"]:
+                update_count += 1
+                print(f"  [UPDATED] {entry['workflow_name']} -> {entry['owner_email']}")
+
+        new_map[wf_id] = entry
+
+    # Save map
+    with open(MAP_PATH, "w") as f:
+        json.dump(new_map, f, indent=2)
+
+    total = len(new_map)
+    print(f"\n[OK] Map built — {total} workflows total | {new_count} new | {update_count} updated")
+    print(f"[OK] Saved to {MAP_PATH}")
+    print(f"[OK] Timestamp: {now_ist}")
+
+    # Show stats
+    owners = {}
+    for wf in new_map.values():
+        email = wf["owner_email"]
+        owners[email] = owners.get(email, 0) + 1
+
+    print("\n--- Workflows per owner ---")
+    for email, count in sorted(owners.items(), key=lambda x: -x[1]):
+        print(f"  {email}: {count} workflow(s)")
+
+if __name__ == "__main__":
+    print(f"Building workflow map from {DB_PATH}")
+    build_map()</code></pre>
+</div>
+
+        <p><strong>Make executable and run initial build:</strong></p>
+<div class="code-block-wrapper">
+<button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code>sudo chmod +x /opt/YOUR_SCRIPTS_PATH/workflow_map_builder.py
+
+# Build initial map
+sudo /opt/YOUR_SCRIPTS_PATH/workflow_map_builder.py</code></pre>
+</div>
+        <hr>
+
+        <h2 id="systemd">Step 3: Configure systemd for poller.py</h2>
+
+        <p>Run the poller as a systemd service so it starts automatically and restarts on failure.</p>
+
+        <p><strong>Create service file:</strong></p>
+
+<div class="code-block-wrapper">
+<button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code>sudo nano /etc/systemd/system/n8n-wazuh-poller.service</code></pre>
+</div>
+
+        <p><strong>Paste this configuration (update paths!):</strong></p>
+
+<div class="code-block-wrapper">
+<button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code>[Unit]
+Description=n8n to Wazuh Execution Poller
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/bin/python3 /opt/YOUR_SCRIPTS_PATH/poller.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target</code></pre>
+</div>
+
+        <p><strong>Enable and start:</strong></p>
+
+<div class="code-block-wrapper">
+<button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code>sudo systemctl daemon-reload
+sudo systemctl enable n8n-wazuh-poller.service
+sudo systemctl start n8n-wazuh-poller.service
+
+# Check status
+sudo systemctl status n8n-wazuh-poller.service
+
+# View logs
+sudo journalctl -u n8n-wazuh-poller.service -f</code></pre>
+</div>
+
+        <hr>
+
+        <h2 id="cron">Step 4: Configure Cron Jobs</h2>
+
+        <p>Schedule heartbeat and summary scripts to run automatically.</p>
+
+<div class="code-block-wrapper">
+<button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code>sudo crontab -e</code></pre>
+</div>
+
+        <p><strong>Add these lines (update paths!):</strong></p>
+
+<div class="code-block-wrapper">
+<button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code># n8n heartbeat — every hour at minute 5
+5 * * * * /usr/bin/python3 /opt/YOUR_SCRIPTS_PATH/heartbeat.py >> /var/log/n8n-heartbeat.log 2>&1
+
+# n8n summary — 10:00 and 22:00 IST daily
+0 10,22 * * * /usr/bin/python3 /opt/YOUR_SCRIPTS_PATH/summary.py >> /var/log/n8n-summary.log 2>&1
+
+# Workflow map builder — every 48 hours at 03:00
+0 3 */2 * * /usr/bin/python3 /opt/YOUR_SCRIPTS_PATH/workflow_map_builder.py >> /var/log/n8n-map-builder.log 2>&1</code></pre>
+</div>
+
+        <p><strong>Verify cron jobs:</strong></p>
+
+<div class="code-block-wrapper">
+<button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code>sudo crontab -l</code></pre>
+</div>
+
+        <hr>
+
+        <h2 id="wazuh-agent">Step 5: Configure Wazuh Agent</h2>
+
+        <p>Tell the Wazuh agent to monitor the n8n executions log file.</p>
+
+        <p><strong>Edit agent configuration:</strong></p>
+
+<div class="code-block-wrapper">
+<button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code>sudo nano /var/ossec/etc/ossec.conf</code></pre>
+</div>
+
+        <p><strong>Add this localfile block:</strong></p>
+
+<div class="code-block-wrapper">
+<button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code>&lt;ossec_config&gt;
+  &lt;localfile&gt;
+    &lt;log_format&gt;json&lt;/log_format&gt;
+    &lt;location&gt;/var/log/n8n-executions.log&lt;/location&gt;
+  &lt;/localfile&gt;
+&lt;/ossec_config&gt;</code></pre>
+</div>
+
+        <p><strong>Restart Wazuh agent:</strong></p>
+
+<div class="code-block-wrapper">
+<button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code>sudo systemctl restart wazuh-agent
+sudo systemctl status wazuh-agent</code></pre>
+</div>
+
+        <p><strong>Verify log monitoring:</strong></p>
+
+<div class="code-block-wrapper">
+<button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code># Check agent internal log
+sudo tail -f /var/ossec/logs/ossec.log | grep n8n
+
+# Trigger a test event
+echo '{"integration":"n8n","test":"manual"}' | sudo tee -a /var/log/n8n-executions.log
+
+# Check if Wazuh picked it up
+sudo tail -f /var/ossec/logs/ossec.log</code></pre>
+</div>
+
+        <hr>
+
+        <h2 id="decoder">Step 6: Deploy Wazuh Decoder (Manager Machine)</h2>
+
+        <p>The decoder routes n8n events away from generic rule 86600 and extracts key fields.</p>
+
+        <p><strong>Create decoder file:</strong></p>
+
+<div class="code-block-wrapper">
+<button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code>sudo nano /var/ossec/etc/decoders/n8n_decoder.xml</code></pre>
+</div>
+
+        <p><strong>Paste this decoder configuration:</strong></p>
+
+<div class="code-block-wrapper">
+<button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code>&lt;!--
+n8n Decoder
+Routes n8n integration events away from rule 86600 (generic Suricata JSON catch-all)
+Extracts key fields for downstream rule matching
+--&gt;
+
+&lt;decoder name="n8n_json_base"&gt;
+  &lt;prematch&gt;"integration": "n8n"&lt;/prematch&gt;
+&lt;/decoder&gt;
+
+&lt;decoder name="n8n_json"&gt;
+  &lt;parent&gt;n8n_json_base&lt;/parent&gt;
+  &lt;type&gt;json&lt;/type&gt;
+  &lt;plugin_decoder&gt;JSON_Decoder&lt;/plugin_decoder&gt;
+&lt;/decoder&gt;</code></pre>
+</div>
+
+        <p><strong>Restart Wazuh manager:</strong></p>
+
+<div class="code-block-wrapper">
+<button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code>sudo systemctl restart wazuh-manager
+sudo systemctl status wazuh-manager</code></pre>
+</div>
+
+        <hr>
+
+        <h2 id="rules">Step 7: Deploy Wazuh Rules (Manager Machine)</h2>
+
+        <p>All 11 custom rules for n8n event detection and alerting.</p>
+
+        <p><strong>Create rules file:</strong></p>
+
+<div class="code-block-wrapper">
+<button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code>sudo nano /var/ossec/etc/rules/n8n_rules.xml</code></pre>
+</div>
+
+        <p><strong>Paste this complete ruleset:</strong></p>
+
+<div class="code-block-wrapper">
+<button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code>&lt;!--
+n8n → Wazuh Custom Rules
+11 rules across 5 categories:
+  - Execution status tracking
+  - Failure detection and retry monitoring
+  - Pattern detection (recurring failures, dead silence, manual triggers)
+  - Security (new workflow detection)
+  - Timed health reports (12hr summary)
+--&gt;
+
+&lt;group name="n8n,"&gt;
+
+  &lt;!-- ════════════════════════════════════════════════════════════════════ --&gt;
+  &lt;!-- OVERWRITE RULES: Prevent rule 86600 from swallowing n8n events       --&gt;
+  &lt;!-- ════════════════════════════════════════════════════════════════════ --&gt;
+
+  &lt;rule id="86601" level="0" overwrite="yes"&gt;
+    &lt;if_sid&gt;86600&lt;/if_sid&gt;
+    &lt;field name="integration"&gt;^n8n$&lt;/field&gt;
+    &lt;description&gt;Suricata message (overridden for n8n integration)&lt;/description&gt;
+  &lt;/rule&gt;
+
+  &lt;rule id="86602" level="0" overwrite="yes"&gt;
+    &lt;if_sid&gt;86600&lt;/if_sid&gt;
+    &lt;match&gt;"integration": "n8n"&lt;/match&gt;
+    &lt;description&gt;Suricata message (overridden for n8n integration — JSON match)&lt;/description&gt;
+  &lt;/rule&gt;
+
+  &lt;!-- ════════════════════════════════════════════════════════════════════ --&gt;
+  &lt;!-- CATEGORY 1: EXECUTION STATUS                                         --&gt;
+  &lt;!-- ════════════════════════════════════════════════════════════════════ --&gt;
+
+  &lt;rule id="100200" level="3"&gt;
+    &lt;decoded_as&gt;n8n_json&lt;/decoded_as&gt;
+    &lt;field name="integration"&gt;^n8n$&lt;/field&gt;
+    &lt;field name="exec_id"&gt;\.+&lt;/field&gt;
+    &lt;description&gt;n8n: Workflow execution logged (exec_id: $(exec_id), workflow: $(workflow_name), status: $(exec_status), owner: $(owner_email))&lt;/description&gt;
+    &lt;group&gt;n8n_execution,&lt;/group&gt;
+  &lt;/rule&gt;
+
+  &lt;rule id="100202" level="7"&gt;
+    &lt;if_sid&gt;100200&lt;/if_sid&gt;
+    &lt;field name="exec_status"&gt;^error$&lt;/field&gt;
+    &lt;description&gt;n8n: Workflow execution FAILED (exec_id: $(exec_id), workflow: $(workflow_name), owner: $(owner_email), started: $(started_at_ist))&lt;/description&gt;
+    &lt;group&gt;n8n_failure,&lt;/group&gt;
+  &lt;/rule&gt;
+
+  &lt;rule id="100206" level="4"&gt;
+    &lt;if_sid&gt;100200&lt;/if_sid&gt;
+    &lt;field name="exec_status"&gt;^success$&lt;/field&gt;
+    &lt;field name="retry_of"&gt;\.+&lt;/field&gt;
+    &lt;description&gt;n8n: Workflow execution RECOVERED after retry (exec_id: $(exec_id), workflow: $(workflow_name), retry_of: $(retry_of), owner: $(owner_email))&lt;/description&gt;
+    &lt;group&gt;n8n_retry_success,&lt;/group&gt;
+  &lt;/rule&gt;
+
+  &lt;rule id="100207" level="10"&gt;
+    &lt;if_sid&gt;100200&lt;/if_sid&gt;
+    &lt;field name="exec_status"&gt;^error$&lt;/field&gt;
+    &lt;field name="retry_of"&gt;\.+&lt;/field&gt;
+    &lt;description&gt;n8n: Workflow execution FAILED AGAIN after retry (exec_id: $(exec_id), workflow: $(workflow_name), retry_of: $(retry_of), owner: $(owner_email)) — persistent problem&lt;/description&gt;
+    &lt;group&gt;n8n_retry_failure,&lt;/group&gt;
+  &lt;/rule&gt;
+
+  &lt;!-- ════════════════════════════════════════════════════════════════════ --&gt;
+  &lt;!-- CATEGORY 3: PATTERNS                                                 --&gt;
+  &lt;!-- ════════════════════════════════════════════════════════════════════ --&gt;
+
+  &lt;rule id="100220" level="9" frequency="2" timeframe="86400"&gt;
+    &lt;if_matched_sid&gt;100202&lt;/if_matched_sid&gt;
+    &lt;same_field&gt;workflow_name&lt;/same_field&gt;
+    &lt;description&gt;n8n: RECURRING FAILURE — Workflow "$(workflow_name)" failed 2+ times today (owner: $(owner_email)) — investigate root cause&lt;/description&gt;
+    &lt;group&gt;n8n_recurring_failure,&lt;/group&gt;
+  &lt;/rule&gt;
+
+  &lt;rule id="100221" level="11"&gt;
+    &lt;decoded_as&gt;n8n_json&lt;/decoded_as&gt;
+    &lt;field name="event_type"&gt;^dead_silence$&lt;/field&gt;
+    &lt;description&gt;n8n: DEAD SILENCE — No workflow executions detected in the past 2 hours — n8n may be down&lt;/description&gt;
+    &lt;group&gt;n8n_dead_silence,&lt;/group&gt;
+  &lt;/rule&gt;
+
+  &lt;rule id="100223" level="5"&gt;
+    &lt;if_sid&gt;100200&lt;/if_sid&gt;
+    &lt;field name="mode"&gt;^manual$&lt;/field&gt;
+    &lt;description&gt;n8n: Manual workflow trigger (workflow: $(workflow_name), triggered_by: $(owner_email) [$(owner_name)], exec_id: $(exec_id), time: $(started_at_ist))&lt;/description&gt;
+    &lt;group&gt;n8n_manual_trigger,&lt;/group&gt;
+  &lt;/rule&gt;
+
+  &lt;!-- ════════════════════════════════════════════════════════════════════ --&gt;
+  &lt;!-- CATEGORY 4: SECURITY                                                 --&gt;
+  &lt;!-- ════════════════════════════════════════════════════════════════════ --&gt;
+
+  &lt;rule id="100232" level="8"&gt;
+    &lt;if_sid&gt;100200&lt;/if_sid&gt;
+    &lt;field name="is_new_workflow"&gt;^true$&lt;/field&gt;
+    &lt;description&gt;n8n: NEW WORKFLOW DETECTED — First-ever execution of workflow "$(workflow_name)" (owner: $(owner_email) [$(owner_name)], exec_id: $(exec_id))&lt;/description&gt;
+    &lt;group&gt;n8n_new_workflow,&lt;/group&gt;
+  &lt;/rule&gt;
+
+  &lt;!-- ════════════════════════════════════════════════════════════════════ --&gt;
+  &lt;!-- CATEGORY 5: 12HR SUMMARY                                             --&gt;
+  &lt;!-- ════════════════════════════════════════════════════════════════════ --&gt;
+
+  &lt;rule id="100240" level="12"&gt;
+    &lt;decoded_as&gt;n8n_json&lt;/decoded_as&gt;
+    &lt;field name="event_type"&gt;^12hr_summary$&lt;/field&gt;
+    &lt;description&gt;n8n: 12hr Health Summary ($(total_executions) executions, $(total_success) success, $(total_failed) failed, total time: $(total_duration_min) min)&lt;/description&gt;
+    &lt;group&gt;n8n_summary,&lt;/group&gt;
+  &lt;/rule&gt;
+
+  &lt;rule id="100241" level="13"&gt;
+    &lt;if_sid&gt;100240&lt;/if_sid&gt;
+    &lt;field name="total_failed"&gt;^[1-9]\d*$&lt;/field&gt;
+    &lt;description&gt;n8n: 12hr Summary WITH FAILURES ($(total_executions) executions, $(total_failed) FAILED, total time: $(total_duration_min) min) — review failed_executions field&lt;/description&gt;
+    &lt;group&gt;n8n_summary_with_failures,&lt;/group&gt;
+  &lt;/rule&gt;
+
+  &lt;rule id="100242" level="11"&gt;
+    &lt;if_sid&gt;100240&lt;/if_sid&gt;
+    &lt;field name="total_executions"&gt;^0$&lt;/field&gt;
+    &lt;description&gt;n8n: 12hr Summary — ZERO EXECUTIONS in past 12 hours — n8n may be idle or down&lt;/description&gt;
+    &lt;group&gt;n8n_summary_zero_executions,&lt;/group&gt;
+  &lt;/rule&gt;
+
+&lt;/group&gt;</code></pre>
+</div>
+
+        <p><strong>Test decoder and rules:</strong></p>
+
+<div class="code-block-wrapper">
+<button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code># Test with sample event
+sudo /var/ossec/bin/wazuh-logtest
+
+# Paste this test event:
+{"timestamp":"2025-04-22T10:30:45+05:30","integration":"n8n","exec_id":12345,"workflow_id":"abc123","workflow_name":"SentinelOne Alert Router","exec_status":"error","mode":"trigger","finished":true,"started_at_utc":"2025-04-22 05:00:45","started_at_ist":"2025-04-22 10:30:45 IST","stopped_at_utc":"2025-04-22 05:00:48","duration_sec":3.2,"retry_of":"","is_new_workflow":false,"owner_email":"analyst@company.com","owner_name":"John Doe","project_name":"SOC Automation"}
+
+# Should match rule 100202 (workflow failure)
+</code></pre>
+</div>
+
+        <p><strong>Restart Wazuh manager:</strong></p>
+
+<div class="code-block-wrapper">
+<button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code>sudo systemctl restart wazuh-manager</code></pre>
+</div>
+
+        <hr>
+
+        <h2 id="rules-table">Complete Wazuh Rules Reference</h2>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Rule ID</th>
+              <th>Level</th>
+              <th>Purpose</th>
+              <th>Trigger Condition</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>86601/86602</td><td>0</td><td>Override generic rule 86600</td><td>integration: n8n</td></tr>
+            <tr><td>100200</td><td>3</td><td>Base execution logged with owner identity</td><td>Any n8n event with exec_id</td></tr>
+            <tr><td>100202</td><td>7</td><td>Workflow execution failed</td><td>exec_status: error</td></tr>
+            <tr><td>100206</td><td>4</td><td>Retry recovery — workflow recovered</td><td>exec_status: success + retry_of present</td></tr>
+            <tr><td>100207</td><td>10</td><td>Retry failure — persistent problem</td><td>exec_status: error + retry_of present</td></tr>
+            <tr><td>100220</td><td>9</td><td>Recurring failure pattern</td><td>Same workflow failed 2+ times in 24h</td></tr>
+            <tr><td>100221</td><td>11</td><td>Dead silence — no executions in 2+ hours</td><td>event_type: dead_silence</td></tr>
+            <tr><td>100223</td><td>5</td><td>Manual trigger audit trail</td><td>mode: manual</td></tr>
+            <tr><td>100232</td><td>8</td><td>New workflow detected — first execution</td><td>is_new_workflow: true</td></tr>
+            <tr><td>100240</td><td>12</td><td>12hr timed health report</td><td>event_type: 12hr_summary</td></tr>
+            <tr><td>100241</td><td>13</td><td>Summary with failures — escalated alert</td><td>total_failed &gt; 0</td></tr>
+            <tr><td>100242</td><td>11</td><td>Zero executions in 12hr window</td><td>total_executions: 0</td></tr>
+          </tbody>
+        </table>
         <hr>
 
         <h2 id="challenges">Technical Challenges Solved</h2>
 
         <h3>Challenge 1: IST Timezone Bug</h3>
 
-        <p><strong>Problem:</strong> n8n stores all timestamps in UTC. The original poller calculated hour_of_day from raw UTC strings, causing alerts like "workflow ran at hour 3" when it was actually 8:30 AM IST.</p>
+        <p><strong>Problem:</strong> n8n stores all timestamps in UTC. The original poller calculated <code>hour_of_day</code> from raw UTC strings, causing alerts like "workflow ran at hour 3" when it was actually 8:30 AM IST.</p>
 
-        <p><strong>Root Cause:</strong> Python's datetime.strptime() creates timezone-naive datetime objects by default. Without explicit timezone attachment, all calculations were in naive UTC.</p>
+        <p><strong>Root Cause:</strong> Python's <code>datetime.strptime()</code> creates timezone-naive datetime objects by default. Without explicit timezone attachment, all calculations were in naive UTC.</p>
 
         <p><strong>Fix:</strong></p>
 
@@ -493,7 +1359,21 @@ hour_ist = started_ist.hour  # Correct IST hour</code></pre>
 
         <p><strong>Problem:</strong> All n8n events were being matched and suppressed by Wazuh's built-in rule 86600 ("Suricata messages") at level 0, preventing all custom rules from ever firing.</p>
 
-        <p><strong>Discovery:</strong> Ran wazuh-logtest manually, saw Phase 3 output matching rule 86600 first.</p>
+        <p><strong>Discovery Process:</strong></p>
+
+<div class="code-block-wrapper">
+<button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code># Ran manual log test
+sudo /var/ossec/bin/wazuh-logtest
+
+# Pasted sample n8n event, saw Phase 3 output:
+**Phase 3: Completed filtering (rules).
+       Rule id: '86600'
+       Level: '0'
+       Description: 'Suricata messages.'</code></pre>
+</div>
+
+        <p>Rule 86600 has <code>level="0"</code> and a generic decoder that matches any JSON with certain patterns. It was catching n8n events first.</p>
 
         <p><strong>Fix:</strong> Created overwrite rules that intercept 86600 specifically for n8n events:</p>
 
@@ -506,11 +1386,30 @@ hour_ist = started_ist.hour  # Correct IST hour</code></pre>
 &lt;/rule&gt;</code></pre>
 </div>
 
-        <p><strong>Lesson:</strong> Use wazuh-logtest to debug rule evaluation chains. Overwrite rules can prevent generic catch-alls from swallowing specific events.</p>
+        <p><strong>Lesson:</strong> Use <code>wazuh-logtest</code> to debug rule evaluation chains. Overwrite rules can prevent generic catch-alls from swallowing specific events.</p>
 
-        <h3>Challenge 3: User Identity Without Direct Foreign Key</h3>
+        <h3>Challenge 3: Decoder Prematch Whitespace Mismatch</h3>
 
-        <p><strong>Problem:</strong> n8n's execution_entity table has no userId column. How do we know which analyst triggered a specific execution?</p>
+        <p><strong>Problem:</strong> Custom decoder with <code>&lt;prematch&gt;{"integration":"n8n"}&lt;/prematch&gt;</code> (no spaces) never matched actual log output of <code>"integration": "n8n"</code> (space after colon).</p>
+
+        <p><strong>Root Cause:</strong> JSON serialization in Python adds spaces after colons by default: <code>json.dumps(event)</code> produces <code>"integration": "n8n"</code>, not <code>"integration":"n8n"</code>.</p>
+
+        <p><strong>Fix:</strong></p>
+
+<div class="code-block-wrapper">
+<button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code>&lt;!-- BEFORE (broken) --&gt;
+&lt;prematch&gt;{"integration":"n8n"}&lt;/prematch&gt;
+
+&lt;!-- AFTER (fixed) --&gt;
+&lt;prematch&gt;"integration": "n8n"&lt;/prematch&gt;</code></pre>
+</div>
+
+        <p><strong>Lesson:</strong> Match exact serialization format. Test with actual log output, not hand-written JSON.</p>
+
+        <h3>Challenge 4: User Identity Without Direct Foreign Key</h3>
+
+        <p><strong>Problem:</strong> n8n's <code>execution_entity</code> table has no <code>userId</code> column. How do we know which analyst triggered a specific execution?</p>
 
         <p><strong>Solution:</strong> Traced the full ownership chain across 5 tables:</p>
 
@@ -524,38 +1423,116 @@ hour_ist = started_ist.hour  # Correct IST hour</code></pre>
   → user (via userId)</code></pre>
 </div>
 
-        <p><strong>Implementation:</strong> workflow_map_builder.py runs this 5-table join every 48 hours and caches the result as JSON. poller.py does O(1) dict lookups instead of repeated joins.</p>
+        <p>Since all 6 analysts in our SOC work in personal projects (not team projects), the workflow owner is effectively the triggering user for manual executions.</p>
+
+        <p><strong>Implementation:</strong></p>
+        <ul>
+          <li><code>workflow_map_builder.py</code> runs this 5-table join every 48 hours</li>
+          <li>Caches result as JSON map: <code>workflow_id → {owner_email, owner_name, project_name}</code></li>
+          <li><code>poller.py</code> does O(1) dict lookups instead of repeated 5-table joins</li>
+        </ul>
 
         <p><strong>Lesson:</strong> When direct foreign keys don't exist, trace entity relationships. Cache expensive joins.</p>
 
         <hr>
 
-        <h2 id="rules">Complete Wazuh Rules Reference</h2>
+        <h2 id="use-cases">Real-World Use Cases</h2>
 
-        <table>
-          <thead>
-            <tr>
-              <th>Rule ID</th>
-              <th>Level</th>
-              <th>Purpose</th>
-              <th>Trigger</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr><td>86601/86602</td><td>0</td><td>Override generic rule 86600</td><td>integration: n8n</td></tr>
-            <tr><td>100200</td><td>3</td><td>Base execution logged</td><td>Any n8n event</td></tr>
-            <tr><td>100202</td><td>7</td><td>Workflow failure</td><td>exec_status: error</td></tr>
-            <tr><td>100206</td><td>4</td><td>Retry recovery</td><td>success + retry_of</td></tr>
-            <tr><td>100207</td><td>10</td><td>Retry failure (persistent)</td><td>error + retry_of</td></tr>
-            <tr><td>100220</td><td>9</td><td>Recurring failure</td><td>2+ failures/24h</td></tr>
-            <tr><td>100221</td><td>11</td><td>Dead silence</td><td>0 executions/2hrs</td></tr>
-            <tr><td>100223</td><td>5</td><td>Manual trigger audit</td><td>mode: manual</td></tr>
-            <tr><td>100232</td><td>8</td><td>New workflow detection</td><td>is_new_workflow: true</td></tr>
-            <tr><td>100240</td><td>12</td><td>12hr summary</td><td>event_type: 12hr_summary</td></tr>
-            <tr><td>100241</td><td>13</td><td>Summary with failures</td><td>total_failed > 0</td></tr>
-            <tr><td>100242</td><td>11</td><td>Zero executions in 12hrs</td><td>total_executions: 0</td></tr>
-          </tbody>
-        </table>
+        <h3>Use Case 1: Workflow Failure Detection</h3>
+
+        <p><strong>Scenario:</strong> The "SentinelOne Alert Router" workflow fails due to an API authentication error.</p>
+
+        <p><strong>Event:</strong></p>
+<div class="code-block-wrapper">
+<button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code>{
+  "exec_status": "error",
+  "workflow_name": "SentinelOne Alert Router",
+  "owner_email": "analyst@company.com",
+  "exec_id": 12345
+}</code></pre>
+</div>
+
+        <p><strong>Alert Fired:</strong> Rule 100202 (Level 7)</p>
+        <p><strong>Alert Text:</strong> <em>"n8n: Workflow execution FAILED (exec_id: 12345, workflow: SentinelOne Alert Router, owner: analyst@company.com)"</em></p>
+        <p><strong>Analyst Action:</strong> Checks workflow logs in n8n, fixes API credentials, tests manually.</p>
+
+        <h3>Use Case 2: Recurring Failure Pattern</h3>
+
+        <p><strong>Scenario:</strong> The "Phishing Email Parser" workflow fails 3 times in one day due to a malformed regex.</p>
+
+        <p><strong>Event Sequence:</strong></p>
+        <ul>
+          <li>08:00: Execution 10001 fails → Rule 100202 fires</li>
+          <li>14:00: Execution 10025 fails → Rule 100202 fires</li>
+          <li>20:00: Rule 100220 fires (frequency: 2, timeframe: 86400)</li>
+        </ul>
+
+        <p><strong>Alert Fired:</strong> Rule 100220 (Level 9)</p>
+        <p><strong>Alert Text:</strong> <em>"n8n: RECURRING FAILURE — Workflow 'Phishing Email Parser' failed 2+ times today (owner: analyst@company.com) — investigate root cause"</em></p>
+        <p><strong>Analyst Action:</strong> Realizes it's not a one-off issue, reviews workflow code, fixes regex, deploys update.</p>
+
+        <h3>Use Case 3: Dead Silence Detection</h3>
+
+        <p><strong>Scenario:</strong> n8n crashes at 02:00 AM. No workflows execute for 2 hours.</p>
+
+        <p><strong>Event:</strong> <code>heartbeat.py</code> detects zero executions, writes synthetic event:</p>
+<div class="code-block-wrapper">
+<button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code>{
+  "event_type": "dead_silence",
+  "message": "No workflow executions detected in the past 2 hours"
+}</code></pre>
+</div>
+
+        <p><strong>Alert Fired:</strong> Rule 100221 (Level 11)</p>
+        <p><strong>Alert Text:</strong> <em>"n8n: DEAD SILENCE — No workflow executions detected in the past 2 hours — n8n may be down"</em></p>
+        <p><strong>Analyst Action:</strong> Checks n8n container status, restarts if needed, investigates crash logs.</p>
+
+        <h3>Use Case 4: Manual Trigger Audit</h3>
+
+        <p><strong>Scenario:</strong> An analyst manually triggers the "Emergency IOC Block" workflow at 03:15 AM.</p>
+
+        <p><strong>Event:</strong></p>
+<div class="code-block-wrapper">
+<button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code>{
+  "mode": "manual",
+  "workflow_name": "Emergency IOC Block",
+  "owner_email": "night-analyst@company.com",
+  "started_at_ist": "2025-04-22 03:15:32 IST"
+}</code></pre>
+</div>
+
+        <p><strong>Alert Fired:</strong> Rule 100223 (Level 5)</p>
+        <p><strong>Alert Text:</strong> <em>"n8n: Manual workflow trigger (workflow: Emergency IOC Block, triggered_by: night-analyst@company.com, time: 2025-04-22 03:15:32 IST)"</em></p>
+        <p><strong>Use:</strong> Complete audit trail of all manual interventions. Security team reviews next morning.</p>
+
+        <h3>Use Case 5: New Workflow Detection</h3>
+
+        <p><strong>Scenario:</strong> An analyst creates and tests a new workflow "Okta Login Anomaly Detector" for the first time.</p>
+
+        <p><strong>Event:</strong></p>
+<div class="code-block-wrapper">
+<button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code>{
+  "is_new_workflow": true,
+  "workflow_name": "Okta Login Anomaly Detector",
+  "owner_email": "new-analyst@company.com"
+}</code></pre>
+</div>
+
+        <p><strong>Alert Fired:</strong> Rule 100232 (Level 8)</p>
+        <p><strong>Alert Text:</strong> <em>"n8n: NEW WORKFLOW DETECTED — First-ever execution of workflow 'Okta Login Anomaly Detector' (owner: new-analyst@company.com)"</em></p>
+        <p><strong>Use:</strong> Security team reviews new workflows before they go into production rotation.</p>
+
+        <h3>Use Case 6: 12-Hour Health Report</h3>
+
+        <p><strong>Scenario:</strong> Night shift starts at 22:00 IST. <code>summary.py</code> generates health report covering 10:00-22:00.</p>
+
+        <p><strong>Alert Fired:</strong> Rule 100241 (Level 13) — because <code>total_failed > 0</code></p>
+        <p><strong>Alert Text:</strong> <em>"n8n: 12hr Summary WITH FAILURES (156 executions, 8 FAILED, total time: 30.7 min) — review failed_executions field"</em></p>
+        <p><strong>Use:</strong> Analysts see instant health snapshot without opening dashboards. Failed workflows listed in alert JSON for immediate investigation.</p>
 
         <hr>
 
@@ -572,19 +1549,19 @@ hour_ist = started_ist.hour  # Correct IST hour</code></pre>
 
         <div class="callout callout-green">
           <span class="callout-label">Before This Integration</span>
-          • Workflow failures discovered hours/days later<br>
-          • No audit trail of manual triggers<br>
-          • No alerting if n8n crashed<br>
-          • No visibility into automation health
+          • Workflow failures discovered hours/days later via manual checking<br>
+          • No audit trail of who triggered what workflow when<br>
+          • No alerting if n8n itself went down<br>
+          • No visibility into automation layer health
         </div>
 
         <div class="callout callout-green">
           <span class="callout-label">After This Integration</span>
-          • Real-time alerts within 15 seconds<br>
+          • Real-time alerts within 15 seconds of any failure<br>
           • Full owner identity on every execution<br>
-          • Dead silence detection<br>
-          • Night shift sees complete health snapshot<br>
-          • Security team reviews all new workflows
+          • Dead silence detection if automation stops<br>
+          • Night shift sees complete health snapshot without opening dashboards<br>
+          • Security team reviews all new workflows before production
         </div>
 
         <hr>
@@ -606,6 +1583,8 @@ hour_ist = started_ist.hour  # Correct IST hour</code></pre>
           <span class="tech-tag">JSON Serialization</span>
           <span class="tech-tag">State Management</span>
           <span class="tech-tag">Audit Trails</span>
+          <span class="tech-tag">Cron Scheduling</span>
+          <span class="tech-tag">Service Management</span>
         </div>
 
         <hr>
@@ -619,8 +1598,11 @@ hour_ist = started_ist.hour  # Correct IST hour</code></pre>
         <p>This integration gives you that missing piece. Every execution. Every failure. Every manual trigger. Every analyst. Complete visibility.</p>
 
         <div class="callout callout-blue">
-          <span class="callout-label">Download Complete Guide</span>
-          The full implementation guide with all 4 Python scripts, Wazuh decoder/rules XML, debugging walkthrough, and 6 real-world use cases is available in my GitHub repository. All code is copy-paste ready.
+          <span class="callout-label">Why This Matters — The Conceptual Point</span>
+          <strong>Wazuh → n8n</strong> is about <em>response</em>. A threat is detected, n8n automates the action.<br><br>
+          <strong>n8n → Wazuh</strong> is about <em>accountability and visibility over the automation layer itself</em>.<br><br>
+          Without this integration, your SIEM monitors your infrastructure but is completely blind to the system that responds to your infrastructure alerts. If that system fails silently, your automated SOC response stops — and your SIEM has no record of it happening.<br><br>
+          <strong>This integration closes that loop.</strong>
         </div>
 
         <!-- SHARE BAR -->
@@ -643,9 +1625,19 @@ hour_ist = started_ist.hour  # Correct IST hour</code></pre>
           <a href="#problem" class="toc-link">The Problem</a>
           <a href="#architecture" class="toc-link">Architecture</a>
           <a href="#pipeline" class="toc-link">The Pipeline</a>
-          <a href="#installation" class="toc-link">Installation Guide</a>
-          <a href="#challenges" class="toc-link">Technical Challenges</a>
+          <a href="#installation" class="toc-link">Installation</a>
+          <a href="#poller" class="toc-link toc-sub">poller.py</a>
+          <a href="#heartbeat" class="toc-link toc-sub">heartbeat.py</a>
+          <a href="#summary" class="toc-link toc-sub">summary.py</a>
+          <a href="#workflow-map" class="toc-link toc-sub">workflow_map_builder.py</a>
+          <a href="#systemd" class="toc-link">systemd Setup</a>
+          <a href="#cron" class="toc-link">Cron Jobs</a>
+          <a href="#wazuh-agent" class="toc-link">Wazuh Agent</a>
+          <a href="#decoder" class="toc-link">Wazuh Decoder</a>
           <a href="#rules" class="toc-link">Wazuh Rules</a>
+          <a href="#rules-table" class="toc-link">Rules Reference</a>
+          <a href="#challenges" class="toc-link">Technical Challenges</a>
+          <a href="#use-cases" class="toc-link">Use Cases</a>
           <a href="#impact" class="toc-link">Outcome & Impact</a>
           <a href="#skills" class="toc-link">Skills Demonstrated</a>
           <a href="#conclusion" class="toc-link">Final Thoughts</a>
@@ -722,7 +1714,7 @@ const observer = new IntersectionObserver((entries) => {
   });
 }, { rootMargin: '-20% 0px -80% 0px' });
 
-document.querySelectorAll('h2[id]').forEach(heading => {
+document.querySelectorAll('h2[id], h3[id]').forEach(heading => {
   observer.observe(heading);
 });
 
