@@ -1,12 +1,13 @@
 /* ════════════════════════════════════════════
-   monkincyber v3 — SINGLE SOURCE OF TRUTH
    Nitish Som · nitishsom123@gmail.com
 ════════════════════════════════════════════ */
 const P = {
   name:"Nitish Som", handle:"monkincyber", role:"SOC Analyst · Security Engineer",
   tagline:"2+ years securing enterprise environments.",
   location:"India", tz:"IST / UTC+5:30",
-  showHireBtn:false, showAvailBadge:true,
+  showHireBtn:false, 
+  showAvailBadge:true,           // Shows on portfolio pages (homepage, roadmap, etc.)
+  showAvailBadgeOnBlog:false,    // Hidden on blog posts (when sharing with org)
   contact:{
     email:"nitishsom123@gmail.com",
     linkedin:"https://www.linkedin.com/in/nitishsom/",
@@ -218,15 +219,15 @@ const P = {
       skills:["threat-hunting","log-parsing","mitre-mapping"],
       topics:["threat-hunting"],
       linkedin:"https://www.linkedin.com/in/nitishsom/"},
-  {
-    id: 'n8n-wazuh-integration',
-    title: 'Building Complete SIEM Visibility for Your SOC Automation Platform',
-    summary: 'A deep dive into n8n → Wazuh integration: 11 custom alert rules, owner identity tracking, and complete automation layer visibility.',
-    cat: 'Detection Engineering',
-    date: '2025-04-22',
-    readMins: 30,
-    topics: ['wazuh', 'siem-engineering'],
-     featured: true,
+    {
+      id: 'n8n-wazuh-integration',
+      title: 'Building Complete SIEM Visibility for Your SOC Automation Platform',
+      summary: 'A deep dive into n8n → Wazuh integration: 11 custom alert rules, owner identity tracking, and complete automation layer visibility.',
+      cat: 'Detection Engineering',
+      date: '2025-04-22',
+      readMins: 30,
+      topics: ['wazuh', 'siem-engineering'],
+      featured: true,
     },
   ],
 
