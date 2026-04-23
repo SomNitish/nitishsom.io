@@ -1,3 +1,312 @@
+// /* ════════════════════════════════════════════
+//    Nitish Som · nitishsom123@gmail.com
+// ════════════════════════════════════════════ */
+// const P = {
+//   name:"Nitish Som", handle:"monkincyber", role:"SOC Analyst · Security Engineer",
+//   tagline:"2+ years securing enterprise environments.",
+//   location:"India", tz:"IST / UTC+5:30",
+//   showHireBtn:false, 
+//   showAvailBadge:false,           // Shows on portfolio pages (homepage, roadmap, etc.)
+//   showAvailBadgeOnBlog:false,    // Hidden on blog posts (when sharing with org)
+//   contact:{
+//     email:"nitishsom123@gmail.com",
+//     linkedin:"https://www.linkedin.com/in/nitishsom/",
+//     github:"https://github.com/SomNitish",
+//     site:"https://somnitish.github.io/nitishsom.io/",
+//   },
+//   stats:[
+//     {num:"30+",label:"IR reports delivered"},
+//     {num:"2 yrs",label:"Hands-on SOC"},
+//     {num:"5+",label:"Enterprise tools"},
+//     {num:"3",label:"Compliance frameworks"},
+//   ],
+
+//   /* ── TOPICS — knowledge hubs ── */
+//   topics:[
+//     {
+//       id:"threat-hunting", name:"Threat Hunting", icon:"🎯", color:"green",
+//       tagline:"Proactive detection beyond automated alerts",
+//       description:"Hypothesis-driven hunting using SIEM, EDR, NDR, and threat intel. Covers the full hunting lifecycle, MITRE ATT&CK mapping, and attack-specific hunts.",
+//       sources:["LetsDefend","SANS SEC508","INE eCTHP","MITRE ATT&CK","CrowdStrike research"],
+//       status:"active", progress:15,
+//       lessons:[
+//         {id:"intro",title:"Introduction to Threat Hunting",status:"done",est:"6 lessons · 8 questions"},
+//         {id:"tools",title:"Threat Hunting Tools",status:"in-progress",est:"7 lessons · 11 questions"},
+//         {id:"with-siem",title:"Threat Hunting with SIEM",status:"in-progress",est:"8 lessons · 31 questions"},
+//         {id:"with-edr",title:"Threat Hunting with EDR",status:"planned",est:"7 lessons · 30 questions"},
+//         {id:"with-cti",title:"Threat Hunting with CTI",status:"planned",est:"7 lessons · 30 questions"},
+//         {id:"with-firewall",title:"Threat Hunting with Firewalls",status:"planned",est:"5 lessons · 15 questions"},
+//         {id:"with-ips",title:"Threat Hunting with IPS/IDS",status:"planned",est:"5 lessons · 14 questions"},
+//         {id:"with-waf",title:"Threat Hunting with WAF",status:"planned",est:"5 lessons · 14 questions"},
+//         {id:"with-email",title:"Threat Hunting with Email Security",status:"planned",est:"5 lessons · 13 questions"},
+//         {id:"with-dns",title:"Threat Hunting with DNS",status:"planned",est:"6 lessons · 13 questions"},
+//         {id:"with-deception",title:"Threat Hunting with Deception",status:"planned",est:"5 lessons · 13 questions"},
+//         {id:"email-attacks",title:"Hunting for Email-Based Attacks",status:"planned",est:"5 lessons · 14 questions"},
+//         {id:"ransomware",title:"Hunting for Ransomware Attacks",status:"planned",est:"5 lessons · 14 questions"},
+//         {id:"web-attacks",title:"Hunting for Web Attacks",status:"planned",est:"7 lessons · 27 questions"},
+//         {id:"network-attacks",title:"Hunting for Network-Based Attacks",status:"planned",est:"8 lessons · 29 questions"},
+//         {id:"priv-esc",title:"Hunting for Privilege Escalation",status:"planned",est:"7 lessons · 14 questions"},
+//         {id:"data-exfil",title:"Hunting for Data Exfiltration",status:"planned",est:"5 lessons · 14 questions"},
+//         {id:"password",title:"Hunting for Password-Based Attacks",status:"planned",est:"6 lessons · 20 questions"},
+//         {id:"insider",title:"Hunting for Insider Threats",status:"planned",est:"5 lessons · 11 questions"},
+//         {id:"dns-tunnel",title:"Hunting for DNS Tunneling",status:"planned",est:"In progress"},
+//       ],
+//     },
+//     {
+//       id:"wazuh", name:"Wazuh Deep Dive", icon:"🛡", color:"teal",
+//       tagline:"From deployment to advanced detection engineering",
+//       description:"Everything I've learned and built with Wazuh — production deployments, custom decoders, integrations.",
+//       sources:["Wazuh official docs","Production experience","Community use cases"],
+//       status:"active", progress:65,
+//       lessons:[
+//         {id:"deploy",title:"Wazuh production deployment patterns",status:"planned",est:"Coming soon"},
+//         {id:"decoders",title:"Writing custom decoders for any log",status:"planned",est:"Coming soon"},
+//         {id:"suricata",title:"Wazuh + Suricata integration walkthrough",status:"planned",est:"Coming soon"},
+//         {id:"thehive",title:"Wazuh + TheHive case management",status:"planned",est:"Coming soon"},
+//         {id:"n8n",title:"Wazuh + N8N SOAR pipeline",status:"planned",est:"Coming soon"},
+//         {id:"active-response",title:"Active Response — when and how",status:"planned",est:"Coming soon"},
+//         {id:"anomaly",title:"Anomaly detection module",status:"planned",est:"Coming soon"},
+//         {id:"correlation",title:"Writing correlation rules that don't suck",status:"planned",est:"Coming soon"},
+//       ],
+//     },
+//     {
+//       id:"malware-analysis", name:"Malware Analysis", icon:"🔬", color:"purple",
+//       tagline:"Static, dynamic, and behavioural analysis",
+//       description:"Learning malware analysis from multiple sources — TCM Practical Malware Analysis, LetsDefend.",
+//       sources:["TCM Practical Malware Analysis & Triage","LetsDefend Malware Analysis Path"],
+//       status:"planned", progress:5,
+//       lessons:[
+//         {id:"intro",title:"Malware analysis fundamentals",status:"planned",est:"Coming soon"},
+//         {id:"static",title:"Static analysis techniques",status:"planned",est:"Coming soon"},
+//         {id:"dynamic",title:"Dynamic analysis & sandboxing",status:"planned",est:"Coming soon"},
+//         {id:"behavioural",title:"Behavioural analysis patterns",status:"planned",est:"Coming soon"},
+//         {id:"reporting",title:"Writing malware analysis reports",status:"planned",est:"Coming soon"},
+//       ],
+//     },
+//     {
+//       id:"grc", name:"GRC", icon:"📋", color:"blue",
+//       tagline:"Governance, Risk, and Compliance",
+//       description:"Building knowledge of GRC frameworks I've worked with in practice (PCI DSS, NIST RMF, ISO 27001).",
+//       sources:["Production experience","Self-study"],
+//       status:"planned", progress:20,
+//       lessons:[
+//         {id:"intro",title:"GRC fundamentals",status:"planned",est:"Coming soon"},
+//         {id:"nist-rmf",title:"NIST RMF in practice",status:"planned",est:"Coming soon"},
+//         {id:"pci-dss",title:"PCI DSS compliance",status:"planned",est:"Coming soon"},
+//         {id:"iso-27001",title:"ISO 27001 implementation",status:"planned",est:"Coming soon"},
+//       ],
+//     },
+//     {
+//       id:"siem-engineering", name:"SIEM Engineering", icon:"📊", color:"amber",
+//       tagline:"Detection engineering at scale",
+//       description:"From log parsing to detection-as-code. Building maintainable detection content across SIEMs.",
+//       sources:["LetsDefend SIEM Engineer Career Path","Production work","Splunk/Wazuh docs"],
+//       status:"planned", progress:30,
+//       lessons:[
+//         {id:"intro",title:"SIEM engineering fundamentals",status:"planned",est:"Coming soon"},
+//         {id:"log-sources",title:"Onboarding log sources properly",status:"planned",est:"Coming soon"},
+//         {id:"detection",title:"Writing detections that scale",status:"planned",est:"Coming soon"},
+//       ],
+//     },
+//     {
+//       id:"aws-security", name:"AWS Security", icon:"☁", color:"pink",
+//       tagline:"Cloud security on AWS",
+//       description:"Learning AWS security from the ground up — IAM, network security, monitoring, IR.",
+//       sources:["Cybr Introduction to AWS Security","LetsDefend AWS Security Path"],
+//       status:"planned", progress:0,
+//       lessons:[
+//         {id:"intro",title:"AWS security fundamentals",status:"planned",est:"Not started"},
+//       ],
+//     },
+//   ],
+
+//   /* ── ROADMAP ── */
+//   roadmap:{
+//     completed:[
+//       {name:"SentinelOne Certified Professional",source:"SentinelOne",date:"2024",type:"cert"},
+//       {name:"Fortinet NSE",source:"Fortinet",date:"2023",type:"cert"},
+//       {name:"Cortex XDR — Investigation & Response",source:"Palo Alto",date:"2024",type:"cert"},
+//       {name:"SOC Analyst Learning Path",source:"LetsDefend",date:"2023",type:"path"},
+//       {name:"Incident Responder Path",source:"LetsDefend",date:"2023",type:"path"},
+//     ],
+//     inProgress:[
+//       {name:"Threat Hunting Learning Path",source:"LetsDefend",progress:15,priority:"high",type:"path"},
+//       {name:"Detection Engineering Path",source:"LetsDefend",progress:40,priority:"medium",type:"path"},
+//       {name:"CompTIA Security+",source:"CompTIA",progress:60,priority:"high",type:"cert"},
+//       {name:"MCP Crash Course",source:"YouTube",progress:10,priority:"high",type:"course",url:"https://www.youtube.com/watch?v=RhTiAOGwbYE"},
+//     ],
+//     planned:[
+//       {name:"SIEM Engineer Career Path",source:"LetsDefend",priority:"high",type:"path"},
+//       {name:"Malware Analysis Skill Path",source:"LetsDefend",priority:"medium",type:"path"},
+//       {name:"AWS Security Learning Path",source:"LetsDefend",priority:"medium",type:"path"},
+//       {name:"Introduction to AWS Security",source:"Cybr",priority:"medium",type:"course"},
+//       {name:"SANS SEC508 — Threat Hunting & IR",source:"SANS",priority:"high",type:"course"},
+//       {name:"INE eCTHP — Threat Hunting Pro",source:"INE",priority:"high",type:"cert"},
+//       {name:"Practical Malware Analysis & Triage",source:"TCM Security Labs",priority:"medium",type:"course"},
+//       {name:"Practical Web App Security & Testing",source:"TCM Security Labs",priority:"low",type:"course"},
+//     ],
+//   },
+
+//   /* ── SKILLS ── */
+//   skills:[
+//     {id:"log-parsing",name:"Log parsing",cat:"detection",desc:"Extracting fields from raw syslog, JSON, EVTX, CEF, custom formats."},
+//     {id:"correlation-rules",name:"Correlation rules",cat:"detection",desc:"Writing detection logic — low-noise, high-fidelity alerts."},
+//     {id:"threat-hunting",name:"Threat hunting",cat:"hunting",desc:"Hypothesis-driven proactive hunting using SIEM and NDR."},
+//     {id:"ueba",name:"UEBA",cat:"detection",desc:"Behavioural baseline modelling and anomaly detection."},
+//     {id:"ir-playbooks",name:"IR playbooks",cat:"response",desc:"Structured IR — triage, contain, eradicate, recover, report."},
+//     {id:"soar-automation",name:"SOAR automation",cat:"automation",desc:"End-to-end automated triage pipelines."},
+//     {id:"ndr-analysis",name:"NDR analysis",cat:"hunting",desc:"Network traffic analysis at ISP scale."},
+//     {id:"mitre-mapping",name:"MITRE ATT&CK mapping",cat:"detection",desc:"Mapping detections to ATT&CK tactics."},
+//     {id:"network-security",name:"Network security",cat:"network",desc:"Firewall policy, IPS/IDS, segmentation."},
+//     {id:"report-writing",name:"IR report writing",cat:"response",desc:"Structured client-facing reports."},
+//     {id:"sop-design",name:"SOP design",cat:"process",desc:"SOP design for SOC operations."},
+//     {id:"malware-analysis",name:"Malware analysis",cat:"response",desc:"Static and dynamic analysis."},
+//     {id:"phishing-analysis",name:"Phishing analysis",cat:"response",desc:"Automated and manual phishing analysis."},
+//   ],
+
+//   /* ── TOOLS ── */
+//   tools:[
+//     {id:"sentinelone",name:"SentinelOne",cat:"EDR",icon:"sentinelone.png",lvl:90},
+//     {id:"wazuh",name:"Wazuh",cat:"SIEM/XDR",icon:"wazuh.png",lvl:95},
+//     {id:"splunk",name:"Splunk",cat:"SIEM",icon:"splunk.png",lvl:78},
+//     {id:"elastic",name:"Elastic SIEM",cat:"SIEM",icon:"elastic.png",lvl:65},
+//     {id:"cortex-xdr",name:"Cortex XDR",cat:"XDR",icon:"paloalto.png",lvl:76},
+//     {id:"n8n",name:"N8N",cat:"SOAR",icon:"n8n.png",lvl:90},
+//     {id:"thehive",name:"TheHive",cat:"SOAR",icon:"thehive.png",lvl:85},
+//     {id:"jira",name:"JIRA",cat:"Process",icon:"jira.png",lvl:80},
+//     {id:"suricata",name:"Suricata",cat:"NDR/IDS",icon:"suricata.png",lvl:82},
+//     {id:"fortinet",name:"Fortinet",cat:"Firewall",icon:"fortinet.png",lvl:68},
+//     {id:"docker",name:"Docker",cat:"Platform",icon:"docker.png",lvl:60},
+//     {id:"ms365",name:"MS 365",cat:"Platform",icon:"microsoft.png",lvl:65},
+//     {id:"python",name:"Python",cat:"Scripting",icon:"python.png",lvl:42},
+//     {id:"bash",name:"Bash",cat:"Scripting",icon:"bash.png",lvl:58},
+//     {id:"powershell",name:"PowerShell",cat:"Scripting",icon:"powershell.png",lvl:52},
+//     {id:"mitre",name:"MITRE ATT&CK",cat:"Framework",icon:"",lvl:88},
+//     {id:"nist",name:"NIST RMF",cat:"Framework",icon:"",lvl:80},
+//     {id:"pcidss",name:"PCI DSS",cat:"Framework",icon:"",lvl:78},
+//     {id:"iso27001",name:"ISO 27001",cat:"Framework",icon:"",lvl:75},
+//   ],
+
+//   /* ── CERTIFICATIONS ── */
+//   certs:[
+//     {id:"sentinelone",name:"SentinelOne Certified Professional",issuer:"SentinelOne",year:2024,status:"active",icon:"assets/icons/sentinelone.png",badge:"S1",summary:"Vendor cert on SentinelOne EDR.",learned:["log-parsing","ir-playbooks","mitre-mapping","soar-automation"],appliedIn:["sentinelone-hyperauto","wazuh-siem-lab"],verify_url:"https://www.sentinelone.com/",notes:"Reduced containment from 8 minutes to 30 seconds."},
+//     {id:"fortinet-nse",name:"Fortinet NSE Certification",issuer:"Fortinet",year:2023,status:"active",icon:"assets/icons/fortinet.png",badge:"FT",summary:"Network security cert.",learned:["network-security","log-parsing","ndr-analysis"],appliedIn:["wazuh-siem-lab"],verify_url:"https://training.fortinet.com/",notes:"Used IPS/IDS knowledge to correlate firewall events."},
+//     {id:"palo-alto-cortex",name:"Cortex XDR — Investigation & Response",issuer:"Palo Alto Networks",year:2024,status:"active",icon:"assets/icons/paloalto.png",badge:"PA",summary:"XDR investigation cert.",learned:["log-parsing","ir-playbooks","mitre-mapping","correlation-rules"],appliedIn:["sentinelone-hyperauto"],verify_url:"https://beacon.paloaltonetworks.com/",notes:"Improved lateral movement tracing."},
+//     {id:"letsdefend-soc",name:"SOC Analyst Learning Path",issuer:"LetsDefend",year:2023,status:"active",icon:"assets/icons/letsdefend.png",badge:"LD",summary:"Scenario-based SOC training.",learned:["log-parsing","threat-hunting","ir-playbooks","report-writing","mitre-mapping","phishing-analysis"],appliedIn:["wazuh-siem-lab","jira-wazuh-soar"],verify_url:"https://app.letsdefend.io/",notes:"My foundation."},
+//     {id:"letsdefend-ir",name:"Incident Responder Path",issuer:"LetsDefend",year:2023,status:"active",icon:"assets/icons/letsdefend.png",badge:"LD",summary:"Practical IR training.",learned:["ir-playbooks","report-writing","mitre-mapping","threat-hunting"],appliedIn:["jira-wazuh-soar","sentinelone-hyperauto"],verify_url:"https://app.letsdefend.io/",notes:"Shaped 30+ IR reports."},
+//     {id:"security-plus",name:"CompTIA Security+",issuer:"CompTIA",year:2025,status:"progress",progress:60,icon:"assets/icons/comptia.png",badge:"C+",summary:"Broad security fundamentals.",learned:["network-security","ir-playbooks","correlation-rules"],appliedIn:[],verify_url:"",notes:"Target: Q3 2025."},
+//   ],
+
+//   /* ── PROJECTS ── */
+//   projects:[
+//     {id:"cyber-news-automation",name:"Cyber news & IOC automation pipeline",emoji:"📰",tagline:"Daily threat intel + IOC validation",desc:"Collects security news daily, summarises, extracts IOCs, queries SIEM for last 30 days, alerts on findings.",impact:"Zero manual threat intel work",tags:["N8N","Wazuh","Python","IOC extraction"],skills:["soar-automation","threat-hunting","log-parsing"],github:"https://github.com/SomNitish/",blog:""},
+//     {id:"jira-wazuh-soar",name:"JIRA + Wazuh + N8N SOAR pipeline",emoji:"⚡",tagline:"Critical alerts auto-create tickets",desc:"N8N collects Wazuh alerts via webhook. Critical alerts auto-create JIRA tickets, assign on-shift engineer.",impact:"MTTR significantly reduced",tags:["N8N","Wazuh","JIRA"],skills:["soar-automation","ir-playbooks"],github:"https://github.com/SomNitish/",blog:""},
+//     {id:"client-reporting-module",name:"Automated client reporting module",emoji:"📊",tagline:"Hourly/daily/weekly/monthly reports auto-delivered",desc:"N8N pipeline producing 4 report types.",impact:"4 report types fully automated",tags:["N8N","Wazuh","Reporting"],skills:["soar-automation","report-writing"],github:"https://github.com/SomNitish/",blog:""},
+//     {id:"phishing-automation",name:"Automated phishing email analysis",emoji:"🎣",tagline:"Open source phishing analyser with scoring",desc:"Open source pipeline with scoring. Notifies user when phishing detected.",impact:"Proactive notification",tags:["Phishing","N8N"],skills:["phishing-analysis","soar-automation"],github:"https://github.com/SomNitish/",blog:""},
+//     {id:"wazuh-siem-lab",name:"Wazuh SIEM hardening & detection lab",emoji:"🔍",tagline:"Production-grade Wazuh with 20+ custom rules",desc:"Custom decoders, multi-source integration. 20+ correlation rules.",impact:"Alert fidelity +60%",tags:["Wazuh","Suricata","SentinelOne"],skills:["log-parsing","correlation-rules","ndr-analysis","mitre-mapping"],github:"https://github.com/SomNitish/",blog:""},
+//   ],
+
+//   /* ── BLOG POSTS ── */
+//   posts:[
+//     {
+//       id:"threat-hunting-notes",
+//       title:"Threat Hunting — My Notes & Learnings",
+//       date:"2025-04-20",readMins:8,
+//       cat:"Threat Hunting",
+//       catColor:"green",
+//       summary:"Hypotheses, IoCs, the full lifecycle, and 3 real Wazuh lab walkthroughs.",
+//       tags:["Threat hunting","SIEM","Wazuh","MITRE ATT&CK"],
+//       skills:["threat-hunting","log-parsing","mitre-mapping"],
+//       topics:["threat-hunting"],
+//       linkedin:"https://www.linkedin.com/in/nitishsom/"},
+//     {
+//       id: 'n8n-wazuh-integration',
+//       title: 'Building Complete SIEM Visibility for Your SOC Automation Platform',
+//       summary: 'A deep dive into n8n → Wazuh integration: 11 custom alert rules, owner identity tracking, and complete automation layer visibility.',
+//       cat: 'Detection Engineering',
+//       date: '2025-04-22',
+//       readMins: 30,
+//       topics: ['wazuh', 'siem-engineering'],
+//       featured: true,
+//     },
+//   ],
+
+//   /* ── KNOWLEDGE GRAPH ── */
+//   graph:{
+//     nodes:[
+//       {id:"d-detection",label:"Detection",type:"domain",cat:"detection"},
+//       {id:"d-response",label:"Response",type:"domain",cat:"response"},
+//       {id:"d-automation",label:"Automation",type:"domain",cat:"automation"},
+//       {id:"d-hunting",label:"Threat hunting",type:"domain",cat:"hunting"},
+//       {id:"d-network",label:"Networking",type:"domain",cat:"network"},
+//       {id:"log-parsing",label:"Log parsing",type:"skill",cat:"detection"},
+//       {id:"correlation-rules",label:"Correlation rules",type:"skill",cat:"detection"},
+//       {id:"threat-hunting",label:"Threat hunting",type:"skill",cat:"hunting"},
+//       {id:"ueba",label:"UEBA",type:"skill",cat:"detection"},
+//       {id:"ir-playbooks",label:"IR playbooks",type:"skill",cat:"response"},
+//       {id:"soar-automation",label:"SOAR automation",type:"skill",cat:"automation"},
+//       {id:"ndr-analysis",label:"NDR analysis",type:"skill",cat:"hunting"},
+//       {id:"mitre-mapping",label:"MITRE ATT&CK",type:"skill",cat:"detection"},
+//       {id:"network-security",label:"Network security",type:"skill",cat:"network"},
+//       {id:"report-writing",label:"IR reporting",type:"skill",cat:"response"},
+//       {id:"malware-analysis",label:"Malware analysis",type:"skill",cat:"response"},
+//       {id:"phishing-analysis",label:"Phishing analysis",type:"skill",cat:"response"},
+//       {id:"sentinelone",label:"S1 Certified",type:"cert",cat:"edr"},
+//       {id:"fortinet-nse",label:"Fortinet NSE",type:"cert",cat:"network"},
+//       {id:"palo-alto-cortex",label:"Cortex XDR",type:"cert",cat:"xdr"},
+//       {id:"letsdefend-soc",label:"LD SOC Path",type:"cert",cat:"soc"},
+//       {id:"letsdefend-ir",label:"LD IR Path",type:"cert",cat:"ir"},
+//       {id:"security-plus",label:"Security+",type:"cert",cat:"general"},
+//       {id:"wazuh-siem-lab",label:"Wazuh SIEM lab",type:"project",cat:"siem"},
+//       {id:"jira-wazuh-soar",label:"JIRA SOAR",type:"project",cat:"soar"},
+//       {id:"sentinelone-hyperauto",label:"S1 Hyperauto",type:"project",cat:"edr"},
+//       {id:"cyber-news-automation",label:"News IOC pipeline",type:"project",cat:"auto"},
+//       {id:"phishing-automation",label:"Phishing auto",type:"project",cat:"auto"},
+//     ],
+//     edges:[
+//       ["d-detection","log-parsing"],["d-detection","correlation-rules"],["d-detection","ueba"],["d-detection","mitre-mapping"],
+//       ["d-response","ir-playbooks"],["d-response","report-writing"],["d-response","malware-analysis"],["d-response","phishing-analysis"],
+//       ["d-automation","soar-automation"],
+//       ["d-hunting","threat-hunting"],["d-hunting","ndr-analysis"],
+//       ["d-network","network-security"],["d-network","ndr-analysis"],
+//       ["letsdefend-soc","log-parsing"],["letsdefend-soc","threat-hunting"],["letsdefend-soc","ir-playbooks"],["letsdefend-soc","report-writing"],["letsdefend-soc","mitre-mapping"],["letsdefend-soc","phishing-analysis"],
+//       ["letsdefend-ir","ir-playbooks"],["letsdefend-ir","report-writing"],["letsdefend-ir","mitre-mapping"],["letsdefend-ir","threat-hunting"],
+//       ["sentinelone","ir-playbooks"],["sentinelone","mitre-mapping"],["sentinelone","soar-automation"],["sentinelone","log-parsing"],
+//       ["fortinet-nse","network-security"],["fortinet-nse","log-parsing"],["fortinet-nse","ndr-analysis"],
+//       ["palo-alto-cortex","log-parsing"],["palo-alto-cortex","ir-playbooks"],["palo-alto-cortex","correlation-rules"],["palo-alto-cortex","mitre-mapping"],
+//       ["security-plus","network-security"],["security-plus","ir-playbooks"],
+//       ["log-parsing","wazuh-siem-lab"],["correlation-rules","wazuh-siem-lab"],["ndr-analysis","wazuh-siem-lab"],["mitre-mapping","wazuh-siem-lab"],
+//       ["soar-automation","jira-wazuh-soar"],["ir-playbooks","jira-wazuh-soar"],
+//       ["soar-automation","sentinelone-hyperauto"],["ir-playbooks","sentinelone-hyperauto"],["mitre-mapping","sentinelone-hyperauto"],
+//       ["soar-automation","cyber-news-automation"],["threat-hunting","cyber-news-automation"],
+//       ["phishing-analysis","phishing-automation"],["soar-automation","phishing-automation"],
+//     ],
+//   },
+// };
+
+// /* ── Cmd+K SEARCH INDEX ── */
+// const CMDK={
+//   pages:[
+//     {name:"Home",url:"index.html",icon:"⌂",cat:"Pages"},
+//     {name:"Topics hub",url:"topics/index.html",icon:"📚",cat:"Pages"},
+//     {name:"Threat Hunting topic",url:"topics/threat-hunting.html",icon:"🎯",cat:"Pages"},
+//     {name:"Roadmap",url:"roadmap.html",icon:"🗺",cat:"Pages"},
+//     {name:"Sitemap",url:"sitemap.html",icon:"🌳",cat:"Pages"},
+//     {name:"Skill tree",url:"skill-tree.html",icon:"🌲",cat:"Pages"},
+//     {name:"Knowledge graph",url:"knowledge-graph.html",icon:"⬡",cat:"Pages"},
+//     {name:"All certifications",url:"certifications/index.html",icon:"🏆",cat:"Pages"},
+//     {name:"All blog posts",url:"blog/index.html",icon:"✎",cat:"Pages"},
+//     {name:"Contact",url:"index.html#contact",icon:"✉",cat:"Pages"},
+//   ],
+//   actions:[
+//     {name:"Open my LinkedIn",url:"https://www.linkedin.com/in/nitishsom/",icon:"in",cat:"Quick actions",external:true},
+//     {name:"Open my GitHub",url:"https://github.com/SomNitish",icon:"gh",cat:"Quick actions",external:true},
+//     {name:"Email me",url:"mailto:nitishsom123@gmail.com",icon:"@",cat:"Quick actions"},
+//   ],
+// };
+//--------------------------------------------------------------------------------------------------------
+// Version 2 - Implementation After Hypothesis blog
+
 /* ════════════════════════════════════════════
    Nitish Som · nitishsom123@gmail.com
 ════════════════════════════════════════════ */
@@ -228,6 +537,19 @@ const P = {
       readMins: 30,
       topics: ['wazuh', 'siem-engineering'],
       featured: true,
+    },
+    {
+      id: 'threat-hunting-hypotheses',
+      title: 'Hypothesis-Based Threat Hunting: My Learning Notes',
+      summary: '7 real-world threat hunting hypotheses with data sources, analysis steps, and expected outcomes — learned from LetsDefend.',
+      cat: 'Threat Hunting',
+      catColor: 'green',
+      date: '2025-04-25',
+      readMins: 12,
+      topics: ['threat-hunting'],
+      tags: ['Threat Hunting', 'SIEM', 'EDR', 'Hypotheses', 'LetsDefend'],
+      skills: ['threat-hunting', 'log-parsing', 'correlation-rules'],
+      featured: false,
     },
   ],
 

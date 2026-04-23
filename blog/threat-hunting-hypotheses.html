@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<base href="/nitishsom.io/">
+<title>Hypothesis-Based Threat Hunting: My Learning Notes — Nitish Som</title>
+<meta name="description" content="While learning threat hunting, I discovered the hypothesis-driven approach. Here are 7 real-world hunting hypotheses I've learned so far.">
+<link rel="stylesheet" href="assets/shared.css">
+
+<!-- Open Graph -->
+<meta property="og:title" content="Hypothesis-Based Threat Hunting: My Learning Notes">
+<meta property="og:description" content="7 real-world threat hunting hypotheses with data sources, analysis steps, and expected outcomes.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://somnitish.github.io/nitishsom.io/blog/threat-hunting-hypotheses.html">
+
+<style>
+/* Post layout */
+.post-hero{padding:56px 0 40px;border-bottom:1px solid var(--border)}
+.back-link{font-family:var(--mono);font-size:11px;color:var(--text3);display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:var(--rp);background:var(--bg2);border:1px solid var(--border);margin-bottom:20px;text-decoration:none;transition:all .15s}
+.back-link:hover{color:var(--text);border-color:var(--border2)}
+.post-meta{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+.post-cat{font-size:10px;font-weight:700;padding:4px 11px;border-radius:var(--rp);background:var(--green-l);color:var(--green-t);border:1px solid var(--green-b);text-transform:uppercase;letter-spacing:.05em}
+.post-date{font-family:var(--mono);font-size:11px;color:var(--text3)}
+.post-read{font-family:var(--mono);font-size:11px;color:var(--text3)}
+.post-title{font-size:clamp(26px,5vw,44px);font-weight:800;letter-spacing:-.04em;line-height:1.1;color:var(--text);margin-bottom:14px}
+.post-subtitle{font-size:16px;font-weight:300;color:var(--text2);line-height:1.7;max-width:680px;letter-spacing:-.01em}
+
+/* Post body */
+.post-body{display:grid;grid-template-columns:1fr 260px;gap:56px;padding:52px 0;align-items:start}
+@media(max-width:900px){.post-body{grid-template-columns:1fr}}
+
+/* Prose */
+.prose{max-width:720px}
+.prose h2{font-size:24px;font-weight:800;color:var(--text);letter-spacing:-.03em;margin:48px 0 16px;padding-top:8px;line-height:1.2;border-top:1px solid var(--border)}
+.prose h2:first-child{margin-top:0;border-top:none;padding-top:0}
+.prose h3{font-size:18px;font-weight:700;color:var(--text);letter-spacing:-.02em;margin:32px 0 12px}
+.prose p{font-size:15px;font-weight:300;color:var(--text2);line-height:1.8;margin-bottom:18px;letter-spacing:-.01em}
+.prose p strong{color:var(--text);font-weight:600}
+.prose ul,.prose ol{padding-left:24px;margin-bottom:18px}
+.prose li{font-size:15px;font-weight:300;color:var(--text2);line-height:1.8;margin-bottom:8px;letter-spacing:-.01em}
+.prose li strong{color:var(--text);font-weight:600}
+
+/* Hypothesis cards - ENHANCED */
+.hypothesis-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:28px;margin:32px 0;box-shadow:var(--sh);transition:all .3s}
+.hypothesis-card:hover{border-color:var(--green-b);box-shadow:0 8px 24px rgba(0,0,0,.15)}
+.hypothesis-header{display:flex;align-items:center;gap:16px;margin-bottom:20px;cursor:pointer}
+.hypothesis-icon{font-size:32px;flex-shrink:0}
+.hypothesis-title{font-size:20px;font-weight:700;color:var(--text);letter-spacing:-.02em;flex:1}
+.hypothesis-toggle{font-family:var(--mono);font-size:11px;color:var(--text3);background:var(--bg2);border:1px solid var(--border);padding:4px 10px;border-radius:var(--rp);transition:all .2s}
+.hypothesis-toggle:hover{background:var(--text);color:var(--bg)}
+.hypothesis-statement{font-size:15px;font-style:italic;color:var(--text2);background:var(--bg2);padding:16px;border-left:3px solid var(--green);border-radius:var(--rs);margin-bottom:24px}
+.hypothesis-body{display:none}
+.hypothesis-body.expanded{display:block}
+.hypothesis-section{margin-bottom:24px}
+.hypothesis-section-title{font-family:var(--mono);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.hypothesis-section-title::before{content:'';width:20px;height:2px;background:var(--green);border-radius:1px}
+.data-source{display:inline-block;font-family:var(--mono);font-size:12px;background:var(--green-l);color:var(--green-t);border:1px solid var(--green-b);padding:4px 10px;border-radius:var(--rp);margin:4px 4px 4px 0}
+.analysis-step{font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:10px;padding-left:20px;position:relative}
+.analysis-step::before{content:'→';position:absolute;left:0;color:var(--green);font-weight:700}
+.expected-result{font-size:14px;color:var(--text2);background:var(--amber-l);border-left:3px solid var(--amber);padding:10px 14px;border-radius:var(--rs);margin:8px 0}
+
+/* Callout boxes */
+.callout{padding:18px 20px;border-radius:var(--rs);margin:24px 0;font-size:14px;font-weight:400;line-height:1.7;border-left:4px solid}
+.callout-blue{background:var(--blue-l);border-color:var(--blue);color:var(--blue-t)}
+.callout-blue strong{color:var(--blue-t);font-weight:700}
+.callout-amber{background:var(--amber-l);border-color:var(--amber);color:var(--amber)}
+.callout-amber strong{font-weight:700}
+.callout-label{font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;display:block;opacity:.8}
+
+/* TOC sidebar */
+.toc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;position:sticky;top:80px;box-shadow:var(--sh);max-height:calc(100vh - 120px);overflow-y:auto}
+.toc-label{font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:14px}
+.toc-links{display:flex;flex-direction:column;gap:2px}
+.toc-link{font-size:12px;font-weight:500;color:var(--text2);padding:6px 10px;border-radius:var(--rs);transition:all .15s;text-decoration:none;letter-spacing:-.01em;display:block}
+.toc-link:hover,.toc-link.active{color:var(--green);background:var(--green-l)}
+
+/* Share bar */
+.share-bar{display:flex;align-items:center;gap:10px;padding:24px 0;border-top:1px solid var(--border);margin-top:56px;flex-wrap:wrap}
+.share-label{font-size:13px;font-weight:600;color:var(--text2)}
+.share-btn{display:inline-flex;align-items:center;gap:8px;padding:9px 18px;border-radius:var(--rp);font-size:12px;font-weight:600;border:1px solid;transition:all .15s;text-decoration:none}
+.share-li{background:var(--blue-l);color:var(--blue-t);border-color:var(--blue-b)}
+.share-li:hover{background:var(--blue);color:#fff}
+.share-tw{background:var(--bg2);color:var(--text2);border-color:var(--border)}
+.share-tw:hover{background:var(--text);color:var(--bg)}
+
+/* Quick actions - NEW FEATURE */
+.quick-actions{position:fixed;bottom:30px;right:30px;display:flex;flex-direction:column;gap:10px;z-index:100}
+.quick-btn{width:50px;height:50px;border-radius:50%;background:var(--green);color:#fff;border:none;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.2);transition:all .2s;display:flex;align-items:center;justify-content:center;font-size:20px}
+.quick-btn:hover{transform:scale(1.1);box-shadow:0 6px 16px rgba(0,0,0,.3)}
+.expand-all-btn{background:var(--blue)}
+.scroll-top-btn{background:var(--text)}
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <div class="container nav-inner">
+    <a href="index.html" class="nav-logo"><span class="nav-logo-dot"></span>Nitish <em>Som</em></a>
+    <div class="nav-links">
+      <a href="index.html#about">About</a>
+      <a href="index.html#experience">Experience</a>
+      <a href="topics/index.html">Topics</a>
+      <a href="index.html#projects">Projects</a>
+      <a href="certifications/index.html">Certs</a>
+      <a href="blog/index.html" class="act">Blog</a>
+      <a href="roadmap.html">Roadmap</a>
+    </div>
+    <div class="nav-right">
+      <button class="cmdk-btn"><span>Search</span><kbd>⌘K</kbd></button>
+      <div id="avail-badge"><span class="pulse"></span>Open to remote</div>
+    </div>
+  </div>
+</nav>
+
+<section class="post-hero">
+  <div class="container fu">
+    <a href="blog/index.html" class="back-link">← All posts</a>
+    <div class="post-meta">
+      <span class="post-cat">Threat Hunting</span>
+      <span class="post-date">April 25, 2025</span>
+      <span class="post-read">12 min read</span>
+    </div>
+    <h1 class="post-title">Hypothesis-Based Threat Hunting: My Learning Notes</h1>
+    <p class="post-subtitle">While learning threat hunting, I discovered the hypothesis-driven approach. Here are 7 real-world hunting hypotheses I've learned so far.</p>
+  </div>
+</section>
+
+<section class="post-body">
+  <div class="container">
+    <div class="post-body">
+      
+      <div class="prose">
+
+        <div class="callout callout-blue">
+          <span class="callout-label">About This Post</span>
+          <strong>Learning source:</strong> LetsDefend Threat Hunting Learning Path<br>
+          <strong>Content availability:</strong> All concepts below are publicly available in threat hunting resources<br>
+          <strong>My contribution:</strong> Practical rewrite, condensed format, and hands-on context
+        </div>
+
+        <h2 id="intro">What is Hypothesis-Based Threat Hunting?</h2>
+
+        <p>While going through the <strong>LetsDefend Threat Hunting Learning Path</strong>, I came across one of the most interesting concepts in proactive security: <strong>hypothesis-based threat hunting</strong>.</p>
+
+        <p>Instead of waiting for alerts to fire, you start with a theory — a hypothesis about what an attacker might be doing — and then you go hunt for evidence in your logs.</p>
+
+        <p><strong>The process:</strong></p>
+        <ul>
+          <li>Form a hypothesis (ex: "An attacker may have compromised an admin account")</li>
+          <li>Identify data sources (SIEM, EDR, firewall logs, etc.)</li>
+          <li>Define analysis steps (what to look for)</li>
+          <li>Hunt for evidence</li>
+          <li>Document findings</li>
+        </ul>
+
+        <p>Below are <strong>7 hypotheses</strong> I've learned so far. Each one is a real-world hunting scenario with data sources, analysis steps, and expected results.</p>
+
+        <div class="callout callout-amber">
+          <span class="callout-label">Quick Tip</span>
+          Click on any hypothesis card to expand/collapse the full analysis steps. Use the <strong>"Expand All"</strong> button at the bottom right to open everything at once!
+        </div>
+
+        <hr>
+
+        <h2 id="hypotheses">The 7 Hunting Hypotheses</h2>
+
+        <!-- Hypothesis 1 -->
+        <div class="hypothesis-card" data-id="h1">
+          <div class="hypothesis-header" onclick="toggleHypothesis('h1')">
+            <div class="hypothesis-icon">🔐</div>
+            <div class="hypothesis-title">1. Suspicious Admin Account Activity</div>
+            <div class="hypothesis-toggle">Expand ▼</div>
+          </div>
+          <div class="hypothesis-statement">
+            "An attacker may have compromised an admin account to gain access to critical systems."
+          </div>
+          <div class="hypothesis-body" id="h1-body">
+            <div class="hypothesis-section">
+              <div class="hypothesis-section-title">Data Sources</div>
+              <span class="data-source">SIEM Logs</span>
+              <span class="data-source">Active Directory</span>
+              <span class="data-source">Firewall Logs</span>
+              <span class="data-source">EDR Logs</span>
+              <span class="data-source">Threat Intel</span>
+            </div>
+
+            <div class="hypothesis-section">
+              <div class="hypothesis-section-title">Analysis Steps</div>
+              <div class="analysis-step">Monitor failed login attempts on admin accounts</div>
+              <div class="analysis-step">Check for successful logins following failed attempts</div>
+              <div class="analysis-step">Monitor permission changes and password resets</div>
+              <div class="analysis-step">Detect abnormal network connections from admin accounts</div>
+              <div class="analysis-step">Check for unusual processes running with admin privileges</div>
+              <div class="analysis-step">Cross-reference with threat intelligence for known malicious IPs</div>
+            </div>
+
+            <div class="hypothesis-section">
+              <div class="hypothesis-section-title">Expected Outcomes</div>
+              <div class="expected-result">✓ Failed login attempts followed by successful login</div>
+              <div class="expected-result">✓ Unexpected permission or group changes</div>
+              <div class="expected-result">✓ Abnormal network traffic from admin accounts</div>
+              <div class="expected-result">✓ Connections to known malicious IPs or domains</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hypothesis 2 -->
+        <div class="hypothesis-card" data-id="h2">
+          <div class="hypothesis-header" onclick="toggleHypothesis('h2')">
+            <div class="hypothesis-icon">↔️</div>
+            <div class="hypothesis-title">2. Lateral Movement Detection</div>
+            <div class="hypothesis-toggle">Expand ▼</div>
+          </div>
+          <div class="hypothesis-statement">
+            "A threat actor may be performing lateral movement across the internal network to access additional systems."
+          </div>
+          <div class="hypothesis-body" id="h2-body">
+            <div class="hypothesis-section">
+              <div class="hypothesis-section-title">Data Sources</div>
+              <span class="data-source">EDR Logs</span>
+              <span class="data-source">Network Traffic</span>
+              <span class="data-source">IDS/IPS Logs</span>
+            </div>
+
+            <div class="hypothesis-section">
+              <div class="hypothesis-section-title">Analysis Steps</div>
+              <div class="analysis-step">Monitor abnormal process or file activities on endpoints</div>
+              <div class="analysis-step">Track increased connection attempts between internal devices</div>
+              <div class="analysis-step">Detect access to new devices not previously contacted</div>
+              <div class="analysis-step">Check for unexpected SMB or RDP connections</div>
+              <div class="analysis-step">Identify port scanning or unusual port usage</div>
+              <div class="analysis-step">Review IDS/IPS alerts for anomaly detection</div>
+            </div>
+
+            <div class="hypothesis-section">
+              <div class="hypothesis-section-title">Expected Outcomes</div>
+              <div class="expected-result">✓ Abnormal process activities on endpoints</div>
+              <div class="expected-result">✓ Increased lateral connection attempts</div>
+              <div class="expected-result">✓ IDS/IPS alerts for suspicious internal traffic</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hypothesis 3 -->
+        <div class="hypothesis-card" data-id="h3">
+          <div class="hypothesis-header" onclick="toggleHypothesis('h3')">
+            <div class="hypothesis-icon">🎣</div>
+            <div class="hypothesis-title">3. Phishing Campaign Detection</div>
+            <div class="hypothesis-toggle">Expand ▼</div>
+          </div>
+          <div class="hypothesis-statement">
+            "There may be a targeted phishing campaign against employees aimed at credential theft or malware delivery."
+          </div>
+          <div class="hypothesis-body" id="h3-body">
+            <div class="hypothesis-section">
+              <div class="hypothesis-section-title">Data Sources</div>
+              <span class="data-source">CTI Platform</span>
+              <span class="data-source">Email Gateway</span>
+              <span class="data-source">Web Proxy</span>
+              <span class="data-source">EDR Logs</span>
+              <span class="data-source">SIEM</span>
+            </div>
+
+            <div class="hypothesis-section">
+              <div class="hypothesis-section-title">Analysis Steps</div>
+              <div class="analysis-step">Collect threat intel on active phishing campaigns</div>
+              <div class="analysis-step">Match email gateway logs with known phishing indicators</div>
+              <div class="analysis-step">Check web proxy for clicks on phishing URLs</div>
+              <div class="analysis-step">Monitor EDR for abnormal activity after email interaction</div>
+              <div class="analysis-step">Analyze email content for social engineering techniques</div>
+            </div>
+
+            <div class="hypothesis-section">
+              <div class="hypothesis-section-title">Expected Outcomes</div>
+              <div class="expected-result">✓ Emails from known phishing domains detected</div>
+              <div class="expected-result">✓ User clicks on malicious URLs</div>
+              <div class="expected-result">✓ Post-click abnormal activities on endpoints</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hypothesis 4 -->
+        <div class="hypothesis-card" data-id="h4">
+          <div class="hypothesis-header" onclick="toggleHypothesis('h4')">
+            <div class="hypothesis-icon">🚪</div>
+            <div class="hypothesis-title">4. Brute Force Attack Detection</div>
+            <div class="hypothesis-toggle">Expand ▼</div>
+          </div>
+          <div class="hypothesis-statement">
+            "An attacker may be attempting to brute force user credentials through repeated login attempts."
+          </div>
+          <div class="hypothesis-body" id="h4-body">
+            <div class="hypothesis-section">
+              <div class="hypothesis-section-title">Data Sources</div>
+              <span class="data-source">Auth Server Logs</span>
+              <span class="data-source">VPN Logs</span>
+              <span class="data-source">SIEM</span>
+              <span class="data-source">Threat Intel</span>
+            </div>
+
+            <div class="hypothesis-section">
+              <div class="hypothesis-section-title">Analysis Steps</div>
+              <div class="analysis-step">Detect multiple failed login attempts on same account</div>
+              <div class="analysis-step">Identify source IPs and geolocations of failed attempts</div>
+              <div class="analysis-step">Check if IPs deviate from normal login locations</div>
+              <div class="analysis-step">Monitor for successful login after repeated failures</div>
+              <div class="analysis-step">Analyze post-login activities for suspicious behavior</div>
+              <div class="analysis-step">Cross-check IPs with threat intelligence feeds</div>
+            </div>
+
+            <div class="hypothesis-section">
+              <div class="hypothesis-section-title">Expected Outcomes</div>
+              <div class="expected-result">✓ Multiple failed attempts within short timeframe</div>
+              <div class="expected-result">✓ Source IPs from unusual locations</div>
+              <div class="expected-result">✓ Successful login followed by suspicious activity</div>
+              <div class="expected-result">✓ IP matches known brute-force campaigns</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hypothesis 5 -->
+        <div class="hypothesis-card" data-id="h5">
+          <div class="hypothesis-header" onclick="toggleHypothesis('h5')">
+            <div class="hypothesis-icon">📂</div>
+            <div class="hypothesis-title">5. Unusual File Access & Data Exfiltration</div>
+            <div class="hypothesis-toggle">Expand ▼</div>
+          </div>
+          <div class="hypothesis-statement">
+            "User credentials may have been compromised, allowing unauthorized access to sensitive data with potential exfiltration."
+          </div>
+          <div class="hypothesis-body" id="h5-body">
+            <div class="hypothesis-section">
+              <div class="hypothesis-section-title">Data Sources</div>
+              <span class="data-source">DLP Logs</span>
+              <span class="data-source">Firewall</span>
+              <span class="data-source">Email Gateway</span>
+              <span class="data-source">IDS/IPS</span>
+              <span class="data-source">SIEM</span>
+            </div>
+
+            <div class="hypothesis-section">
+              <div class="hypothesis-section-title">Analysis Steps</div>
+              <div class="analysis-step">Analyze email gateway for phishing attempts</div>
+              <div class="analysis-step">Review user activity logs for abnormal file access</div>
+              <div class="analysis-step">Compare user actions with assigned permissions</div>
+              <div class="analysis-step">Monitor DLP logs for sensitive data transfers</div>
+              <div class="analysis-step">Correlate timeline using IDS/IPS, proxy, and DLP logs</div>
+              <div class="analysis-step">Check for connections to C2 servers</div>
+            </div>
+
+            <div class="hypothesis-section">
+              <div class="hypothesis-section-title">Expected Outcomes</div>
+              <div class="expected-result">✓ Malicious email delivered and opened by user</div>
+              <div class="expected-result">✓ Unauthorized access to sensitive files</div>
+              <div class="expected-result">✓ DLP alerts for data exfiltration attempts</div>
+              <div class="expected-result">✓ Correlation confirms insider threat</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hypothesis 6 -->
+        <div class="hypothesis-card" data-id="h6">
+          <div class="hypothesis-header" onclick="toggleHypothesis('h6')">
+            <div class="hypothesis-icon">🌐</div>
+            <div class="hypothesis-title">6. DNS Tunneling Detection</div>
+            <div class="hypothesis-toggle">Expand ▼</div>
+          </div>
+          <div class="hypothesis-statement">
+            "An unusual volume of outgoing DNS queries from a specific IP may indicate DNS tunneling or data exfiltration."
+          </div>
+          <div class="hypothesis-body" id="h6-body">
+            <div class="hypothesis-section">
+              <div class="hypothesis-section-title">Data Sources</div>
+              <span class="data-source">DNS Logs</span>
+              <span class="data-source">SIEM</span>
+              <span class="data-source">Network Flow</span>
+              <span class="data-source">IDS/IPS</span>
+            </div>
+
+            <div class="hypothesis-section">
+              <div class="hypothesis-section-title">Analysis Steps</div>
+              <div class="analysis-step">Collect and centralize DNS logs in SIEM</div>
+              <div class="analysis-step">Establish baseline for normal DNS query patterns</div>
+              <div class="analysis-step">Detect abnormally high DNS query frequencies</div>
+              <div class="analysis-step">Analyze unusual query lengths and content</div>
+              <div class="analysis-step">Identify queries directed to specific external IPs</div>
+              <div class="analysis-step">Perform statistical analysis to detect deviations</div>
+            </div>
+
+            <div class="hypothesis-section">
+              <div class="hypothesis-section-title">Expected Outcomes</div>
+              <div class="expected-result">✓ Abnormal number of DNS queries from specific IP</div>
+              <div class="expected-result">✓ Unusual increase in query size and frequency</div>
+              <div class="expected-result">✓ Queries directed to suspicious external IPs</div>
+              <div class="expected-result">✓ Correlation analysis confirms DNS tunneling</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hypothesis 7 -->
+        <div class="hypothesis-card" data-id="h7">
+          <div class="hypothesis-header" onclick="toggleHypothesis('h7')">
+            <div class="hypothesis-icon">💾</div>
+            <div class="hypothesis-title">7. Data Exfiltration via Cloud Storage</div>
+            <div class="hypothesis-toggle">Expand ▼</div>
+          </div>
+          <div class="hypothesis-statement">
+            "Sensitive data may be exfiltrated to unauthorized cloud storage services by compromised or malicious users."
+          </div>
+          <div class="hypothesis-body" id="h7-body">
+            <div class="hypothesis-section">
+              <div class="hypothesis-section-title">Data Sources</div>
+              <span class="data-source">Web Proxy</span>
+              <span class="data-source">DLP</span>
+              <span class="data-source">Firewall</span>
+              <span class="data-source">SIEM</span>
+            </div>
+
+            <div class="hypothesis-section">
+              <div class="hypothesis-section-title">Analysis Steps</div>
+              <div class="analysis-step">Monitor web proxy for uploads to cloud storage</div>
+              <div class="analysis-step">Detect large file uploads outside business hours</div>
+              <div class="analysis-step">Check DLP for sensitive data classification violations</div>
+              <div class="analysis-step">Correlate user activity with data access logs</div>
+              <div class="analysis-step">Identify unapproved cloud storage domains</div>
+            </div>
+
+            <div class="hypothesis-section">
+              <div class="hypothesis-section-title">Expected Outcomes</div>
+              <div class="expected-result">✓ Large uploads to personal cloud accounts</div>
+              <div class="expected-result">✓ DLP alerts for sensitive data movement</div>
+              <div class="expected-result">✓ Activity outside normal working hours</div>
+            </div>
+          </div>
+        </div>
+
+        <hr>
+
+        <h2 id="conclusion">What I've Learned So Far</h2>
+
+        <p>Hypothesis-based hunting is powerful because it flips the script — you're not reacting to alerts, you're <strong>proactively hunting</strong> for threats that may never trigger automated rules.</p>
+
+        <p><strong>Key takeaways:</strong></p>
+        <ul>
+          <li>Start with a clear hypothesis</li>
+          <li>Know your data sources (SIEM, EDR, firewall, etc.)</li>
+          <li>Define concrete analysis steps before you start hunting</li>
+          <li>Document everything — even negative findings are valuable</li>
+        </ul>
+
+        <p>This is just the beginning. As I continue through the LetsDefend learning path, I'll keep adding more hypotheses and real-world hunts to this series.</p>
+
+        <div class="callout callout-blue">
+          <span class="callout-label">Resources</span>
+          <strong>Learning Platform:</strong> LetsDefend — Threat Hunting Learning Path<br>
+          <strong>Additional Resources:</strong> MITRE ATT&CK, SANS SEC508, INE eCTHP<br>
+          <strong>All concepts:</strong> Publicly available in threat hunting educational resources
+        </div>
+
+        <!-- Share bar -->
+        <div class="share-bar">
+          <span class="share-label">Share this post:</span>
+          <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://somnitish.github.io/nitishsom.io/blog/threat-hunting-hypotheses.html" target="_blank" class="share-btn share-li">
+            <span>Share on LinkedIn</span>
+          </a>
+          <a href="https://twitter.com/intent/tweet?url=https://somnitish.github.io/nitishsom.io/blog/threat-hunting-hypotheses.html&text=7%20Threat%20Hunting%20Hypotheses" target="_blank" class="share-btn share-tw">
+            <span>Share on Twitter</span>
+          </a>
+        </div>
+
+      </div>
+
+      <!-- TOC -->
+      <aside class="toc">
+        <div class="toc-label">Table of Contents</div>
+        <div class="toc-links">
+          <a href="#intro" class="toc-link">What is Hypothesis Hunting?</a>
+          <a href="#hypotheses" class="toc-link">The 7 Hypotheses</a>
+          <a href="#conclusion" class="toc-link">What I've Learned</a>
+        </div>
+      </aside>
+
+    </div>
+  </div>
+</section>
+
+<!-- Quick Actions (NEW FEATURE) -->
+<div class="quick-actions">
+  <button class="quick-btn expand-all-btn" onclick="expandAll()" title="Expand all hypotheses">📖</button>
+  <button class="quick-btn scroll-top-btn" onclick="scrollToTop()" title="Scroll to top">↑</button>
+</div>
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <div class="footer-left">
+      <div class="footer-logo">Nitish <em>Som</em></div>
+      <div class="footer-copy">© 2025</div>
+    </div>
+    <div class="footer-links">
+      <a href="topics/index.html">Topics</a>
+      <a href="roadmap.html">Roadmap</a>
+      <a href="sitemap.html">Sitemap</a>
+      <a href="knowledge-graph.html">Knowledge graph</a>
+    </div>
+    <div class="footer-tz">IST · UTC+5:30</div>
+  </div>
+</footer>
+
+<script src="assets/data.js"></script>
+<script src="assets/cmdk.js"></script>
+<script>
+// Badge visibility controlled by P.showAvailBadgeOnBlog in data.js
+if(P.showAvailBadgeOnBlog)document.getElementById('avail-badge').style.display='flex';
+
+// Toggle hypothesis card
+function toggleHypothesis(id) {
+  const body = document.getElementById(id + '-body');
+  const card = document.querySelector(`[data-id="${id}"]`);
+  const toggle = card.querySelector('.hypothesis-toggle');
+  
+  if (body.classList.contains('expanded')) {
+    body.classList.remove('expanded');
+    toggle.textContent = 'Expand ▼';
+  } else {
+    body.classList.add('expanded');
+    toggle.textContent = 'Collapse ▲';
+  }
+}
+
+// Expand all hypotheses
+let allExpanded = false;
+function expandAll() {
+  allExpanded = !allExpanded;
+  const bodies = document.querySelectorAll('.hypothesis-body');
+  const toggles = document.querySelectorAll('.hypothesis-toggle');
+  
+  bodies.forEach(body => {
+    if (allExpanded) {
+      body.classList.add('expanded');
+    } else {
+      body.classList.remove('expanded');
+    }
+  });
+  
+  toggles.forEach(toggle => {
+    toggle.textContent = allExpanded ? 'Collapse ▲' : 'Expand ▼';
+  });
+  
+  // Change button emoji
+  const btn = document.querySelector('.expand-all-btn');
+  btn.textContent = allExpanded ? '📕' : '📖';
+  btn.title = allExpanded ? 'Collapse all' : 'Expand all';
+}
+
+// Scroll to top
+function scrollToTop() {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// TOC active highlighting
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const id = entry.target.getAttribute('id');
+      document.querySelectorAll('.toc-link').forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('href') === '#' + id) {
+          link.classList.add('active');
+        }
+      });
+    }
+  });
+}, { rootMargin: '-20% 0px -80% 0px' });
+
+document.querySelectorAll('h2[id]').forEach(heading => {
+  observer.observe(heading);
+});
+
+// Fade-up animations
+const fObs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('vis');fObs.unobserve(e.target);}});},{threshold:.08});
+document.querySelectorAll('.fu').forEach(el=>fObs.observe(el));
+</script>
+
+</body>
+</html>
