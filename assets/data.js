@@ -627,15 +627,16 @@
 //   ],
 // };
 
+
 /* ════════════════════════════════════════════
    Nitish Som · nitishsom123@gmail.com
 ════════════════════════════════════════════ */
 const P = {
-  name:"Nitish Som", handle:"monkincyber", role:"SOC Analyst · Security Engineer",
-  tagline:"2+ years securing enterprise environments.",
+  name:"Nitish Som", handle:"monkincyber", role:"SOC Analyst · Detection Engineer",
+  tagline:"Building detection pipelines and automating SOC workflows.",
   location:"India", tz:"IST / UTC+5:30",
   showHireBtn:false, 
-  showAvailBadge:true,           // Shows on portfolio pages (homepage, roadmap, etc.)
+  showAvailBadge:false,           // Shows on portfolio pages (homepage, roadmap, etc.) - SET TO TRUE WHEN READY
   showAvailBadgeOnBlog:false,    // Hidden on blog posts (when sharing with org)
   contact:{
     email:"nitishsom123@gmail.com",
@@ -853,6 +854,7 @@ const P = {
       title: 'Building Complete SIEM Visibility for Your SOC Automation Platform',
       summary: 'A deep dive into n8n → Wazuh integration: 11 custom alert rules, owner identity tracking, and complete automation layer visibility.',
       cat: 'Detection Engineering',
+      catColor: 'blue',
       date: '2025-04-22',
       readMins: 30,
       topics: ['wazuh', 'siem-engineering'],
@@ -934,7 +936,6 @@ const CMDK={
     {name:"Threat Hunting topic",url:"topics/threat-hunting.html",icon:"🎯",cat:"Pages"},
     {name:"Roadmap",url:"roadmap.html",icon:"🗺",cat:"Pages"},
     {name:"Sitemap",url:"sitemap.html",icon:"🌳",cat:"Pages"},
-    {name:"Skill tree",url:"skill-tree.html",icon:"🌲",cat:"Pages"},
     {name:"Knowledge graph",url:"knowledge-graph.html",icon:"⬡",cat:"Pages"},
     {name:"All certifications",url:"certifications/index.html",icon:"🏆",cat:"Pages"},
     {name:"All blog posts",url:"blog/index.html",icon:"✎",cat:"Pages"},
