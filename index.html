@@ -3,9 +3,174 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<base href="/nitishsom.io/">
 <title>Nitish Som — SOC Analyst & Detection Engineer</title>
-<meta name="description" content="SOC Analyst and Detection Engineer specializing in SIEM, SOAR automation, and threat hunting. 2+ years building detection pipelines and automating SOC workflows.">
+<meta name="description" content="SOC Analyst and Detection Engineer specializing in SIEM, SOAR automation, and threat hunting. Building detection pipelines and automating SOC workflows.">
 <link rel="stylesheet" href="assets/shared.css">
+<style>
+/* ── HERO ── */
+.hero{padding:72px 0 64px;border-bottom:1px solid var(--border);position:relative;overflow:hidden}
+.hero-grid-bg{position:absolute;inset:0;pointer-events:none;opacity:.32;background-image:var(--grid-pattern);background-size:40px 40px;mask-image:radial-gradient(ellipse 80% 80% at 50% 0%,black 40%,transparent 100%);-webkit-mask-image:radial-gradient(ellipse 80% 80% at 50% 0%,black 40%,transparent 100%)}
+.hero-inner{position:relative;z-index:1;display:grid;grid-template-columns:1.1fr .9fr;gap:48px;align-items:center}
+@media(max-width:900px){.hero-inner{grid-template-columns:1fr;gap:36px}}
+.hero-kicker{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:500;color:var(--green-t);background:var(--green-l);border:1px solid var(--green-b);padding:6px 14px;border-radius:var(--rp);margin-bottom:24px}
+.hero-name{font-size:clamp(36px,6vw,60px);font-weight:800;letter-spacing:-.04em;line-height:1.05;color:var(--text);margin-bottom:8px}
+.hero-role{font-size:clamp(15px,2.2vw,20px);font-weight:300;color:var(--text2);letter-spacing:-.02em;margin-bottom:18px}
+.hero-p{font-size:15px;font-weight:300;color:var(--text2);line-height:1.75;max-width:480px;margin-bottom:28px;letter-spacing:-.01em}
+.hero-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:32px}
+.hero-stats{display:flex;flex-wrap:wrap;border:1px solid var(--border);border-radius:var(--r);background:var(--surface);overflow:hidden;width:fit-content;box-shadow:var(--sh)}
+.hstat{padding:14px 22px;border-right:1px solid var(--border)}
+.hstat:last-child{border-right:none}
+.hstat-num{font-size:22px;font-weight:800;letter-spacing:-.04em;color:var(--text);line-height:1}
+.hstat-label{font-size:10px;color:var(--text3);margin-top:3px;letter-spacing:.01em}
+@media(max-width:600px){.hero-stats{flex-direction:column;width:100%}.hstat{border-right:none;border-bottom:1px solid var(--border);padding:12px 18px}.hstat:last-child{border-bottom:none}}
+
+/* ── TERMINAL ── */
+.terminal{background:var(--terminal-bg);border:1px solid #2a2a26;border-radius:var(--r);box-shadow:var(--sh-lg);overflow:hidden;font-family:var(--mono);font-size:13px;line-height:1.6;width:100%}
+.term-bar{padding:10px 14px;background:#1a1a18;border-bottom:1px solid #2a2a26;display:flex;align-items:center;gap:8px}
+.term-dot{width:11px;height:11px;border-radius:50%}
+.term-dot.r{background:#FF5F56}.term-dot.y{background:#FFBD2E}.term-dot.g{background:#27C93F}
+.term-title{font-size:11px;color:#65615A;margin-left:auto;font-family:var(--mono)}
+.term-body{padding:18px 16px;min-height:280px;color:var(--terminal-text);font-size:12.5px}
+.term-line{margin-bottom:4px;white-space:pre-wrap;word-break:break-word}
+.term-prompt{color:#22C55E}
+.term-cmd{color:#dcdcd0}
+.term-out{color:#a09b91}
+.term-key{color:#A78BFA}
+.term-val{color:#FBBF24}
+.term-str{color:#86EFAC}
+.term-comment{color:#65615A;font-style:italic}
+.term-cursor{display:inline-block;width:8px;height:14px;background:var(--terminal-text);vertical-align:text-bottom;animation:blink 1.1s step-end infinite}
+@keyframes blink{50%{opacity:0}}
+
+/* ── MARQUEE ── */
+.marquee-wrap{border-bottom:1px solid var(--border);overflow:hidden;background:var(--surface);padding:13px 0}
+.marquee-track{display:flex;animation:marquee 22s linear infinite;width:max-content}
+.marquee-track:hover{animation-play-state:paused}
+@keyframes marquee{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.marquee-item{display:inline-flex;align-items:center;gap:8px;padding:0 24px;white-space:nowrap;font-size:12px;font-weight:500;color:var(--text3);letter-spacing:.02em;text-transform:uppercase;border-right:1px solid var(--border)}
+.marquee-dot{width:4px;height:4px;border-radius:50%;background:var(--green);flex-shrink:0}
+
+/* ── WHAT I DO (NEW SECTION) ── */
+.what-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;margin-top:32px}
+.what-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:24px;transition:all .2s;box-shadow:var(--sh)}
+.what-card:hover{box-shadow:var(--sh-md);transform:translateY(-2px);border-color:var(--green-b)}
+.what-icon{font-size:32px;margin-bottom:12px}
+.what-title{font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px;letter-spacing:-.02em}
+.what-desc{font-size:14px;font-weight:300;color:var(--text2);line-height:1.7}
+
+/* ── IMPACT (NEW SECTION) ── */
+.impact-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;margin-top:32px}
+.impact-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:28px;text-align:center;transition:all .2s;box-shadow:var(--sh)}
+.impact-card:hover{box-shadow:var(--sh-md);transform:translateY(-2px);border-color:var(--green-b)}
+.impact-num{font-size:34px;font-weight:800;color:var(--green);margin-bottom:8px;letter-spacing:-.03em}
+.impact-label{font-size:13px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.05em}
+
+/* ── ABOUT ── */
+.about-grid{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:start}
+.about-text{font-size:15px;font-weight:300;color:var(--text2);line-height:1.8;letter-spacing:-.01em}
+.about-text strong{color:var(--text);font-weight:600}
+.about-text p+p{margin-top:14px}
+.tag-cloud{display:flex;flex-wrap:wrap;gap:7px;margin-top:20px}
+.tag.hi{background:var(--green-l);color:var(--green-t);border-color:var(--green-b)}
+@media(max-width:768px){.about-grid{grid-template-columns:1fr;gap:32px}}
+
+/* ── TIMELINE ── */
+.timeline{display:flex;flex-direction:column}
+.tl-item{display:flex;gap:24px;padding-bottom:32px}
+.tl-item:last-child{padding-bottom:0}
+.tl-left{display:flex;flex-direction:column;align-items:center;width:18px;flex-shrink:0;padding-top:5px}
+.tl-node{width:14px;height:14px;border-radius:50%;border:2px solid var(--border2);background:var(--surface);flex-shrink:0;transition:all .2s;z-index:1}
+.tl-item:hover .tl-node{background:var(--green);border-color:var(--green);box-shadow:0 0 0 4px var(--green-l)}
+.tl-line{width:1px;flex:1;background:var(--border);margin-top:5px}
+.tl-right{flex:1}
+.tl-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:22px;box-shadow:var(--sh);transition:all .2s}
+.tl-item:hover .tl-card{box-shadow:var(--sh-md);transform:translateY(-2px)}
+.tl-head{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+.tl-role{font-size:16px;font-weight:700;color:var(--text);letter-spacing:-.02em}
+.tl-co{font-size:13px;font-weight:400;color:var(--text2);margin-top:2px}
+.tl-period{font-family:var(--mono);font-size:11px;color:var(--text3);background:var(--bg2);padding:4px 10px;border-radius:var(--rp);white-space:nowrap;border:1px solid var(--border)}
+.tl-current{background:var(--green-l);color:var(--green-t);border:1px solid var(--green-b);font-family:var(--mono);font-size:11px;padding:4px 10px;border-radius:var(--rp);white-space:nowrap}
+.tl-groups{display:flex;flex-direction:column;gap:12px;margin-top:14px}
+.tl-group-head{font-family:var(--mono);font-size:10px;font-weight:500;color:var(--green);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px}
+.tl-group-head.blue{color:var(--blue)}
+.tl-bullet{font-size:13px;font-weight:300;color:var(--text2);line-height:1.6;padding-left:14px;position:relative;margin-bottom:4px;letter-spacing:-.01em}
+.tl-bullet::before{content:'';position:absolute;left:0;top:9px;width:4px;height:4px;border-radius:50%;background:var(--border2)}
+.compliance-row{display:flex;gap:7px;flex-wrap:wrap;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}
+.impact-chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--green-t);background:var(--green-l);border:1px solid var(--green-b);padding:5px 10px;border-radius:var(--rs);margin-top:8px}
+
+/* ── STACK (UPDATED - NO PERCENTAGES) ── */
+.stack-grid{display:flex;flex-direction:column;gap:24px}
+.stack-cat-label{font-family:var(--mono);font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px;padding-bottom:7px;border-bottom:1px solid var(--border)}
+.stack-items{display:flex;flex-wrap:wrap;gap:8px}
+.stack-item{display:flex;align-items:center;gap:9px;background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:9px 13px;font-size:13px;font-weight:500;color:var(--text2);transition:all .15s;box-shadow:var(--sh)}
+.stack-item:hover{border-color:var(--border2);color:var(--text);transform:translateY(-2px);box-shadow:var(--sh-md)}
+.stack-icon{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;background:var(--bg2);overflow:hidden}
+.stack-icon img{width:20px;height:20px;object-fit:contain}
+
+/* ── PROJECTS ── */
+.proj-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px}
+.proj-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:24px;box-shadow:var(--sh);transition:all .2s;display:flex;flex-direction:column;gap:16px}
+.proj-card:hover{box-shadow:var(--sh-md);transform:translateY(-2px)}
+.proj-icon{font-size:32px;margin-bottom:4px}
+.proj-name{font-size:17px;font-weight:700;color:var(--text);letter-spacing:-.02em;margin-bottom:6px}
+.proj-desc{font-size:14px;font-weight:300;color:var(--text2);line-height:1.7;margin-bottom:8px}
+.proj-tags{display:flex;flex-wrap:wrap;gap:6px}
+.proj-tag{font-family:var(--mono);font-size:10px;background:var(--bg2);color:var(--text3);border:1px solid var(--border);padding:4px 9px;border-radius:var(--rp)}
+.proj-links{display:flex;gap:8px;margin-top:auto;padding-top:12px;border-top:1px solid var(--border)}
+.proj-link{font-size:12px;font-weight:600;color:var(--green);text-decoration:none;transition:all .15s}
+.proj-link:hover{opacity:.7}
+
+/* ── BLOG ── */
+.blog-preview-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px}
+.blog-card-p{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;box-shadow:var(--sh);transition:all .2s;display:flex;flex-direction:column;text-decoration:none}
+.blog-card-p:hover{box-shadow:var(--sh-md);transform:translateY(-3px);border-color:var(--border2)}
+.blog-thumb-p{height:100px;padding:16px;display:flex;align-items:flex-end}
+.blog-cat-tag{font-size:10px;font-weight:700;padding:4px 10px;border-radius:var(--rp);background:rgba(255,255,255,.88);letter-spacing:.03em;text-transform:uppercase}
+.blog-body-p{padding:20px;flex:1;display:flex;flex-direction:column;gap:12px}
+.blog-title-p{font-size:15px;font-weight:700;color:var(--text);line-height:1.35;letter-spacing:-.02em}
+.blog-summary-p{font-size:13px;font-weight:300;color:var(--text2);line-height:1.6;flex:1}
+.blog-footer-p{padding:14px 20px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.blog-date-p{font-family:var(--mono);font-size:11px;color:var(--text3)}
+.blog-read-p{font-size:12px;font-weight:600;color:var(--green)}
+
+/* ── CERTS PREVIEW ── */
+.certs-prev-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
+.cert-card-preview{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;box-shadow:var(--sh);transition:all .2s;display:flex;flex-direction:column;gap:12px;text-decoration:none}
+.cert-card-preview:hover{box-shadow:var(--sh-md);transform:translateY(-2px)}
+.cert-card-top{display:flex;align-items:center;justify-content:space-between}
+.cert-logo-wrap{width:44px;height:44px;border-radius:var(--rs);border:1px solid var(--border);overflow:hidden;background:var(--bg2);display:flex;align-items:center;justify-content:center}
+.cert-logo-wrap img{width:100%;height:100%;object-fit:contain}
+.cert-logo-fb{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--text2)}
+.cert-status-p{font-family:var(--mono);font-size:10px;font-weight:600;padding:4px 10px;border-radius:var(--rp);text-transform:uppercase;letter-spacing:.05em}
+.cs-active{background:var(--green-l);color:var(--green-t);border:1px solid var(--green-b)}
+.cs-progress{background:var(--blue-l);color:var(--blue-t);border:1px solid var(--blue-b)}
+.cert-name-preview{font-size:14px;font-weight:600;color:var(--text);line-height:1.3;margin-bottom:4px}
+.cert-issuer-preview{font-size:12px;color:var(--text3)}
+.cert-view{font-size:12px;font-weight:600;color:var(--green);margin-top:auto}
+
+/* ── CONTACT (IMPROVED UI) ── */
+.contact-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-top:32px;max-width:700px;margin-left:auto;margin-right:auto}
+.contact-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:24px;text-align:center;text-decoration:none;color:var(--text2);transition:all .2s;box-shadow:var(--sh);display:flex;flex-direction:column;align-items:center;gap:10px}
+.contact-card:hover{border-color:var(--green-b);transform:translateY(-2px);box-shadow:var(--sh-md)}
+.contact-icon{font-size:28px;margin-bottom:4px}
+.contact-label{font-size:13px;font-weight:600;color:var(--text)}
+.contact-hint{font-size:11px;color:var(--text3);font-family:var(--mono)}
+
+/* ── COMMON ── */
+.section{padding:80px 0}
+.section-header{text-align:center;margin-bottom:48px}
+.section-h2{font-size:clamp(28px,4vw,40px);font-weight:800;letter-spacing:-.04em;color:var(--text);margin-bottom:10px}
+.section-sub{font-size:15px;font-weight:300;color:var(--text3);max-width:520px;margin:0 auto}
+.tag{font-size:11px;font-weight:600;padding:5px 12px;border-radius:var(--rp);border:1px solid var(--border);background:var(--surface);color:var(--text3)}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:10px 22px;border-radius:var(--rp);font-size:13px;font-weight:600;border:2px solid;transition:all .15s;text-decoration:none}
+.btn-pri{background:var(--green);color:#fff;border-color:var(--green)}
+.btn-pri:hover{background:transparent;color:var(--green)}
+.btn-sec{background:transparent;color:var(--text);border-color:var(--border)}
+.btn-sec:hover{border-color:var(--text)}
+.fu{opacity:0;transform:translateY(32px);transition:all .7s cubic-bezier(.16,1,.3,1)}
+.fu.vis{opacity:1;transform:translateY(0)}
+</style>
 </head>
 <body>
 
@@ -13,234 +178,224 @@
   <div class="container nav-inner">
     <a href="index.html" class="nav-logo"><span class="nav-logo-dot"></span>Nitish <em>Som</em></a>
     <div class="nav-links">
-      <a href="index.html" class="act">Home</a>
+      <a href="#about" class="act">About</a>
+      <a href="#experience">Experience</a>
       <a href="#projects">Projects</a>
-      <a href="blog/index.html">Case Studies</a>
-      <a href="#skills">Skills</a>
-      <a href="certifications/index.html">Certifications</a>
+      <a href="#blog">Blog</a>
+      <a href="certifications/index.html">Certs</a>
       <a href="#contact">Contact</a>
     </div>
     <div class="nav-right">
       <button class="cmdk-btn"><span>Search</span><kbd>⌘K</kbd></button>
-      <div id="avail-badge" style="display:none"><span class="pulse"></span>Available for collaboration</div>
+      <div id="avail-badge"><span class="pulse"></span>Available for collaboration</div>
     </div>
   </div>
 </nav>
 
-<!-- HERO SECTION -->
-<section class="hero">
-  <div class="container fu">
-    <h1 class="hero-name">Nitish Som</h1>
-    <p class="hero-role">SOC Analyst · Detection Engineer</p>
-    <p class="hero-p">
-      I design and build detection pipelines and automate SOC workflows using SIEM and SOAR tools.  
-      My focus is on reducing alert fatigue, improving detection quality, and speeding up incident response.
-    </p>
-    <div class="hero-focus">
-      <strong>Key Focus:</strong> SIEM Engineering · Threat Hunting · SOAR Automation (Wazuh + N8N)
-    </div>
-    <div class="hero-cta">
-      <a href="#projects" class="btn-primary">View Projects</a>
-      <a href="#contact" class="btn-secondary">Get in Touch</a>
+<!-- HERO -->
+<section class="hero" id="about">
+  <div class="hero-grid-bg"></div>
+  <div class="container">
+    <div class="hero-inner">
+      <div>
+        <div class="hero-kicker fu">👋 SOC Analyst & Detection Engineer</div>
+        <h1 class="hero-name fu">Nitish Som</h1>
+        <p class="hero-role fu">Building detection pipelines · Automating SOC workflows</p>
+        <p class="hero-p fu">
+          I design and build detection pipelines and automate SOC workflows using SIEM and SOAR tools. 
+          My focus is on reducing alert fatigue, improving detection quality, and speeding up incident response.
+        </p>
+        <div class="hero-actions fu">
+          <a href="#projects" class="btn btn-pri">View projects</a>
+          <a href="#contact" class="btn btn-sec">Get in touch</a>
+        </div>
+        <div class="hero-stats fu">
+          <div class="hstat"><div class="hstat-num">30+</div><div class="hstat-label">IR reports</div></div>
+          <div class="hstat"><div class="hstat-num">2 yrs</div><div class="hstat-label">Hands-on SOC</div></div>
+          <div class="hstat"><div class="hstat-num">5+</div><div class="hstat-label">Enterprise tools</div></div>
+          <div class="hstat"><div class="hstat-num">3</div><div class="hstat-label">Compliance frameworks</div></div>
+        </div>
+      </div>
+      <div class="terminal fu">
+        <div class="term-bar">
+          <div class="term-dot r"></div><div class="term-dot y"></div><div class="term-dot g"></div>
+          <div class="term-title">nitish@soc ~ detection-pipeline</div>
+        </div>
+        <div class="term-body">
+          <div class="term-line"><span class="term-prompt">~$</span> <span class="term-cmd">cat focus.txt</span></div>
+          <div class="term-line"><span class="term-key">SIEM Engineering</span> <span class="term-out">→ Wazuh, Splunk</span></div>
+          <div class="term-line"><span class="term-key">SOAR Automation</span> <span class="term-out">→ N8N, TheHive</span></div>
+          <div class="term-line"><span class="term-key">Threat Hunting</span> <span class="term-out">→ MITRE ATT&CK</span></div>
+          <div class="term-line"><span class="term-key">Detection Eng</span> <span class="term-out">→ Custom rules</span></div>
+          <div class="term-line" style="margin-top:12px"><span class="term-prompt">~$</span> <span class="term-cmd">current_focus --show</span></div>
+          <div class="term-line"><span class="term-str">"Building scalable detection pipelines</span></div>
+          <div class="term-line"><span class="term-str"> that reduce noise and improve response time."</span></div>
+          <div class="term-line" style="margin-top:12px"><span class="term-prompt">~$</span> <span class="term-cursor"></span></div>
+        </div>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- FEATURED PROJECTS (NEW - TOP PRIORITY) -->
+<!-- MARQUEE -->
+<div class="marquee-wrap">
+  <div class="marquee-track">
+    <span class="marquee-item"><span class="marquee-dot"></span>Detection Engineering</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>SOAR Automation</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>Threat Hunting</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>SIEM Engineering</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>Incident Response</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>Detection Engineering</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>SOAR Automation</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>Threat Hunting</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>SIEM Engineering</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>Incident Response</span>
+  </div>
+</div>
+
+<!-- WHAT I DO (NEW SECTION) -->
+<section class="section">
+  <div class="container">
+    <div class="section-header fu">
+      <h2 class="section-h2">What I Do</h2>
+      <p class="section-sub">Core areas I work on in security operations</p>
+    </div>
+    <div class="what-grid fu">
+      <div class="what-card">
+        <div class="what-icon">📊</div>
+        <div class="what-title">Detection Engineering</div>
+        <div class="what-desc">Design and implement correlation rules with high signal-to-noise ratio for real attack scenarios.</div>
+      </div>
+      <div class="what-card">
+        <div class="what-icon">⚙️</div>
+        <div class="what-title">SOAR Automation</div>
+        <div class="what-desc">Automate alert triage, enrichment, and ticketing workflows to reduce manual SOC effort.</div>
+      </div>
+      <div class="what-card">
+        <div class="what-icon">🎯</div>
+        <div class="what-title">Threat Hunting</div>
+        <div class="what-desc">Perform hypothesis-driven hunting using SIEM and network data to find threats missed by automated detection.</div>
+      </div>
+      <div class="what-card">
+        <div class="what-icon">🛡</div>
+        <div class="what-title">SIEM Engineering</div>
+        <div class="what-desc">Onboard logs, normalize data, and build scalable detection pipelines for multi-source environments.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- IMPACT (NEW SECTION) -->
+<section class="section" style="background:var(--bg2)">
+  <div class="container">
+    <div class="section-header fu">
+      <h2 class="section-h2">Impact</h2>
+      <p class="section-sub">Outcomes from my work in security operations</p>
+    </div>
+    <div class="impact-grid fu">
+      <div class="impact-card">
+        <div class="impact-num">30+</div>
+        <div class="impact-label">Incident reports delivered</div>
+      </div>
+      <div class="impact-card">
+        <div class="impact-num">20+</div>
+        <div class="impact-label">Detection rules created</div>
+      </div>
+      <div class="impact-card">
+        <div class="impact-num">Automation</div>
+        <div class="impact-label">Reduced manual effort</div>
+      </div>
+      <div class="impact-card">
+        <div class="impact-num">Multi-source</div>
+        <div class="impact-label">Log integration</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TIMELINE (EXPERIENCE) -->
+<section class="section" id="experience">
+  <div class="container">
+    <div class="section-header fu">
+      <h2 class="section-h2">Where I've worked</h2>
+      <p class="section-sub">2+ years securing enterprise environments</p>
+    </div>
+    <div class="timeline fu" id="timeline"></div>
+  </div>
+</section>
+
+<!-- STACK -->
+<section class="section" style="background:var(--bg2)">
+  <div class="container">
+    <div class="section-header fu">
+      <h2 class="section-h2">Skills & tools</h2>
+      <p class="section-sub">What I work with regularly</p>
+    </div>
+    <div class="stack-grid fu" id="stack-grid"></div>
+  </div>
+</section>
+
+<!-- PROJECTS -->
 <section class="section" id="projects">
   <div class="container">
     <div class="section-header fu">
       <h2 class="section-h2">Featured Work</h2>
       <p class="section-sub">Real-world projects focused on detection engineering and SOC automation</p>
     </div>
-
-    <div class="projects-grid fu">
-      
-      <!-- Project 1: N8N + Wazuh SOAR -->
-      <div class="project-card featured">
-        <div class="project-icon">⚡</div>
-        <h3 class="project-title">SOC Automation Pipeline (Wazuh + N8N)</h3>
-        <p class="project-desc">Automated alert triage and ticket creation using webhook-based integration between Wazuh SIEM and JIRA.</p>
-        <div class="project-impact">
-          <strong>Impact:</strong> Reduced manual triage effort and improved incident response time
-        </div>
-        <div class="project-tech">
-          <span class="tech-tag">N8N</span>
-          <span class="tech-tag">Wazuh</span>
-          <span class="tech-tag">JIRA</span>
-          <span class="tech-tag">SOAR</span>
-        </div>
-        <a href="blog/n8n-wazuh-integration.html" class="project-link">Read case study →</a>
-      </div>
-
-      <!-- Project 2: Wazuh SIEM Lab -->
-      <div class="project-card featured">
-        <div class="project-icon">🔍</div>
-        <h3 class="project-title">Wazuh SIEM Detection Lab</h3>
-        <p class="project-desc">Built production-style SIEM with multi-source logs, custom decoders, and 20+ correlation rules.</p>
-        <div class="project-impact">
-          <strong>Impact:</strong> Improved alert fidelity by 60% and reduced noise
-        </div>
-        <div class="project-tech">
-          <span class="tech-tag">Wazuh</span>
-          <span class="tech-tag">Detection Engineering</span>
-          <span class="tech-tag">MITRE ATT&CK</span>
-        </div>
-        <a href="blog/wazuh-detection-lab.html" class="project-link">Read case study →</a>
-      </div>
-
-      <!-- Project 3: Threat Intel Automation -->
-      <div class="project-card">
-        <div class="project-icon">📰</div>
-        <h3 class="project-title">Threat Intelligence Automation</h3>
-        <p class="project-desc">Automated IOC extraction from security news and correlation against SIEM logs for the past 30 days.</p>
-        <div class="project-impact">
-          <strong>Impact:</strong> Eliminated manual threat intel processing
-        </div>
-        <div class="project-tech">
-          <span class="tech-tag">N8N</span>
-          <span class="tech-tag">Python</span>
-          <span class="tech-tag">Wazuh</span>
-        </div>
-      </div>
-
-    </div>
+    <div class="proj-list fu" id="projects-list"></div>
   </div>
 </section>
 
-<!-- WHAT I DO (NEW SECTION) -->
-<section class="section bg-alt">
+<!-- BLOG -->
+<section class="section" style="background:var(--bg2)" id="blog">
   <div class="container">
     <div class="section-header fu">
-      <h2 class="section-h2">What I Do</h2>
-      <p class="section-sub">Core areas I work on in security operations</p>
+      <h2 class="section-h2">Blog</h2>
+      <p class="section-sub">Technical write-ups and learning notes</p>
     </div>
-
-    <div class="grid-2 fu">
-      
-      <div class="capability-card">
-        <div class="capability-icon">📊</div>
-        <h3>Detection Engineering</h3>
-        <p>Design and implement correlation rules with high signal-to-noise ratio for real attack scenarios.</p>
-      </div>
-
-      <div class="capability-card">
-        <div class="capability-icon">⚙️</div>
-        <h3>SOAR Automation</h3>
-        <p>Automate alert triage, enrichment, and ticketing workflows to reduce manual SOC effort.</p>
-      </div>
-
-      <div class="capability-card">
-        <div class="capability-icon">🎯</div>
-        <h3>Threat Hunting</h3>
-        <p>Perform hypothesis-driven hunting using SIEM and network data to find threats missed by automated detection.</p>
-      </div>
-
-      <div class="capability-card">
-        <div class="capability-icon">🛡</div>
-        <h3>SIEM Engineering</h3>
-        <p>Onboard logs, normalize data, and build scalable detection pipelines for multi-source environments.</p>
-      </div>
-
+    <div class="blog-preview-grid fu" id="blog-preview-grid"></div>
+    <div class="fu" style="text-align:center;margin-top:32px">
+      <a href="blog/index.html" class="btn btn-sec">View all posts</a>
     </div>
   </div>
 </section>
 
-<!-- IMPACT SECTION (VERY IMPORTANT) -->
+<!-- CERTS PREVIEW -->
 <section class="section">
   <div class="container">
     <div class="section-header fu">
-      <h2 class="section-h2">Impact</h2>
-      <p class="section-sub">Outcomes from my work in security operations</p>
+      <h2 class="section-h2">Certifications</h2>
+      <p class="section-sub">What I've earned and what I'm working on</p>
     </div>
-
-    <div class="stats-grid fu">
-      
-      <div class="stat-card">
-        <h3 class="stat-num">30+</h3>
-        <p class="stat-label">Incident reports delivered</p>
-      </div>
-
-      <div class="stat-card">
-        <h3 class="stat-num">20+</h3>
-        <p class="stat-label">Detection rules created</p>
-      </div>
-
-      <div class="stat-card">
-        <h3 class="stat-num">Automation</h3>
-        <p class="stat-label">Reduced manual SOC effort</p>
-      </div>
-
-      <div class="stat-card">
-        <h3 class="stat-num">Multi-source</h3>
-        <p class="stat-label">Log integration & correlation</p>
-      </div>
-
+    <div class="certs-prev-grid fu" id="certs-preview"></div>
+    <div class="fu" style="text-align:center;margin-top:32px">
+      <a href="certifications/index.html" class="btn btn-sec">View all certifications</a>
     </div>
   </div>
 </section>
 
-<!-- ABOUT (SIMPLIFIED) -->
-<section class="section bg-alt" id="about">
-  <div class="container">
-    <div class="section-header fu">
-      <h2 class="section-h2">About Me</h2>
-    </div>
-
-    <div class="about-content fu">
-      <p>
-        I'm a SOC Analyst with hands-on experience in detection engineering, threat hunting, and SIEM operations.  
-        I've worked on building detection pipelines, analyzing security events, and automating SOC workflows using tools like Wazuh, SentinelOne, and N8N.
-      </p>
-      <p>
-        My focus is on improving detection quality and reducing response time through better engineering and automation.
-      </p>
-    </div>
-  </div>
-</section>
-
-<!-- CASE STUDIES & LEARNINGS -->
-<section class="section" id="blog">
-  <div class="container">
-    <div class="section-header fu">
-      <h2 class="section-h2">Case Studies & Learnings</h2>
-      <p class="section-sub">Technical deep-dives and learning notes</p>
-    </div>
-
-    <div id="blog-grid" class="blog-grid fu"></div>
-  </div>
-</section>
-
-<!-- SKILLS (KEEP COMPACT) -->
-<section class="section bg-alt" id="skills">
-  <div class="container">
-    <div class="section-header fu">
-      <h2 class="section-h2">Skills & Tools</h2>
-    </div>
-    <div id="tools-grid" class="tools-grid fu"></div>
-  </div>
-</section>
-
-<!-- CONTACT (NEW CTA) -->
-<section class="section" id="contact">
+<!-- CONTACT (IMPROVED) -->
+<section class="section" style="background:var(--bg2)" id="contact">
   <div class="container">
     <div class="section-header fu">
       <h2 class="section-h2">Let's Connect</h2>
       <p class="section-sub">Open to discussing security, detection engineering, and automation projects</p>
     </div>
-
     <div class="contact-grid fu">
       <a href="mailto:nitishsom123@gmail.com" class="contact-card">
         <div class="contact-icon">✉</div>
-        <div>Email</div>
+        <div class="contact-label">Email</div>
+        <div class="contact-hint">nitishsom123@gmail.com</div>
       </a>
       <a href="https://www.linkedin.com/in/nitishsom/" target="_blank" class="contact-card">
         <div class="contact-icon">in</div>
-        <div>LinkedIn</div>
+        <div class="contact-label">LinkedIn</div>
+        <div class="contact-hint">/in/nitishsom</div>
       </a>
       <a href="https://github.com/SomNitish" target="_blank" class="contact-card">
         <div class="contact-icon">gh</div>
-        <div>GitHub</div>
+        <div class="contact-label">GitHub</div>
+        <div class="contact-hint">/SomNitish</div>
       </a>
     </div>
   </div>
@@ -253,10 +408,10 @@
       <div class="footer-copy">© 2025 · Built with focus on detection engineering</div>
     </div>
     <div class="footer-links">
-      <a href="blog/index.html">Case Studies</a>
-      <a href="roadmap.html">Learning Path</a>
+      <a href="topics/index.html">Topics</a>
+      <a href="roadmap.html">Roadmap</a>
       <a href="sitemap.html">Sitemap</a>
-      <a href="knowledge-graph.html">Knowledge Graph</a>
+      <a href="knowledge-graph.html">Knowledge graph</a>
     </div>
     <div class="footer-tz">IST · UTC+5:30</div>
   </div>
@@ -265,133 +420,122 @@
 <script src="assets/data.js"></script>
 <script src="assets/cmdk.js"></script>
 <script>
-// Availability badge - keep hidden for now (will enable when ready for job switch)
-// if(P.showAvailBadge)document.getElementById('avail-badge').style.display='flex';
+// Availability badge
+if(P.showAvailBadge)document.getElementById('avail-badge').style.display='flex';
 
-// Load featured blog posts
-const featuredPosts = P.posts.slice(0, 3);
-const blogGrid = document.getElementById('blog-grid');
-
-if (featuredPosts.length > 0) {
-  blogGrid.innerHTML = featuredPosts.map(post => {
-    const catColor = post.catColor || 'gray';
-    return `
-      <a href="blog/${post.id}.html" class="blog-card">
-        <div class="blog-meta">
-          <span class="blog-cat blog-cat-${catColor}">${post.cat}</span>
-          <span class="blog-date">${post.date}</span>
+// Timeline
+document.getElementById('timeline').innerHTML=`
+  <div class="tl-item">
+    <div class="tl-left"><div class="tl-node"></div><div class="tl-line"></div></div>
+    <div class="tl-right"><div class="tl-card">
+      <div class="tl-head"><div><div class="tl-role">SOC Analyst · Security Engineer</div><div class="tl-co">Emarson India</div></div><span class="tl-current">Current</span></div>
+      <div class="tl-groups">
+        <div><div class="tl-group-head">Detection & Response</div>
+          <div class="tl-bullet">Built 20+ custom correlation rules for Wazuh SIEM</div>
+          <div class="tl-bullet">Automated alert triage using N8N + JIRA integration</div>
+          <div class="tl-bullet">Delivered 30+ incident reports for critical security events</div>
         </div>
-        <h3 class="blog-title">${post.title}</h3>
-        <p class="blog-summary">${post.summary}</p>
-        <div class="blog-footer">
-          <span class="blog-read">${post.readMins} min read</span>
-          ${post.featured ? '<span class="blog-featured">★ Featured</span>' : ''}
+        <div><div class="tl-group-head blue">Tools & Integrations</div>
+          <div class="tl-bullet">Wazuh SIEM · SentinelOne · N8N · TheHive · Suricata</div>
         </div>
-      </a>
-    `;
-  }).join('');
-}
+      </div>
+      <div class="compliance-row">
+        <span class="tag">PCI DSS</span><span class="tag">NIST RMF</span><span class="tag">ISO 27001</span>
+      </div>
+    </div></div>
+  </div>`;
 
-// Load top tools
-const topTools = P.tools.filter(t => t.lvl >= 75).slice(0, 8);
-const toolsGrid = document.getElementById('tools-grid');
+// Stack (NO PERCENTAGES)
+const stackCats=[
+  {label:'EDR · Endpoint security',ids:['sentinelone','cortex-xdr']},
+  {label:'SIEM · XDR · Log analysis',ids:['wazuh','splunk','elastic']},
+  {label:'SOAR · Automation',ids:['n8n','thehive','jira']},
+  {label:'Network · NDR · IDS',ids:['suricata','fortinet']},
+  {label:'Scripting',ids:['python','bash','powershell']},
+  {label:'Frameworks · Compliance',ids:['mitre','nist','pcidss','iso27001']},
+  {label:'Cloud · Platform',ids:['docker','ms365']},
+];
+const toolById=id=>P.tools.find(t=>t.id===id);
+const stackGrid=document.getElementById('stack-grid');
+stackCats.forEach(cat=>{
+  const tools=cat.ids.map(toolById).filter(Boolean);
+  if(!tools.length)return;
+  const div=document.createElement('div');
+  div.innerHTML=`<div class="stack-cat-label">${cat.label}</div>
+    <div class="stack-items">${tools.map(t=>`
+      <div class="stack-item">
+        <div class="stack-icon">
+          ${t.icon?`<img src="assets/icons/${t.icon}" alt="${t.name}" onerror="this.parentNode.innerHTML='<span style=font-size:11px;font-weight:700;color:var(--text2)>${t.name.slice(0,2)}</span>'">`:`<span style="font-size:11px;font-weight:700;color:var(--text2)">${t.name.slice(0,2)}</span>`}
+        </div>
+        ${t.name}
+      </div>`).join('')}
+    </div>`;
+  stackGrid.appendChild(div);
+});
 
-if (topTools.length > 0) {
-  toolsGrid.innerHTML = topTools.map(tool => `
-    <div class="tool-card">
-      <div class="tool-name">${tool.name}</div>
-      <div class="tool-cat">${tool.cat}</div>
-      <div class="tool-level">${tool.lvl}%</div>
+// Projects
+document.getElementById('projects-list').innerHTML=P.projects.map(p=>`
+  <div class="proj-card">
+    <div>
+      <div class="proj-icon">${p.emoji||'🔧'}</div>
+      <div class="proj-name">${p.name}</div>
+      <div class="proj-desc">${p.desc}</div>
+      <div class="proj-tags">${(p.tags||[]).map(t=>`<span class="proj-tag">${t}</span>`).join('')}</div>
+      ${p.impact?`<div class="impact-chip">✓ ${p.impact}</div>`:''}
     </div>
-  `).join('');
-}
+    <div class="proj-links">
+      ${p.github?`<a href="${p.github}" target="_blank" class="proj-link">GitHub →</a>`:''}
+      ${p.blog?`<a href="${p.blog}" class="proj-link">Write-up</a>`:''}
+    </div>
+  </div>`).join('');
+
+// Certs
+document.getElementById('certs-preview').innerHTML=P.certs.slice(0,6).map(c=>`
+  <a class="cert-card-preview" href="certifications/${c.id}.html">
+    <div class="cert-card-top">
+      <div class="cert-logo-wrap">
+        <img src="${c.icon}" alt="${c.issuer}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+        <div class="cert-logo-fb" style="display:none">${c.badge||c.issuer.slice(0,2)}</div>
+      </div>
+      <span class="cert-status-p ${c.status==='active'?'cs-active':'cs-progress'}">${c.status==='active'?'Active':(c.progress||0)+'%'}</span>
+    </div>
+    <div>
+      <div class="cert-name-preview">${c.name}</div>
+      <div class="cert-issuer-preview">${c.issuer} · ${c.year||'TBD'}</div>
+    </div>
+    <div class="cert-view">View what I learned →</div>
+  </a>`).join('');
+
+// Blog
+const catBg={green:'linear-gradient(135deg,#F0FDF4,#DCFCE7)',blue:'linear-gradient(135deg,#EFF6FF,#DBEAFE)',purple:'linear-gradient(135deg,#F5F3FF,#EDE9FE)',amber:'linear-gradient(135deg,#FFFBEB,#FEF3C7)',teal:'linear-gradient(135deg,#F0FDFA,#CCFBF1)'};
+const catTxt={green:'#14532D',blue:'#1D4ED8',purple:'#5B21B6',amber:'#92400E',teal:'#115E59'};
+document.getElementById('blog-preview-grid').innerHTML=P.posts.slice(0,3).map(post=>`
+  <a class="blog-card-p" href="blog/${post.id}.html">
+    <div class="blog-thumb-p" style="background:${catBg[post.catColor]||catBg.green}">
+      <span class="blog-cat-tag" style="color:${catTxt[post.catColor]||'#475569'}">${post.cat}</span>
+    </div>
+    <div class="blog-body-p">
+      <div class="blog-title-p">${post.title}</div>
+      <div class="blog-summary-p">${post.summary}</div>
+    </div>
+    <div class="blog-footer-p">
+      <span class="blog-date-p">${new Date(post.date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})} · ${post.readMins} min</span>
+      <span class="blog-read-p">Read →</span>
+    </div>
+  </a>`).join('');
+
+// Nav highlighting
+const secs=document.querySelectorAll('section[id]');
+const nls=document.querySelectorAll('.nav-links a');
+const nObs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{if(e.isIntersecting){nls.forEach(a=>a.classList.remove('act'));const a=document.querySelector(`.nav-links a[href="#${e.target.id}"]`);if(a)a.classList.add('act');}});
+},{rootMargin:'-50% 0px -50% 0px'});
+secs.forEach(s=>nObs.observe(s));
 
 // Fade-up animations
 const fObs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('vis');fObs.unobserve(e.target);}});},{threshold:.08});
 document.querySelectorAll('.fu').forEach(el=>fObs.observe(el));
 </script>
-
-<style>
-/* Hero enhancements */
-.hero{padding:120px 0 80px;text-align:center}
-.hero-name{font-size:clamp(40px,6vw,64px);font-weight:800;letter-spacing:-.04em;margin-bottom:12px}
-.hero-role{font-size:20px;font-weight:500;color:var(--text2);margin-bottom:20px}
-.hero-p{font-size:17px;font-weight:300;color:var(--text2);line-height:1.8;max-width:680px;margin:0 auto 24px}
-.hero-focus{font-size:15px;color:var(--text3);max-width:600px;margin:0 auto 32px;padding:16px;background:var(--bg2);border-radius:var(--rs);border:1px solid var(--border)}
-.hero-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
-.btn-primary{padding:12px 32px;background:var(--green);color:#fff;border-radius:var(--rp);font-weight:600;text-decoration:none;transition:all .2s;border:2px solid var(--green)}
-.btn-primary:hover{background:transparent;color:var(--green)}
-.btn-secondary{padding:12px 32px;background:transparent;color:var(--text);border:2px solid var(--border);border-radius:var(--rp);font-weight:600;text-decoration:none;transition:all .2s}
-.btn-secondary:hover{border-color:var(--text);background:var(--text);color:var(--bg)}
-
-/* Projects grid */
-.projects-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:24px;margin-top:40px}
-.project-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:28px;transition:all .3s;box-shadow:var(--sh)}
-.project-card:hover{border-color:var(--green-b);transform:translateY(-4px);box-shadow:0 12px 32px rgba(0,0,0,.15)}
-.project-card.featured{border-color:var(--green-b);background:var(--green-l)}
-.project-icon{font-size:40px;margin-bottom:16px}
-.project-title{font-size:20px;font-weight:700;color:var(--text);margin-bottom:12px;letter-spacing:-.02em}
-.project-desc{font-size:15px;font-weight:300;color:var(--text2);line-height:1.7;margin-bottom:16px}
-.project-impact{font-size:14px;color:var(--text2);background:var(--bg2);padding:12px;border-left:3px solid var(--green);border-radius:var(--rs);margin-bottom:16px}
-.project-tech{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
-.tech-tag{font-family:var(--mono);font-size:11px;background:var(--bg2);color:var(--text3);border:1px solid var(--border);padding:4px 10px;border-radius:var(--rp)}
-.project-link{font-size:14px;font-weight:600;color:var(--green);text-decoration:none;display:inline-flex;align-items:center;gap:4px;transition:all .2s}
-.project-link:hover{gap:8px}
-
-/* Capabilities */
-.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px;margin-top:40px}
-.capability-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:24px;transition:all .2s}
-.capability-card:hover{border-color:var(--border2)}
-.capability-icon{font-size:32px;margin-bottom:12px}
-.capability-card h3{font-size:18px;font-weight:700;color:var(--text);margin-bottom:10px}
-.capability-card p{font-size:14px;font-weight:300;color:var(--text2);line-height:1.7}
-
-/* Stats */
-.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:24px;margin-top:40px}
-.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:32px;text-align:center;transition:all .2s}
-.stat-card:hover{border-color:var(--green-b);transform:translateY(-2px)}
-.stat-num{font-size:36px;font-weight:800;color:var(--green);margin-bottom:8px}
-.stat-label{font-size:14px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.05em}
-
-/* About */
-.about-content{max-width:680px}
-.about-content p{font-size:16px;font-weight:300;color:var(--text2);line-height:1.8;margin-bottom:18px}
-
-/* Blog cards */
-.blog-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:24px;margin-top:40px}
-.blog-card{display:block;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:24px;text-decoration:none;transition:all .2s;box-shadow:var(--sh)}
-.blog-card:hover{border-color:var(--border2);transform:translateY(-2px)}
-.blog-meta{display:flex;align-items:center;gap:10px;margin-bottom:12px}
-.blog-cat{font-size:10px;font-weight:700;padding:4px 10px;border-radius:var(--rp);text-transform:uppercase;letter-spacing:.05em;border:1px solid}
-.blog-cat-green{background:var(--green-l);color:var(--green-t);border-color:var(--green-b)}
-.blog-date{font-family:var(--mono);font-size:11px;color:var(--text3)}
-.blog-title{font-size:18px;font-weight:700;color:var(--text);margin-bottom:10px;line-height:1.3}
-.blog-summary{font-size:14px;font-weight:300;color:var(--text2);line-height:1.6;margin-bottom:16px}
-.blog-footer{display:flex;align-items:center;gap:12px}
-.blog-read{font-family:var(--mono);font-size:11px;color:var(--text3)}
-.blog-featured{font-size:11px;font-weight:600;color:var(--green-t);background:var(--green-l);border:1px solid var(--green-b);padding:3px 8px;border-radius:var(--rp)}
-
-/* Tools */
-.tools-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:16px;margin-top:40px}
-.tool-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:16px;text-align:center;transition:all .2s}
-.tool-card:hover{border-color:var(--border2)}
-.tool-name{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px}
-.tool-cat{font-size:11px;color:var(--text3);margin-bottom:8px}
-.tool-level{font-family:var(--mono);font-size:12px;color:var(--green);font-weight:700}
-
-/* Contact */
-.contact-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;margin-top:40px;max-width:800px;margin-left:auto;margin-right:auto}
-.contact-card{display:flex;flex-direction:column;align-items:center;gap:12px;padding:32px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);text-decoration:none;color:var(--text2);transition:all .2s;font-weight:600}
-.contact-card:hover{border-color:var(--green-b);color:var(--green);transform:translateY(-2px)}
-.contact-icon{font-size:32px}
-
-/* Section utilities */
-.bg-alt{background:var(--bg2)}
-.section{padding:80px 0}
-.section-header{text-align:center;margin-bottom:48px}
-.section-h2{font-size:32px;font-weight:800;color:var(--text);letter-spacing:-.03em;margin-bottom:12px}
-.section-sub{font-size:16px;font-weight:300;color:var(--text3);max-width:600px;margin:0 auto}
-</style>
 
 </body>
 </html>
