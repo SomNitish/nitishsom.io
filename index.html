@@ -98,6 +98,11 @@
 .tl-bullet::before{content:'';position:absolute;left:0;top:9px;width:4px;height:4px;border-radius:50%;background:var(--border2)}
 .compliance-row{display:flex;gap:7px;flex-wrap:wrap;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}
 .impact-chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--green-t);background:var(--green-l);border:1px solid var(--green-b);padding:5px 10px;border-radius:var(--rs);margin-top:8px}
+.badge{font-size:11px;font-weight:600;padding:5px 12px;border-radius:var(--rp);border:1px solid}
+.badge-teal{background:var(--teal-l);color:var(--teal-t);border-color:var(--teal-b)}
+.badge-green{background:var(--green-l);color:var(--green-t);border-color:var(--green-b)}
+.badge-blue{background:var(--blue-l);color:var(--blue-t);border-color:var(--blue-b)}
+.badge-purple{background:var(--purple-l);color:var(--purple-t);border-color:var(--purple-b)}
 
 /* ── STACK ── */
 .stack-grid{display:flex;flex-direction:column;gap:24px}
@@ -332,73 +337,98 @@
   </div>
 </section>
 
-<!-- TIMELINE (EXPERIENCE) - CORRECT INNSPARK EXPERIENCE -->
+<!-- TIMELINE (EXPERIENCE) -->
 <section class="section" id="experience">
-  <div class="container">
-    <div class="section-header fu">
-      <h2 class="section-h2">Where I've worked</h2>
-      <p class="section-sub">2+ years in security operations and detection engineering</p>
-    </div>
-    <div class="timeline fu">
+  <div class="container fu">
+    <h2 class="section-h2">Where I've worked</h2>
+    <p class="section-sub">2+ years securing enterprise environments</p>
+    <div class="timeline">
       
-      <!-- Innspark Solutions (Current) - CORRECT DETAILS -->
+      <!-- Emarson Infotech (Current) -->
       <div class="tl-item">
         <div class="tl-left"><div class="tl-node"></div><div class="tl-line"></div></div>
+        <div class="tl-right"><div class="tl-card">
+          <div class="tl-head">
+            <div>
+              <div class="tl-role">Security Analyst & Security Engineer</div>
+              <div class="tl-co">Emarson Infotech · Full-time</div>
+            </div>
+            <div class="tl-current">Aug 2025 — Present</div>
+          </div>
+          <div class="tl-groups">
+            <div>
+              <div class="tl-group-head">Automation engineering</div>
+              <div class="tl-bullet">Built cyber news automation — daily news collection, IOC extraction, SIEM validation, automated alerts</div>
+              <div class="tl-bullet">Deployed JIRA + Wazuh + N8N integration — auto-ticket creation, assignment, SOC + client notification</div>
+              <div class="tl-bullet">Built phishing analysis automation with scoring system</div>
+              <div class="impact-chip">↓ MTTR significantly reduced</div>
+            </div>
+            <div>
+              <div class="tl-group-head blue">Client reporting module</div>
+              <div class="tl-bullet">Built N8N reporting pipeline — hourly, daily, weekly, monthly reports with trend analysis</div>
+            </div>
+            <div>
+              <div class="tl-group-head">Detection engineering</div>
+              <div class="tl-bullet">Integrated Wazuh with Suricata, SentinelOne, N8N, Docker, MS 365</div>
+              <div class="tl-bullet">Created correlation rules, fine-tuned for noise reduction</div>
+              <div class="tl-bullet">Built dashboards, implemented active response and anomaly detection</div>
+            </div>
+            <div>
+              <div class="tl-group-head blue">SOC operations</div>
+              <div class="tl-bullet">Full-cycle SOC — detect, analyse, report, remediate solo</div>
+              <div class="tl-bullet">Weekly threat hunting with structured reports</div>
+              <div class="tl-bullet">Multiple malware analyses and end-to-end IR cases</div>
+            </div>
+            <div>
+              <div class="tl-group-head">Process & DevOps</div>
+              <div class="tl-bullet">Created SOPs with detailed documentation</div>
+              <div class="tl-bullet">Implemented Git version control for SOAR flows</div>
+              <div class="tl-bullet">Guided junior analysts on communication and response</div>
+            </div>
+          </div>
+          <div class="compliance-row">
+            <span class="badge badge-teal">SOAR automation</span>
+            <span class="badge badge-green">Detection engineering</span>
+            <span class="badge badge-blue">Client reporting</span>
+            <span class="badge badge-purple">Malware analysis</span>
+          </div>
+        </div></div>
+      </div>
+
+      <!-- Innspark Solutions (Previous) -->
+      <div class="tl-item">
+        <div class="tl-left"><div class="tl-node"></div></div>
         <div class="tl-right"><div class="tl-card">
           <div class="tl-head">
             <div>
               <div class="tl-role">SOC Analyst</div>
               <div class="tl-co">Innspark Solutions · Delhi</div>
             </div>
-            <span class="tl-current">Current</span>
+            <div class="tl-period">Jul 2024 — Jul 2025</div>
           </div>
           <div class="tl-groups">
             <div>
-              <div class="tl-group-head">Detection & Threat Hunting</div>
-              <div class="tl-bullet">Monitored security alerts and incidents using SIEM solution</div>
-              <div class="tl-bullet">Assessed and triaged security alerts, adhering to incident response protocols for effective threat categorization and documentation</div>
-              <div class="tl-bullet">Conducted in-depth analysis of network flows and logs, identifying network anomalies using NDR solution</div>
-              <div class="tl-bullet">Submitted 30+ detailed threat hunting and incident response reports, clearly communicating findings, impact scope, and remediation steps to clients and stakeholders</div>
-              <div class="tl-bullet">Developed and implemented correlation rules based on client-provided detection use cases to enhance threat detection</div>
-              <div class="tl-bullet">Analyzed various log formats to design tailored correlation rules aligned with specific security requirements</div>
+              <div class="tl-group-head blue">Detection & monitoring</div>
+              <div class="tl-bullet">SIEM monitoring with full IR protocol adherence</div>
+              <div class="tl-bullet">Custom correlation rules from raw log analysis</div>
+              <div class="tl-bullet">ISP-scale NDR analysis for APT behaviour detection</div>
             </div>
             <div>
-              <div class="tl-group-head blue">Training & Operations</div>
-              <div class="tl-bullet">Trained new employees on cybersecurity best practices and the use of internal security tools through awareness sessions and simulated phishing exercises</div>
-              <div class="tl-bullet">Designed and maintained SOPs to ensure standardization and quality in executing operational activities</div>
-              <div class="tl-bullet">Developed training materials for new analysts joining the SOC, facilitating quicker integration into active monitoring tasks with an average time savings of two weeks</div>
-              <div class="tl-bullet">Worked under critical timelines, including after-hours and weekend support, to meet urgent incident response deadlines and maintain SLA adherence</div>
+              <div class="tl-group-head blue">Threat hunting & IR</div>
+              <div class="tl-bullet">30+ detailed threat hunting and IR reports to clients</div>
+              <div class="tl-bullet">Vulnerability assessments and basic pentesting</div>
             </div>
             <div>
-              <div class="tl-group-head">Advanced Security</div>
-              <div class="tl-bullet">Worked with ISP-level traffic data to detect security breaches and APT behavior, leveraging advanced filtering and correlation capabilities of monitoring tools</div>
-              <div class="tl-bullet">Performed vulnerability assessments and basic penetration testing on web applications and network devices to identify and help fix security weaknesses</div>
+              <div class="tl-group-head blue">Training & documentation</div>
+              <div class="tl-bullet">Trained analysts — 2-week onboarding time reduction</div>
+              <div class="tl-bullet">Designed and maintained SOPs</div>
+              <div class="tl-bullet">Ran phishing exercises and awareness sessions</div>
             </div>
           </div>
           <div class="compliance-row">
-            <span class="tag">PCI DSS</span><span class="tag">NIST RMF</span><span class="tag">ISO 27001</span>
-          </div>
-        </div></div>
-      </div>
-
-      <!-- Emarson India (Previous) -->
-      <div class="tl-item">
-        <div class="tl-left"><div class="tl-node"></div></div>
-        <div class="tl-right"><div class="tl-card">
-          <div class="tl-head">
-            <div>
-              <div class="tl-role">SOC Analyst · Security Engineer</div>
-              <div class="tl-co">Emarson India</div>
-            </div>
-            <span class="tl-period">2022 - 2024</span>
-          </div>
-          <div class="tl-groups">
-            <div>
-              <div class="tl-group-head">SIEM & Automation</div>
-              <div class="tl-bullet">Built 20+ custom correlation rules for Wazuh SIEM</div>
-              <div class="tl-bullet">Automated alert triage using N8N + JIRA integration</div>
-              <div class="tl-bullet">Deployed multi-source log integration across enterprise tools</div>
-            </div>
+            <span class="badge badge-green">PCI DSS</span>
+            <span class="badge badge-blue">NIST RMF</span>
+            <span class="badge badge-purple">ISO 27001</span>
           </div>
         </div></div>
       </div>
