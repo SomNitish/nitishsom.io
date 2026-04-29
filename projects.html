@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<base href="/nitishsom.io/">
+<title>Projects — Nitish Som</title>
+<meta name="description" content="SOC automation, detection engineering, and SIEM projects by Nitish Som">
+<link rel="stylesheet" href="assets/shared.css">
+<style>
+.page-hero{padding:80px 0 48px;border-bottom:1px solid var(--border)}
+.proj-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:24px;margin-top:40px}
+.proj-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:28px;box-shadow:var(--sh);transition:all .2s;display:flex;flex-direction:column;gap:18px}
+.proj-card:hover{box-shadow:var(--sh-md);transform:translateY(-2px);border-color:var(--green-b)}
+.proj-icon{font-size:40px;margin-bottom:6px}
+.proj-name{font-size:19px;font-weight:700;color:var(--text);letter-spacing:-.02em;margin-bottom:8px}
+.proj-tagline{font-size:13px;font-weight:600;color:var(--green);margin-bottom:6px}
+.proj-desc{font-size:14px;font-weight:300;color:var(--text2);line-height:1.7;margin-bottom:10px}
+.proj-impact{font-size:13px;color:var(--text2);background:var(--green-l);border-left:3px solid var(--green);padding:12px;border-radius:var(--rs);margin-bottom:10px}
+.proj-impact strong{color:var(--green-t);font-weight:600}
+.proj-tags{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px}
+.proj-tag{font-family:var(--mono);font-size:10px;background:var(--bg2);color:var(--text3);border:1px solid var(--border);padding:4px 10px;border-radius:var(--rp)}
+.proj-links{display:flex;gap:10px;margin-top:auto;padding-top:14px;border-top:1px solid var(--border)}
+.proj-link{font-size:13px;font-weight:600;color:var(--green);text-decoration:none;transition:all .2s;display:inline-flex;align-items:center;gap:4px}
+.proj-link:hover{gap:7px}
+.fu{opacity:0;transform:translateY(32px);transition:all .7s cubic-bezier(.16,1,.3,1)}
+.fu.vis{opacity:1;transform:translateY(0)}
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <div class="container nav-inner">
+    <a href="index.html" class="nav-logo"><span class="nav-logo-dot"></span>Nitish <em>Som</em></a>
+    <div class="nav-links">
+      <a href="index.html#about">About</a>
+      <a href="index.html#experience">Experience</a>
+      <a href="projects.html" class="act">Projects</a>
+      <a href="index.html#blog">Blog</a>
+      <a href="certifications/index.html">Certs</a>
+      <a href="index.html#contact">Contact</a>
+    </div>
+    <div class="nav-right">
+      <button class="cmdk-btn"><span>Search</span><kbd>⌘K</kbd></button>
+      <div id="avail-badge"><span class="pulse"></span>Available for collaboration</div>
+    </div>
+  </div>
+</nav>
+
+<div class="page-hero">
+  <div class="container">
+    <div style="font-family:var(--mono);font-size:11px;color:var(--green-t);background:var(--green-l);border:1px solid var(--green-b);padding:5px 12px;border-radius:var(--rp);display:inline-block;margin-bottom:18px;letter-spacing:.04em;text-transform:uppercase">Projects</div>
+    <h1 style="font-size:clamp(32px,5vw,52px);font-weight:800;letter-spacing:-.04em;line-height:1.08;margin-bottom:14px">All Projects</h1>
+    <p style="font-size:15px;font-weight:300;color:var(--text2);line-height:1.7;max-width:560px">Real-world SOC automation, detection engineering, and SIEM projects focused on reducing alert fatigue and improving incident response.</p>
+  </div>
+</div>
+
+<div class="container" style="padding:60px 0 80px">
+  <div class="proj-list fu" id="all-projects"></div>
+</div>
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <div class="footer-left">
+      <div class="footer-logo">Nitish <em>Som</em></div>
+      <div class="footer-copy">© 2025 · Built with focus on detection engineering</div>
+    </div>
+    <div class="footer-links">
+      <a href="topics/index.html">Topics</a>
+      <a href="roadmap.html">Roadmap</a>
+      <a href="sitemap.html">Sitemap</a>
+      <a href="knowledge-graph.html">Knowledge graph</a>
+    </div>
+    <div class="footer-tz">IST · UTC+5:30</div>
+  </div>
+</footer>
+
+<script src="assets/data.js"></script>
+<script src="assets/cmdk.js"></script>
+<script>
+if(P.showAvailBadge)document.getElementById('avail-badge').style.display='flex';
+
+document.getElementById('all-projects').innerHTML=P.projects.map(p=>`
+  <div class="proj-card">
+    <div>
+      <div class="proj-icon">${p.emoji||'🔧'}</div>
+      <div class="proj-name">${p.name}</div>
+      ${p.tagline?`<div class="proj-tagline">${p.tagline}</div>`:''}
+      <div class="proj-desc">${p.desc}</div>
+      ${p.impact?`<div class="proj-impact"><strong>Impact:</strong> ${p.impact}</div>`:''}
+      <div class="proj-tags">${(p.tags||[]).map(t=>`<span class="proj-tag">${t}</span>`).join('')}</div>
+    </div>
+    <div class="proj-links">
+      ${p.github?`<a href="${p.github}" target="_blank" class="proj-link">GitHub →</a>`:''}
+      ${p.blog?`<a href="${p.blog}" class="proj-link">Write-up →</a>`:''}
+    </div>
+  </div>`).join('');
+
+const fObs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('vis');fObs.unobserve(e.target);}});},{threshold:.08});
+document.querySelectorAll('.fu').forEach(el=>fObs.observe(el));
+</script>
+
+</body>
+</html>
