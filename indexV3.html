@@ -105,32 +105,27 @@
 .stack-icon img{width:22px;height:22px;object-fit:contain}
 .stack-name{font-size:13px;font-weight:500;color:var(--text);flex:1}
 .stack-level{font-family:var(--mono);font-size:10px;color:var(--text3);padding:3px 8px;background:var(--surface);border:1px solid var(--border);border-radius:var(--rxs)} */
-/* ── STACK (OPTION 3 - GROUPED BOXES) ── */
-.stack-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
-.stack-cat{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:22px;box-shadow:var(--sh);transition:all .2s}
-.stack-cat:hover{box-shadow:var(--sh-md);transform:translateY(-2px)}
-.stack-cat-label{font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text);text-transform:uppercase;letter-spacing:.1em;margin-bottom:16px;display:flex;align-items:center;gap:8px}
-.stack-cat-icon{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0}
-.stack-items{display:flex;flex-wrap:wrap;gap:7px}
-.stack-item{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--rs);font-size:12px;font-weight:500;color:var(--text2);transition:all .15s}
-.stack-item:hover{background:var(--surface);border-color:var(--border2);color:var(--text)}
-.stack-icon{width:20px;height:20px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;background:var(--surface);border:1px solid var(--border);overflow:hidden}
-.stack-icon img{width:16px;height:16px;object-fit:contain}
-/* ── PROJECTS (OPTION 3 - CARD GRID) ── */
-.projects-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
-.proj-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:24px;box-shadow:var(--sh);transition:all .2s;display:flex;flex-direction:column;gap:16px}
-.proj-card:hover{box-shadow:var(--sh-md);transform:translateY(-3px);border-color:var(--border2)}
-.proj-icon{width:48px;height:48px;border-radius:12px;background:var(--bg2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;margin-bottom:4px}
-.proj-name{font-size:16px;font-weight:700;color:var(--text);letter-spacing:-.02em;margin-bottom:6px}
-.proj-desc{font-size:13px;font-weight:300;color:var(--text2);line-height:1.7;flex:1}
-.proj-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
-.proj-tag{font-size:10px;font-weight:600;padding:4px 10px;border-radius:var(--rp);background:var(--bg2);color:var(--text3);border:1px solid var(--border)}
-.proj-impact{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--rs);font-size:12px;font-weight:600;margin-top:8px}
-.proj-impact-icon{font-size:16px}
-.proj-impact-text{color:var(--text2)}
-.proj-links{display:flex;gap:8px;padding-top:14px;border-top:1px solid var(--border);margin-top:auto}
-.proj-link{font-size:12px;font-weight:600;color:var(--text);padding:8px 16px;border:1px solid var(--border);border-radius:var(--rp);background:var(--bg2);transition:all .15s;white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+/* ── STACK ── */
+.stack-grid{display:flex;flex-direction:column;gap:24px}
+.stack-cat-label{font-family:var(--mono);font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:12px;padding-bottom:7px;border-bottom:1px solid var(--border)}
+.stack-items{display:flex;flex-wrap:wrap;gap:8px}
+.stack-item{display:flex;align-items:center;gap:9px;background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:9px 13px;font-size:13px;font-weight:500;color:var(--text2);transition:all .15s;box-shadow:var(--sh)}
+.stack-item:hover{border-color:var(--border2);color:var(--text);transform:translateY(-2px);box-shadow:var(--sh-md)}
+.stack-icon{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;background:var(--bg2);overflow:hidden}
+.stack-icon img{width:20px;height:20px;object-fit:contain}
+/* ── PROJECTS ── */
+.projects-list{display:flex;flex-direction:column;gap:14px}
+.proj-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:22px;box-shadow:var(--sh);transition:all .2s;display:grid;grid-template-columns:1fr auto;gap:16px;align-items:start}
+.proj-card:hover{box-shadow:var(--sh-md);transform:translateY(-2px);border-color:var(--border2)}
+.proj-icon{width:36px;height:36px;border-radius:9px;background:var(--bg2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;margin-bottom:8px}
+.proj-name{font-size:15px;font-weight:700;color:var(--text);letter-spacing:-.02em;margin-bottom:4px}
+.proj-desc{font-size:13px;font-weight:300;color:var(--text2);line-height:1.6;letter-spacing:-.01em}
+.proj-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:10px}
+.proj-tag{font-size:10px;font-weight:500;padding:3px 8px;border-radius:var(--rp);background:var(--bg2);color:var(--text3);border:1px solid var(--border)}
+.proj-links{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+.proj-link{font-size:11px;font-weight:600;color:var(--text2);padding:6px 12px;border:1px solid var(--border);border-radius:var(--rp);background:var(--bg2);transition:all .15s;white-space:nowrap}
 .proj-link:hover{background:var(--text);color:var(--bg);border-color:var(--text)}
+@media(max-width:600px){.proj-card{grid-template-columns:1fr}.proj-links{align-items:flex-start;flex-direction:row}}
 /* ── TOPICS ── */
 .topics-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
 .topic-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;box-shadow:var(--sh);transition:all .2s;display:flex;flex-direction:column;gap:12px;text-decoration:none;color:inherit;position:relative;overflow:hidden}
@@ -196,7 +191,7 @@
       <a href="#about">About</a>
       <a href="#experience">Experience</a>
       <a href="topics/index.html">Stack</a>
-      <a href="projects.html">Projects</a>
+      <a href="/projects.html">Projects</a>
       <a href="certifications/index.html">Certs</a>
       <a href="blog/index.html">Blog</a>
       <a href="roadmap.html">Roadmap</a>
@@ -613,6 +608,13 @@ document.getElementById('topics-grid').innerHTML=P.topics.slice(0,6).map(t=>`
         <div class="topic-tagline">${t.tagline}</div>
       </div>
     </div>
+    <div class="topic-meta">
+      <span class="topic-status ${t.status==='active'?'ts-active':'ts-planned'}">${t.status==='active'?'Active':'Planned'}</span>
+      <div class="topic-progress">
+        <span>${t.progress}%</span>
+        <div class="tp-bar"><div class="tp-fill" style="width:${t.progress}%;background:${colorMap[t.color]}"></div></div>
+      </div>
+    </div>
   </a>`).join('');
 // const stackCats=[
 //   {label:'EDR · Endpoint security',ids:['sentinelone','cortex-xdr']},
@@ -673,13 +675,13 @@ document.getElementById('topics-grid').innerHTML=P.topics.slice(0,6).map(t=>`
 //   stackGrid.appendChild(div);
 // });
 const stackCats=[
-  {label:'EDR',icon:'🛡',color:'blue',ids:['sentinelone','cortex-xdr']},
-  {label:'SIEM / XDR / LOG',icon:'📊',color:'purple',ids:['wazuh','splunk','elastic']},
-  {label:'SOAR / AUTOMATION',icon:'⚡',color:'green',ids:['n8n','thehive','jira']},
-  {label:'NETWORK / NDR / IDS',icon:'🌐',color:'amber',ids:['suricata','fortinet']},
-  {label:'SCRIPTING / LEARNING',icon:'💻',color:'teal',ids:['python','bash','powershell']},
-  {label:'FRAMEWORKS / COMPLIANCE',icon:'📋',color:'pink',ids:['mitre','nist','pcidss','iso27001']},
-  {label:'CLOUD / PLATFORM',icon:'☁',color:'blue',ids:['docker','ms365']},
+  {label:'EDR · Endpoint security',ids:['sentinelone','cortex-xdr']},
+  {label:'SIEM · XDR · Log analysis',ids:['wazuh','splunk','elastic']},
+  {label:'SOAR · Automation',ids:['n8n','thehive','jira']},
+  {label:'Network · NDR · IDS',ids:['suricata','fortinet']},
+  {label:'Scripting · Learning',ids:['python','bash','powershell']},
+  {label:'Frameworks · Compliance',ids:['mitre','nist','pcidss','iso27001']},
+  {label:'Cloud · Platform',ids:['docker','ms365']},
 ];
 const toolById=id=>P.tools.find(t=>t.id===id);
 const stackGrid=document.getElementById('stack-grid');
@@ -687,31 +689,30 @@ stackCats.forEach(cat=>{
   const tools=cat.ids.map(toolById).filter(Boolean);
   if(!tools.length)return;
   const div=document.createElement('div');
-  div.className='stack-cat';
-  div.style.borderTop=`3px solid var(--${cat.color})`;
-  div.innerHTML=`<div class="stack-cat-label" style="color:var(--${cat.color})">${cat.icon} ${cat.label}</div>
+  div.innerHTML=`<div class="stack-cat-label">${cat.label}</div>
     <div class="stack-items">${tools.map(t=>`
       <div class="stack-item">
         <div class="stack-icon">
-          ${t.icon?`<img src="assets/icons/${t.icon}" alt="${t.name}" onerror="this.parentNode.innerHTML='<span style=font-size:9px;font-weight:700;color:var(--text2)>${t.name.slice(0,2).toUpperCase()}</span>'">`:`<span style="font-size:9px;font-weight:700;color:var(--text2)">${t.name.slice(0,2).toUpperCase()}</span>`}
+          ${t.icon?`<img src="assets/icons/${t.icon}" alt="${t.name}" onerror="this.parentNode.innerHTML='<span style=font-size:11px;font-weight:700;color:var(--text2)>${t.name.slice(0,2)}</span>'">`:`<span style="font-size:11px;font-weight:700;color:var(--text2)">${t.name.slice(0,2)}</span>`}
         </div>
         ${t.name}
+        <div style="font-size:9px;color:var(--text3);font-family:var(--mono);margin-left:auto">${t.lvl>=80?'Expert':t.lvl>=65?'Advanced':t.lvl>=45?'Intermediate':'Learning'}</div>
       </div>`).join('')}
     </div>`;
   stackGrid.appendChild(div);
 });
 document.getElementById('projects-list').innerHTML=P.projects.map(p=>`
-  <div class="proj-card" style="border-top:3px solid var(--${p.color||'green'})">
-    <div class="proj-icon" style="background:var(--${p.color||'green'}-l);border-color:var(--${p.color||'green'}-b)">${p.emoji||'🔧'}</div>
+  <div class="proj-card">
     <div>
+      <div class="proj-icon">${p.emoji||'🔧'}</div>
       <div class="proj-name">${p.name}</div>
       <div class="proj-desc">${p.desc}</div>
       <div class="proj-tags">${(p.tags||[]).map(t=>`<span class="proj-tag">${t}</span>`).join('')}</div>
-      ${p.impact?`<div class="proj-impact"><span class="proj-impact-icon">✓</span><span class="proj-impact-text">${p.impact}</span></div>`:''}
+      ${p.impact?`<div class="impact-chip">✓ ${p.impact}</div>`:''}
     </div>
     <div class="proj-links">
       ${p.github?`<a href="${p.github}" target="_blank" class="proj-link">GitHub →</a>`:''}
-      ${p.blog?`<a href="${p.blog}" class="proj-link">Write-up →</a>`:''}
+      ${p.blog?`<a href="${p.blog}" class="proj-link">Write-up</a>`:''}
     </div>
   </div>`).join('');
 document.getElementById('certs-preview').innerHTML=P.certs.slice(0,6).map(c=>`
