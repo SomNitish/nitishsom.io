@@ -7,7 +7,76 @@
 <title>Linux Data Acquisition: A Forensic Analyst's Guide — Nitish Som</title>
 <meta name="description" content="Deep dive into Linux data acquisition for security operations and digital forensics - covering volatile and non-volatile data collection techniques">
 <link rel="stylesheet" href="assets/shared.css">
-<link rel="stylesheet" href="assets/blog.css">
+<style>
+/* ── BLOG POST STYLES ── */
+.blog-post{padding:80px 0 120px;min-height:100vh}
+.container.narrow{max-width:780px}
+
+/* Post Header */
+.post-header{margin-bottom:64px;padding-bottom:48px;border-bottom:1px solid var(--border)}
+.post-meta{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:24px}
+.post-cat{font-size:11px;font-weight:700;padding:5px 12px;border-radius:var(--rp);text-transform:uppercase;letter-spacing:.04em}
+.post-date,.post-read{font-family:var(--mono);font-size:12px;color:var(--text3)}
+.post-title{font-size:clamp(32px,5vw,48px);font-weight:800;letter-spacing:-.04em;line-height:1.1;color:var(--text);margin-bottom:16px}
+.post-subtitle{font-size:18px;font-weight:300;color:var(--text2);line-height:1.6;max-width:680px}
+
+/* Post Content */
+.post-content{font-size:16px;font-weight:300;color:var(--text2);line-height:1.8;letter-spacing:-.01em}
+.post-content h2{font-size:clamp(24px,3.5vw,32px);font-weight:700;color:var(--text);margin:56px 0 24px;letter-spacing:-.03em;line-height:1.2}
+.post-content h2:first-child{margin-top:0}
+.post-content h3{font-size:22px;font-weight:600;color:var(--text);margin:40px 0 16px;letter-spacing:-.02em}
+.post-content p{margin-bottom:20px;line-height:1.8}
+.post-content p strong{color:var(--text);font-weight:600}
+.post-content ul,.post-content ol{margin:24px 0;padding-left:28px}
+.post-content li{margin-bottom:12px;line-height:1.7}
+.post-content li strong{color:var(--text);font-weight:600}
+.post-content code{font-family:var(--mono);font-size:14px;background:var(--bg2);border:1px solid var(--border);padding:2px 8px;border-radius:4px;color:var(--text)}
+.post-content pre{background:var(--terminal-bg);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin:24px 0;overflow-x:auto;box-shadow:var(--sh)}
+.post-content pre code{background:none;border:none;padding:0;color:var(--terminal-text);font-size:13px;line-height:1.6}
+.post-content a{color:var(--green);text-decoration:underline;transition:opacity .15s}
+.post-content a:hover{opacity:.7}
+
+/* Highlight Box */
+.highlight-box{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--green);border-radius:var(--rs);padding:24px;margin:32px 0;box-shadow:var(--sh)}
+.highlight-box p{margin-bottom:16px}
+.highlight-box p:last-child{margin-bottom:0}
+.highlight-box strong{color:var(--green);font-weight:600}
+
+/* Warning Box */
+.warning-box{background:var(--amber-l);border:1px solid var(--amber-b);border-left:3px solid var(--amber);border-radius:var(--rs);padding:24px;margin:32px 0}
+.warning-box p{margin-bottom:0;color:var(--amber-t)}
+.warning-box strong{color:var(--amber);font-weight:700}
+
+/* Code Block */
+.code-block{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rs);padding:20px;margin:24px 0}
+.code-block p{margin-bottom:16px;font-size:15px}
+.code-block p:last-child{margin-bottom:0}
+.code-block strong{color:var(--text);font-weight:600}
+
+/* Table */
+.data-table{width:100%;border-collapse:collapse;margin:32px 0;font-size:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.data-table thead{background:var(--bg2)}
+.data-table th{padding:14px 16px;text-align:left;font-weight:600;color:var(--text);font-size:12px;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border)}
+.data-table td{padding:14px 16px;border-bottom:1px solid var(--border);line-height:1.5}
+.data-table td code{font-size:13px}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tbody tr:hover{background:var(--bg2)}
+
+/* Post Footer */
+.post-footer{margin-top:80px;padding-top:40px;border-top:1px solid var(--border)}
+.post-tags{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:32px}
+.post-tags .tag{font-size:11px;font-weight:600;padding:6px 14px;border-radius:var(--rp);border:1px solid var(--border);background:var(--surface);color:var(--text3)}
+.post-nav{display:flex;justify-content:space-between;align-items:center}
+.post-nav-link{font-size:14px;font-weight:600;color:var(--green);text-decoration:none;transition:opacity .15s}
+.post-nav-link:hover{opacity:.7}
+
+@media(max-width:768px){
+  .blog-post{padding:48px 0 80px}
+  .post-header{margin-bottom:40px;padding-bottom:32px}
+  .post-content h2{margin:40px 0 20px}
+  .post-content h3{margin:32px 0 14px}
+}
+</style>
 </head>
 <body>
 
