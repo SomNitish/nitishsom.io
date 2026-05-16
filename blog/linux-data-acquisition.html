@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<base href="/nitishsom.io/">
+<title>Linux Data Acquisition: A Forensic Analyst's Guide — Nitish Som</title>
+<meta name="description" content="Deep dive into Linux data acquisition for security operations and digital forensics - covering volatile and non-volatile data collection techniques">
+<link rel="stylesheet" href="assets/shared.css">
+<link rel="stylesheet" href="assets/blog.css">
+</head>
+<body>
+
+<nav class="site-nav">
+  <div class="container nav-inner">
+    <a href="index.html" class="nav-logo"><span class="nav-logo-dot"></span>Nitish <em>Som</em></a>
+    <div class="nav-links">
+      <a href="index.html#about">About</a>
+      <a href="index.html#experience">Experience</a>
+      <a href="projects.html">Projects</a>
+      <a href="blog/index.html">Blog</a>
+      <a href="certifications/index.html">Certs</a>
+    </div>
+    <div class="nav-right">
+      <button class="cmdk-btn"><span>Search</span><kbd>⌘K</kbd></button>
+    </div>
+  </div>
+</nav>
+
+<article class="blog-post">
+  <div class="container narrow">
+    
+    <header class="post-header">
+      <div class="post-meta">
+        <span class="post-cat" style="background:var(--purple-l);color:var(--purple-t);border:1px solid var(--purple-b)">Digital Forensics</span>
+        <span class="post-date">May 18, 2025</span>
+        <span class="post-read">12 min read</span>
+      </div>
+      <h1 class="post-title">Linux Data Acquisition: A Forensic Analyst's Guide</h1>
+      <p class="post-subtitle">Understanding volatile and non-volatile data collection techniques for incident response and digital forensics on Linux systems</p>
+    </header>
+
+    <div class="post-content">
+
+      <h2>The Wake-Up Call</h2>
+      
+      <p>It was 2 AM when the alert came through. A critical production server was exhibiting suspicious behavior — unusual network connections, unexplained CPU spikes, and processes that shouldn't be running. As I SSH'd into the system, my cursor blinking in the dark terminal, I realized something crucial: <strong>the moment I started investigating, I was destroying evidence</strong>.</p>
+
+      <p>Every command I ran, every directory I listed, every log I opened was overwriting timestamps, modifying access records, and altering the very data I needed to preserve. That night taught me a fundamental truth about incident response on Linux: <strong>data acquisition isn't just about copying files — it's about understanding what data exists, where it lives, and how to capture it without contamination</strong>.</p>
+
+      <p>While working with data collection on Linux systems over the past two years, I've realized that data acquisition is more than a technical checkbox. It's the foundation of every security investigation, system troubleshooting session, and performance analysis we conduct. Let me share what I've learned.</p>
+
+      <h2>Why Linux Data Acquisition Matters</h2>
+
+      <p>Linux data acquisition is critical for three core reasons:</p>
+
+      <div class="highlight-box">
+        <p><strong>1. Early Threat Detection</strong><br>
+        Advanced persistent threats (APTs) and sophisticated malware don't announce themselves. They hide in memory, masquerade as legitimate processes, and clean up their traces. By the time traditional monitoring catches them, the damage is done. Proper data acquisition captures the evidence while it still exists.</p>
+
+        <p><strong>2. Root Cause Analysis</strong><br>
+        System crashes and performance issues can't be diagnosed from guesswork. You need the actual state of the system — what was running, what resources were consumed, what errors were logged — at the moment the problem occurred.</p>
+
+        <p><strong>3. Legal Defensibility</strong><br>
+        In security incidents that escalate to legal proceedings, the integrity of your evidence determines whether it's admissible. Proper acquisition techniques with documented chain of custody and hash verification make the difference between evidence that holds up in court and evidence that gets dismissed.</p>
+      </div>
+
+      <h2>The Two Faces of Data: Volatile vs Non-Volatile</h2>
+
+      <p>When I first started in SOC work, I thought data collection meant copying files to an external drive. I was missing half the picture.</p>
+
+      <h3>Volatile Data: Gone in 60 Seconds</h3>
+
+      <p>Volatile data lives in RAM, CPU caches, and active system processes. The moment you power down the system, it's gone forever. This includes:</p>
+
+      <ul>
+        <li><strong>Running processes and their memory space</strong> — What was actually executing when the incident occurred</li>
+        <li><strong>Active network connections</strong> — Who was the system talking to, and what data was being transmitted</li>
+        <li><strong>Loaded kernel modules</strong> — Including potential rootkits hiding in memory</li>
+        <li><strong>Clipboard contents and encryption keys</strong> — Evidence that exists only while the system is live</li>
+      </ul>
+
+      <p><strong>The Golden Rule:</strong> Volatile data must be collected while the system is still running. You get one shot at this. Once the power goes off, it's irretrievable.</p>
+
+      <h3>Non-Volatile Data: The Persistent Evidence</h3>
+
+      <p>Non-volatile data survives power loss. It lives on hard drives, SSDs, USB devices, and other persistent storage. This includes:</p>
+
+      <ul>
+        <li><strong>File systems and user data</strong> — Documents, downloads, application files</li>
+        <li><strong>System configurations</strong> — Everything under <code>/etc/</code> that defines how the system behaves</li>
+        <li><strong>Log files</strong> — Historical records of system events and user actions</li>
+        <li><strong>Deleted files</strong> — Data marked for deletion but still recoverable from unallocated disk space</li>
+      </ul>
+
+      <p>Non-volatile data is typically collected while the system is powered down using forensic boot media. This prevents the operating system from modifying timestamps and metadata during the acquisition process.</p>
+
+      <h2>Live Data Acquisition: Collecting Evidence on a Running System</h2>
+
+      <p>Live acquisition is essential when you can't afford to power down the system — either because it's a critical production server or because you need to capture volatile data before it disappears.</p>
+
+      <h3>RAM Capture: The Memory Dump</h3>
+
+      <p>System RAM is a gold mine of forensic evidence. Here's what you can find in a memory dump:</p>
+
+      <ul>
+        <li>Decrypted encryption keys and passwords</li>
+        <li>Malware that exists only in memory (fileless malware)</li>
+        <li>Command history and user activity</li>
+        <li>Network connections and their associated processes</li>
+      </ul>
+
+      <p><strong>Two approaches to memory capture:</strong></p>
+
+      <div class="code-block">
+        <p><strong>1. Hardware-Based (Physical Memory Capture)</strong><br>
+        Creating a direct copy from memory chips using specialized hardware. Most accurate but requires physical access and specialized equipment.</p>
+
+        <p><strong>2. Software-Based (Logical Memory Capture)</strong><br>
+        Using tools like <code>memdump</code> or <code>LiME (Linux Memory Extractor)</code> to dump RAM from within the OS. Easier to deploy but may miss kernel-protected memory regions.</p>
+      </div>
+
+      <h3>Network Traffic Monitoring</h3>
+
+      <p>Capturing network activity reveals what the compromised system is communicating with:</p>
+
+      <pre><code># Capture all traffic on interface eth0
+tcpdump -i eth0 -w /evidence/network_capture.pcap
+
+# Monitor specific suspicious IP
+tcpdump -i eth0 host 192.168.1.100 -w /evidence/suspicious_host.pcap</code></pre>
+
+      <h3>Critical Configuration Files to Preserve</h3>
+
+      <p>These files contain system state and user activity that may change on reboot:</p>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>File</th>
+            <th>What It Contains</th>
+            <th>Forensic Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>/etc/passwd</code></td>
+            <td>User account list</td>
+            <td>Detect unauthorized accounts created by attackers</td>
+          </tr>
+          <tr>
+            <td><code>/etc/shadow</code></td>
+            <td>Encrypted passwords</td>
+            <td>Identify weak passwords or unauthorized changes</td>
+          </tr>
+          <tr>
+            <td><code>/etc/ssh/sshd_config</code></td>
+            <td>SSH server configuration</td>
+            <td>Find backdoor SSH keys or config changes</td>
+          </tr>
+          <tr>
+            <td><code>/var/log/auth.log</code></td>
+            <td>Authentication attempts</td>
+            <td>Track successful and failed login attempts</td>
+          </tr>
+          <tr>
+            <td><code>/var/log/syslog</code></td>
+            <td>System-wide events</td>
+            <td>Timeline of system activity</td>
+          </tr>
+          <tr>
+            <td><code>~/.bash_history</code></td>
+            <td>Command history per user</td>
+            <td>See exactly what commands the attacker ran</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Disk Imaging: Creating Forensically Sound Copies</h2>
+
+      <p>When you need to preserve an entire disk for analysis, bit-level imaging is the gold standard. This creates an exact copy of every sector on the disk — including deleted files and unallocated space.</p>
+
+      <h3>The dd Command: Simple But Powerful</h3>
+
+      <p>The <code>dd</code> command is the Swiss Army knife of disk imaging. Despite its simplicity, it's one of the most trusted tools in digital forensics.</p>
+
+      <pre><code># First, identify the disk structure
+lsblk -tf
+
+# Image an entire disk
+dd if=/dev/sda of=/evidence/disk_image.raw bs=4M
+
+# Image a single partition
+dd if=/dev/sda3 of=/evidence/partition_image.raw bs=4M
+
+# Verify the image with hash
+md5sum /dev/sda > /evidence/original_hash.txt
+md5sum /evidence/disk_image.raw > /evidence/image_hash.txt</code></pre>
+
+      <p><strong>Key Parameters:</strong></p>
+      <ul>
+        <li><code>if=</code> (input file) — The source disk/partition</li>
+        <li><code>of=</code> (output file) — The destination image file</li>
+        <li><code>bs=</code> (block size) — How much data to read/write at once (4M is optimal for modern hardware)</li>
+      </ul>
+
+      <div class="warning-box">
+        <p><strong>⚠️ Critical Warning:</strong> The <code>dd</code> command is extremely powerful and unforgiving. Get the <code>if=</code> and <code>of=</code> parameters backwards, and you'll overwrite your evidence disk with zeros. Always double-check your syntax before pressing Enter.</p>
+      </div>
+
+      <h3>dcfldd: dd with Forensic Superpowers</h3>
+
+      <p>The <code>dcfldd</code> command is an enhanced version of <code>dd</code> designed specifically for digital forensics. It adds critical features:</p>
+
+      <ul>
+        <li><strong>Real-time hashing</strong> — Calculate MD5/SHA256 during the copy process</li>
+        <li><strong>Progress indicator</strong> — See how long large copies will take</li>
+        <li><strong>Multiple outputs</strong> — Write to several destinations simultaneously</li>
+        <li><strong>Built-in verification</strong> — Confirm the copy matches the source</li>
+      </ul>
+
+      <pre><code># Image disk with hash verification
+dcfldd if=/dev/sda of=/evidence/disk_image.raw \
+       hash=sha256 hashwindow=1G \
+       hashlog=/evidence/hash.log \
+       bs=4M</code></pre>
+
+      <p>The main drawback? It's not installed by default on most systems, which can be problematic during live acquisitions where installing new tools might alter evidence.</p>
+
+      <h3>Clonezilla: GUI-Driven Disk Cloning</h3>
+
+      <p>For those who prefer a graphical interface, Clonezilla provides enterprise-grade disk cloning capabilities:</p>
+
+      <ul>
+        <li>Boots from live USB/CD without touching the target system</li>
+        <li>Supports multiple file systems (ext4, NTFS, FAT32, etc.)</li>
+        <li>Built-in compression to save storage space</li>
+        <li>Hash verification (MD5, SHA256) for integrity checking</li>
+      </ul>
+
+      <p>Clonezilla is particularly useful for creating forensic images of systems you need to return to service quickly — image the disk, restore it to new hardware, and continue analysis offline.</p>
+
+      <h2>Data Integrity: Proving Your Evidence Is Untainted</h2>
+
+      <p>In digital forensics, maintaining data integrity isn't optional — it's the difference between evidence that's admissible in court and evidence that gets thrown out.</p>
+
+      <h3>Hash Verification</h3>
+
+      <p>Every forensic image should be accompanied by hash values:</p>
+
+      <pre><code># Generate hash before acquisition
+sha256sum /dev/sda > original_hash.txt
+
+# Generate hash after acquisition
+sha256sum disk_image.raw > image_hash.txt
+
+# Verify they match
+diff original_hash.txt image_hash.txt</code></pre>
+
+      <p>If the hashes match, you have cryptographic proof that the image is an exact copy of the original.</p>
+
+      <h3>Write-Blockers: Hardware Protection</h3>
+
+      <p>Hardware write-blockers prevent any writes to the evidence disk during acquisition. This ensures that your investigation tools can't accidentally modify timestamps or metadata on the original evidence.</p>
+
+      <h2>Legal and Ethical Considerations</h2>
+
+      <p>Data acquisition carries serious legal and ethical responsibilities:</p>
+
+      <div class="highlight-box">
+        <p><strong>Authorization:</strong> Only authorized personnel should perform data acquisition. Unauthorized access, even for "security purposes," can have severe legal consequences.</p>
+
+        <p><strong>Privacy:</strong> Collected data may contain personal or sensitive information. Handle it according to data protection regulations (GDPR, CCPA, etc.).</p>
+
+        <p><strong>Chain of Custody:</strong> Document every person who handles the evidence, when they had access, and what they did with it. Gaps in chain of custody can invalidate forensic evidence.</p>
+
+        <p><strong>Transparency:</strong> In corporate environments, data collection should be disclosed to users. Surprise forensic acquisitions can create legal and HR issues.</p>
+      </div>
+
+      <h2>Lessons Learned from the Field</h2>
+
+      <p>After two years of SOC work and dozens of incident response cases, here's what I wish someone had told me on day one:</p>
+
+      <ol>
+        <li><strong>Order of volatility matters.</strong> Collect the most volatile data first (RAM, network connections) before moving to persistent storage.</li>
+        <li><strong>Never work directly on original evidence.</strong> Always work on copies. Your analysis tools will modify timestamps and access records.</li>
+        <li><strong>Document everything.</strong> Timestamps, commands executed, hash values, who was present — all of it. Your notes may end up in court.</li>
+        <li><strong>Test your tools before the incident.</strong> Don't learn how <code>dd</code> works during a live breach. Practice on test systems.</li>
+        <li><strong>Automate where possible.</strong> Write scripts for common acquisition tasks to reduce human error under pressure.</li>
+      </ol>
+
+      <h2>Conclusion: Data Acquisition as a Craft</h2>
+
+      <p>Data acquisition on Linux is both an art and a science. The technical commands are straightforward — <code>dd</code>, <code>tcpdump</code>, <code>memdump</code> — but knowing when to use them, in what order, and how to maintain evidence integrity requires experience and judgment.</p>
+
+      <p>What started as a confusing 2 AM incident has become a fundamental part of my security operations toolkit. Every log file I preserve, every memory dump I analyze, and every disk image I create contributes to a larger understanding of how systems fail, how attackers operate, and how defenders can respond effectively.</p>
+
+      <p>The next time you SSH into a suspicious system, remember: you're not just an analyst investigating a problem. You're a digital archaeologist, carefully excavating evidence that may be the only record of what really happened.</p>
+
+      <p>Collect it carefully. Document it thoroughly. Preserve it properly.</p>
+
+      <p>The truth is in the data.</p>
+
+    </div>
+
+    <footer class="post-footer">
+      <div class="post-tags">
+        <span class="tag">Digital Forensics</span>
+        <span class="tag">Incident Response</span>
+        <span class="tag">Linux</span>
+        <span class="tag">Data Acquisition</span>
+        <span class="tag">DFIR</span>
+        <span class="tag">Memory Forensics</span>
+      </div>
+      <div class="post-nav">
+        <a href="blog/index.html" class="post-nav-link">← Back to all posts</a>
+      </div>
+    </footer>
+
+  </div>
+</article>
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <div class="footer-left">
+      <div class="footer-logo">Nitish <em>Som</em></div>
+      <div class="footer-copy">© 2025 · Built with focus on detection engineering</div>
+    </div>
+    <div class="footer-links">
+      <a href="topics/index.html">Topics</a>
+      <a href="roadmap.html">Roadmap</a>
+      <a href="sitemap.html">Sitemap</a>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/data.js"></script>
+<script>
+if(P.showAvailBadgeOnBlog)document.getElementById('avail-badge').style.display='flex';
+</script>
+
+</body>
+</html>

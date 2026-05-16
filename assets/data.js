@@ -873,6 +873,17 @@ const P = {
       skills: ['threat-hunting', 'log-parsing', 'correlation-rules'],
       featured: false,
     },
+    {
+      id: 'linux-data-acquisition',
+      title: 'Linux Data Acquisition: A Forensic Analyst\'s Guide',
+      summary: 'Deep dive into volatile and non-volatile data collection techniques for incident response and digital forensics on Linux systems',
+      cat: 'Digital Forensics',
+      catColor: 'purple',
+      date: '2025-05-18',
+      readMins: 12,
+      tags: ['Digital Forensics', 'Incident Response', 'Linux', 'Data Acquisition', 'DFIR', 'Memory Forensics']
+    },
+ 
   ],
 
   /* ── KNOWLEDGE GRAPH ── */
