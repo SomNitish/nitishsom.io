@@ -883,6 +883,16 @@ const P = {
       readMins: 12,
       tags: ['Digital Forensics', 'Incident Response', 'Linux', 'Data Acquisition', 'DFIR', 'Memory Forensics']
     },
+    {
+      id: 'n8n-auto-scaling-queue-mode',
+      title: 'Building Auto-Scaling N8N with Queue Mode',
+      summary: 'Complete guide to deploying N8N in queue mode with Redis, PostgreSQL, and dynamic worker auto-scaling for production SOC automation',
+      cat: 'SOAR Automation',
+      catColor: 'green',
+      date: '2025-05-18',
+      readMins: 18,
+      tags: ['SOAR', 'N8N', 'Automation', 'Redis', 'PostgreSQL', 'Docker', 'Auto-Scaling', 'Queue Mode']
+    },
  
   ],
 
