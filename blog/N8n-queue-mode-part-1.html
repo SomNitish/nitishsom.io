@@ -427,7 +427,7 @@ N8N_PARTIAL_EXECUTION_VERSION_DEFAULT=0</code></pre>
         <p><strong>✅ Incidents Processed: 60 total</strong><br>
         - 30 Wazuh SSH authentication events (rule ID 5715)<br>
         - 30 SentinelOne management and endpoint events (various rule IDs)<br>
-        - All unique Incident IDs (TSP-IR-202605-001 through TSP-IR-202605-060)<br>
+        - All unique Incident IDs (Client-Name-IR-202605-001 through Client-Name-IR-202605-060)<br>
         - Zero duplicate IDs<br>
         - Zero data loss<br>
         - 100% database consistency</p>
@@ -452,13 +452,13 @@ N8N_PARTIAL_EXECUTION_VERSION_DEFAULT=0</code></pre>
 
  seq |    incident_id    |                         alert_name                         | severity | category
 -----+-------------------+------------------------------------------------------------+----------+----------
-   1 | TSP-IR-202605-001 | UNAUTHORIZED SSH Auth Detected | wazuhmgr01 | nitish1  | HIGH     | Alert
-   2 | TSP-IR-202605-002 | UNAUTHORIZED SSH Auth Detected | wazuhmgr01 | nitish2  | HIGH     | Alert
-   3 | TSP-IR-202605-003 | UNAUTHORIZED SSH Auth Detected | wazuhmgr01 | nitish3  | HIGH     | Alert
+   1 | Client-Name-IR-202605-001 | UNAUTHORIZED SSH Auth Detected | wazuhmgr01 | nitish1  | HIGH     | Alert
+   2 | Client-Name-IR-202605-002 | UNAUTHORIZED SSH Auth Detected | wazuhmgr01 | nitish2  | HIGH     | Alert
+   3 | Client-Name-IR-202605-003 | UNAUTHORIZED SSH Auth Detected | wazuhmgr01 | nitish3  | HIGH     | Alert
    ...
-  58 | TSP-IR-202605-058 | UNAUTHORIZED SSH Auth Detected | wazuhmgr01 | nitish28 | HIGH     | Alert
-  59 | TSP-IR-202605-059 | UNAUTHORIZED SSH Auth Detected | wazuhmgr01 | nitish29 | HIGH     | Alert
-  60 | TSP-IR-202605-060 | UNAUTHORIZED SSH Auth Detected | wazuhmgr01 | nitish30 | HIGH     | Alert
+  58 | Client-Name-IR-202605-058 | UNAUTHORIZED SSH Auth Detected | wazuhmgr01 | nitish28 | HIGH     | Alert
+  59 | Client-Name-IR-202605-059 | UNAUTHORIZED SSH Auth Detected | wazuhmgr01 | nitish29 | HIGH     | Alert
+  60 | Client-Name-IR-202605-060 | UNAUTHORIZED SSH Auth Detected | wazuhmgr01 | nitish30 | HIGH     | Alert
 (60 rows)</code></pre>
 
       <p>Notice every single incident has a unique ID. No collisions. No missing records. This was impossible with <code>N8N_CONCURRENCY_PRODUCTION_LIMIT=1</code> because we couldn't process multiple alerts in parallel.</p>
