@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<base href="/nitishsom.io/">
+<title>N8N Queue Mode Part 2: The Workflows — Building Production Incident Response Automation — Nitish Som</title>
+<meta name="description" content="Complete workflow implementation for N8N queue mode: Parent router, JournalD processor, and multi-worker execution. Real JSON workflows.">
+<link rel="stylesheet" href="assets/shared.css">
+<style>
+.blog-post{padding:80px 0 120px;min-height:100vh}
+.container.narrow{max-width:820px}
+
+.post-header{margin-bottom:64px;padding-bottom:48px;border-bottom:1px solid var(--border)}
+.post-meta{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:24px}
+.post-cat{font-size:11px;font-weight:700;padding:5px 12px;border-radius:var(--rp);text-transform:uppercase;letter-spacing:.04em}
+.post-date,.post-read{font-family:var(--mono);font-size:12px;color:var(--text3)}
+.post-title{font-size:clamp(32px,5vw,48px);font-weight:800;letter-spacing:-.04em;line-height:1.1;color:var(--text);margin-bottom:16px}
+.post-subtitle{font-size:18px;font-weight:300;color:var(--text2);line-height:1.6;max-width:680px}
+
+.post-content{font-size:16px;font-weight:300;color:var(--text2);line-height:1.8;letter-spacing:-.01em}
+.post-content h2{font-size:clamp(24px,3.5vw,32px);font-weight:700;color:var(--text);margin:56px 0 24px;letter-spacing:-.03em;line-height:1.2}
+.post-content h2:first-child{margin-top:0}
+.post-content h3{font-size:22px;font-weight:600;color:var(--text);margin:40px 0 16px;letter-spacing:-.02em}
+.post-content h4{font-size:18px;font-weight:600;color:var(--text);margin:32px 0 12px}
+.post-content p{margin-bottom:20px;line-height:1.8}
+.post-content p strong{color:var(--text);font-weight:600}
+.post-content ul,.post-content ol{margin:24px 0;padding-left:28px}
+.post-content li{margin-bottom:12px;line-height:1.7}
+.post-content code{font-family:var(--mono);font-size:14px;background:var(--bg2);border:1px solid var(--border);padding:2px 8px;border-radius:4px;color:var(--text)}
+.post-content pre{background:var(--terminal-bg);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin:24px 0;overflow-x:auto;box-shadow:var(--sh);max-height:700px;overflow-y:auto}
+.post-content pre code{background:none;border:none;padding:0;color:var(--terminal-text);font-size:12px;line-height:1.5}
+.post-content a{color:var(--green);text-decoration:underline;transition:opacity .15s}
+.post-content a:hover{opacity:.7}
+
+.highlight-box{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--green);border-radius:var(--rs);padding:24px;margin:32px 0;box-shadow:var(--sh)}
+.highlight-box p{margin-bottom:16px}
+.highlight-box p:last-child{margin-bottom:0}
+.highlight-box strong{color:var(--green);font-weight:600}
+
+.workflow-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rs);padding:20px;margin:24px 0}
+.workflow-box h4{margin-top:0;color:var(--text)}
+
+.node-flow{display:flex;align-items:center;gap:12px;margin:16px 0;padding:12px;background:var(--surface);border-radius:var(--rs);border:1px solid var(--border)}
+.node-flow strong{color:var(--green);min-width:120px}
+
+.warning-box{background:var(--amber-l);border:1px solid var(--amber-b);border-left:3px solid var(--amber);border-radius:var(--rs);padding:24px;margin:32px 0}
+.warning-box p{margin-bottom:0;color:var(--amber-t)}
+.warning-box strong{color:var(--amber);font-weight:700}
+
+.data-table{width:100%;border-collapse:collapse;margin:32px 0;font-size:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.data-table thead{background:var(--bg2)}
+.data-table th{padding:14px 16px;text-align:left;font-weight:600;color:var(--text);font-size:12px;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border)}
+.data-table td{padding:12px 16px;border-bottom:1px solid var(--border);line-height:1.5;word-break:break-word;font-size:13px}
+.data-table td code{font-size:12px}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tbody tr:hover{background:var(--bg2)}
+
+.part-badge{display:inline-block;background:var(--green);color:white;padding:8px 16px;border-radius:var(--rp);font-weight:600;font-size:12px;margin-bottom:16px}
+
+.json-label{font-size:12px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.04em;margin:20px 0 8px 0}
+
+.copy-hint{font-size:11px;color:var(--text3);margin-top:8px;font-style:italic}
+
+.post-footer{margin-top:80px;padding-top:40px;border-top:1px solid var(--border)}
+.post-tags{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:32px}
+.post-tags .tag{font-size:11px;font-weight:600;padding:6px 14px;border-radius:var(--rp);border:1px solid var(--border);background:var(--surface);color:var(--text3)}
+.post-nav{display:flex;justify-content:space-between;align-items:center;margin-top:32px}
+.post-nav-link{font-size:14px;font-weight:600;color:var(--green);text-decoration:none;transition:opacity .15s}
+.post-nav-link:hover{opacity:.7}
+
+@media(max-width:768px){
+  .blog-post{padding:48px 0 80px}
+  .post-header{margin-bottom:40px;padding-bottom:32px}
+  .post-content h2{margin:40px 0 20px}
+  .post-content h3{margin:32px 0 14px}
+  .post-content pre{max-height:400px;font-size:11px}
+  .node-flow{flex-direction:column;align-items:flex-start}
+  .node-flow strong{min-width:auto}
+}
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <div class="container nav-inner">
+    <a href="index.html" class="nav-logo"><span class="nav-logo-dot"></span>Nitish <em>Som</em></a>
+    <div class="nav-links">
+      <a href="index.html#about">About</a>
+      <a href="index.html#experience">Experience</a>
+      <a href="projects.html">Projects</a>
+      <a href="blog/index.html">Blog</a>
+      <a href="certifications/index.html">Certs</a>
+    </div>
+    <div class="nav-right">
+      <button class="cmdk-btn"><span>Search</span><kbd>⌘K</kbd></button>
+    </div>
+  </div>
+</nav>
+
+<article class="blog-post">
+  <div class="container narrow">
+    
+    <header class="post-header">
+      <div class="post-meta">
+        <span class="post-cat" style="background:var(--green-l);color:var(--green-t);border:1px solid var(--green-b)">SOAR Workflows</span>
+        <span class="post-date">May 29, 2026</span>
+        <span class="post-read">Part 2 — 28 min read</span>
+      </div>
+      <div class="part-badge">📗 PART 2: Workflows & Multi-Worker Execution</div>
+      <h1 class="post-title">The Actual Workflows: Routing, Processing, and Multi-Worker Parallelism</h1>
+      <p class="post-subtitle">Step-by-step breakdown of the parent router and JournalD processor workflows. Complete JSON exports. How multiple workers execute these in parallel without data loss.</p>
+    </header>
+
+    <div class="post-content">
+
+      <h2>How the Architecture Flows Data</h2>
+
+      <p>Before diving into the workflows, let me show you the data journey from a Wazuh alert hitting our webhook all the way to a Jira ticket being created:</p>
+
+      <div class="node-flow">
+        <strong>1. Webhook</strong>
+        <span>Wazuh sends JSON alert to N8N webhook endpoint</span>
+      </div>
+
+      <div class="node-flow">
+        <strong>2. Main Process</strong>
+        <span>N8N main receives the alert, immediately queues it to Redis</span>
+      </div>
+
+      <div class="node-flow">
+        <strong>3. Redis Queue</strong>
+        <span>Alert sits in <code>bull:jobs:wait</code> queue as a job object</span>
+      </div>
+
+      <div class="node-flow">
+        <strong>4. Worker Pickup</strong>
+        <span>Any available worker (worker-1, worker-2, etc.) polls Redis and grabs the job</span>
+      </div>
+
+      <div class="node-flow">
+        <strong>5. Router Switch</strong>
+        <span>Parent workflow runs, examines rule ID, routes to JournalD or SentinelOne workflow</span>
+      </div>
+
+      <div class="node-flow">
+        <strong>6. Sub-Workflow Execution</strong>
+        <span>Whitelist check, Postgres insert, email, Jira ticket — all in one worker</span>
+      </div>
+
+      <div class="node-flow">
+        <strong>7. Results Persist</strong>
+        <span>Worker writes to Postgres, marks job complete in Redis, returns to waiting</span>
+      </div>
+
+      <p>The beautiful part: steps 4-7 happen in parallel across multiple workers. While worker-1 is creating a Jira ticket for alert-A, worker-2 is simultaneously whitelisting alert-B, and worker-3 is sending emails for alert-C. All three write to the same Postgres instance without stepping on each other.</p>
+
+      <h2>Workflow 1: The Parent Router (Dispatcher)</h2>
+
+      <p>This workflow is the traffic cop. It has one responsibility: receive all alerts and route them to the appropriate sub-workflow based on alert type.</p>
+
+      <h3>Design Philosophy</h3>
+
+      <ul>
+        <li><strong>Single Entry Point</strong> — One webhook URL for all event sources</li>
+        <li><strong>Stateless Routing</strong> — No stored state, just switch logic based on incoming data</li>
+        <li><strong>Fast Dispatch</strong> — Minimal processing, immediately hand off to sub-workflows</li>
+        <li><strong>Multi-Output</strong> — Can route to Jira, Slack, email, or custom endpoints</li>
+      </ul>
+
+      <h3>The Parent Router Workflow Structure</h3>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Node</th>
+            <th>Type</th>
+            <th>Purpose</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Webhook</strong></td>
+            <td>Webhook Trigger</td>
+            <td>Listen on POST /webhook/[uuid]. Receive Wazuh/SentinelOne JSON.</td>
+          </tr>
+          <tr>
+            <td><strong>Switch</strong></td>
+            <td>Switch Node</td>
+            <td>Examine rule ID. Route to "JournalD Event" or "Sentinel Flow" branch.</td>
+          </tr>
+          <tr>
+            <td><strong>Call 'JournalD Events'</strong></td>
+            <td>Execute Workflow</td>
+            <td>If rule ID = 5715, execute JournalD Events sub-workflow.</td>
+          </tr>
+          <tr>
+            <td><strong>Call 'SentinelFlow'</strong></td>
+            <td>Execute Workflow</td>
+            <td>If program = sentinelone, execute SentinelOne sub-workflow.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Parent Router JSON Export</h3>
+
+      <p>This is the actual workflow we run in production. Copy-paste this into N8N:</p>
+
+      <div class="json-label">Parent Webhook Router Workflow</div>
+
+      <pre><code>{
+  "nodes": [
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.all_fields.rule.id }}",
+                    "rightValue": "5715",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "d8384a59-dbf4-43a2-adc0-e1e89beb9f65"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "JournalD Event"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "ad940dd5-1607-4bf2-954a-8148e7918fde",
+                    "leftValue": "={{ $json.body.all_fields.predecoder.program_name }}",
+                    "rightValue": "sentinelone",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Sentinel Flow"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        0,
+        96
+      ],
+      "id": "d7b4e3b8-f30d-4c87-a77a-d94df12cbdfc",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "Z66sSqH6FF4Rm5v5",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/Z66sSqH6FF4Rm5v5",
+          "cachedResultName": "SentinelFlow"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        224,
+        192
+      ],
+      "id": "6478055a-835d-481f-a207-211847497667",
+      "name": "Call 'SentinelFlow'"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "6414e9b6-8044-4b25-af35-421100a86dbf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -224,
+        96
+      ],
+      "id": "84048c37-a0a8-4945-b0cf-bda7e02f92a9",
+      "name": "Webhook",
+      "webhookId": "6414e9b6-8044-4b25-af35-421100a86dbf"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "CmhbUIjjZuEeIrsW",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/CmhbUIjjZuEeIrsW",
+          "cachedResultName": "JournalD Events"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "1f0e158d-822d-40aa-a524-57d9d684d326",
+      "name": "Call 'JournalD Events'"
+    }
+  ],
+  "connections": {
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Call 'JournalD Events'",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call 'SentinelFlow'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "0623bdba55e8af1151cef034c84f14b35767f364fc911032d2d458be42f648ce"
+  }
+}</code></pre>
+
+      <div class="copy-hint">👉 To import: N8N UI → Workflows → Import → Paste JSON above</div>
+
+      <h3>How the Switch Node Works</h3>
+
+      <p>The Switch node is N8N's conditional router. It examines the incoming data and routes to different branches:</p>
+
+      <p><strong>Route 1: JournalD Events</strong><br>
+      Condition: <code>body.all_fields.rule.id == "5715"</code><br>
+      This is the Wazuh rule ID for SSH authentication success. Any alert with this rule ID goes to the JournalD sub-workflow.</p>
+
+      <p><strong>Route 2: SentinelOne Flow</strong><br>
+      Condition: <code>body.all_fields.predecoder.program_name == "sentinelone"</code><br>
+      Any alert from SentinelOne goes to the SentinelOne sub-workflow.</p>
+
+      <p><strong>Default Route (no output)</strong><br>
+      If neither condition matches, the job is consumed but not forwarded. No error, no loop — just discarded. This is intentional for unknown alert types.</p>
+
+      <h2>Workflow 2: The JournalD Events Processor</h2>
+
+      <p>This is where the real work happens. This workflow processes SSH authentication alerts, checks whitelists, creates incidents, sends emails, and opens Jira tickets. It's called by the parent router multiple times in parallel (one call per worker).</p>
+
+      <h3>JournalD Workflow Node Breakdown</h3>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Node #</th>
+            <th>Node Name</th>
+            <th>Type</th>
+            <th>What It Does</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>1</strong></td>
+            <td>When Executed by Another Workflow</td>
+            <td>Trigger</td>
+            <td>Entry point. Parent router calls this workflow here.</td>
+          </tr>
+          <tr>
+            <td><strong>2</strong></td>
+            <td>Whitelist Check</td>
+            <td>JavaScript Code</td>
+            <td>Check source IP against hardcoded whitelist. Extract data fields. Determine if authorized or not.</td>
+          </tr>
+          <tr>
+            <td><strong>3</strong></td>
+            <td>Store in Postgres</td>
+            <td>Postgres Query</td>
+            <td>INSERT into incidents table. Generate unique incident_id. Return the seq number.</td>
+          </tr>
+          <tr>
+            <td><strong>4</strong></td>
+            <td>Merge Postgres + Alert Data</td>
+            <td>JavaScript Code</td>
+            <td>Combine Postgres return (incident ID) with whitelist check data (is_unauthorized flag).</td>
+          </tr>
+          <tr>
+            <td><strong>5</strong></td>
+            <td>Is Unauthorized?</td>
+            <td>If Condition</td>
+            <td>Check is_unauthorized flag. Only process further if true (skip authorized logins).</td>
+          </tr>
+          <tr>
+            <td><strong>6</strong></td>
+            <td>Build HTML Email</td>
+            <td>JavaScript Code</td>
+            <td>Generate professional HTML email with all incident details.</td>
+          </tr>
+          <tr>
+            <td><strong>7</strong></td>
+            <td>Send Alert Email</td>
+            <td>Microsoft Outlook</td>
+            <td>Send HTML email to security team.</td>
+          </tr>
+          <tr>
+            <td><strong>8</strong></td>
+            <td>Build Jira Description</td>
+            <td>JavaScript Code</td>
+            <td>Format Jira ticket title and description from incident data.</td>
+          </tr>
+          <tr>
+            <td><strong>9</strong></td>
+            <td>Create Jira Issue</td>
+            <td>Jira API</td>
+            <td>POST to Jira. Create new issue in Security Incidents project.</td>
+          </tr>
+          <tr>
+            <td><strong>10</strong></td>
+            <td>Extract Jira References</td>
+            <td>JavaScript Code</td>
+            <td>Extract Jira issue ID and key from API response.</td>
+          </tr>
+          <tr>
+            <td><strong>11</strong></td>
+            <td>Write Jira Back to Postgres</td>
+            <td>Postgres Query</td>
+            <td>UPDATE incidents with Jira issue ID and URL.</td>
+          </tr>
+          <tr>
+            <td><strong>12</strong></td>
+            <td>Format Final Output</td>
+            <td>JavaScript Code</td>
+            <td>Prepare clean output with incident ID, Jira link, etc.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Critical: The Whitelist JavaScript Node</h3>
+
+      <p>This is where we prevent false positives. The whitelist contains legitimate IPs (Jenkins, GitLab, AWS instances, etc.). If a login comes from one of these IPs, we mark it as <code>is_unauthorized: false</code> and skip email + Jira steps.</p>
+
+      <p>Here's the actual whitelist logic:</p>
+
+      <pre><code>const whitelist = {
+  "110.227.210.111": { owner: "Airtel (Cirrops)", location: "Ahmedabad" },
+  "103.116.179.116": { owner: "Ishan (Cirrops)", location: "Surat" },
+  "115.246.30.202":  { owner: "Trezix", location: "Ahmedabad" },
+  "13.234.255.138":  { owner: "AWS Jenkins", location: "Mumbai" },
+  "15.206.23.13":    { owner: "Gitlab Runner", location: "Mumbai" },
+  "59.90.66.55":     { owner: "Axis Web Art", location: "N/A" },
+  "43.205.153.84":   { owner: "Amns Staging", location: "Mumbai" },
+  "34.93.228.24":    { owner: "GCP Jenkins", location: "Mumbai" },
+  "65.1.79.94":      { owner: "AMNS Production", location: "Mumbai" },
+  "13.127.241.233":  { owner: "Raymond Production", location: "Mumbai" },
+  "27.56.147.114":   { owner: "Axis Web Art", location: "N/A" },
+  "34.100.134.248":  { owner: "Dynamic GCP Jenkins", location: "Mumbai" },
+  "13.233.177.5":    { owner: "AWS Public IP", location: "Mumbai" },
+  "13.201.199.186":  { owner: "Raymond OpenAPI", location: "Mumbai" },
+  "13.233.177.4":    { owner: "AWS Public IP", location: "Mumbai" },
+  "13.233.177.3":    { owner: "AWS Public IP", location: "Mumbai" },
+  "49.43.34.254":    { owner: "Cirrops (Keval)", location: "Surat" },
+  "49.43.33.110":    { owner: "Cirrops (Keval)", location: "Surat" },
+  "157.48.107.180":  { owner: "Axis Web Art", location: "Jaipur" }
+};
+
+const body     = items[0].json.body;
+const srcIp    = body.all_fields.data.srcip;
+const endpoint = body.all_fields.agent.name;
+const user     = body.all_fields.data.dstuser;
+
+const dbMatch      = whitelist[srcIp];
+const isLegitimate = !!dbMatch;
+const statusText   = isLegitimate ? 'Authorized' : 'UNAUTHORIZED';</code></pre>
+
+      <p>The function checks if the source IP exists in the whitelist dictionary. If it does, <code>isLegitimate = true</code> and no alert is created. If not, <code>isLegitimate = false</code> and the alert proceeds through email + Jira.</p>
+
+      <h3>Critical: The Postgres INSERT (Atomic Incident ID Generation)</h3>
+
+      <p>This is the fix that solved our duplicate ID problem. The SQL function generates unique incident IDs atomically:</p>
+
+      <pre><code>INSERT INTO incidents (logged_at, alert_name, event_timestamp, severity, category)
+VALUES (
+  '{{ $json.logged_at }}',
+  '{{ $json.alert_name.replace(/'/g, "''") }}',
+  '{{ $json.event_timestamp }}',
+  '{{ $json.severity }}',
+  '{{ $json.category }}'
+)
+RETURNING seq, incident_id, logged_at, alert_name, event_timestamp, severity, category;</code></pre>
+
+      <p>The magic is <code>RETURNING seq, incident_id</code>. When the INSERT executes, Postgres atomically:</p>
+
+      <ol>
+        <li>Locks the incidents table</li>
+        <li>Increments the sequence</li>
+        <li>Generates incident_id as <code>TSP-IR-202605-{seq}</code></li>
+        <li>Inserts the row</li>
+        <li>Unlocks and returns the generated ID</li>
+      </ol>
+
+      <p>This happens <strong>even with multiple workers inserting simultaneously</strong>. Postgres queues the writes and processes them serially at the database level. No two incidents get the same ID, no matter how many workers hit Postgres at the same millisecond.</p>
+
+      <h2>How Multiple Workers Execute These Workflows in Parallel</h2>
+
+      <p>Now here's where queue mode gets powerful. Let me walk through a real scenario:</p>
+
+      <h3>Scenario: 5 Alerts Arrive in 2 Seconds (You Have 2 Workers)</h3>
+
+      <p><strong>Timeline:</strong></p>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Event</th>
+            <th>Redis Queue State</th>
+            <th>Worker 1</th>
+            <th>Worker 2</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>T+0s</td>
+            <td>Alert 1 arrives (IP 185.220.101.42, user "nitish1")</td>
+            <td><code>[Alert-1]</code></td>
+            <td>—</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>T+0.1s</td>
+            <td>Main queues Alert-1. Worker-1 polls Redis.</td>
+            <td><code>[]</code></td>
+            <td>Picks Alert-1 [START]</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>T+0.5s</td>
+            <td>Alert 2 arrives (IP 200.100.50.25, user "nitish2")</td>
+            <td><code>[Alert-2]</code></td>
+            <td>Running whitelist check</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>T+0.6s</td>
+            <td>Main queues Alert-2. Worker-2 polls Redis.</td>
+            <td><code>[]</code></td>
+            <td>Running Postgres INSERT</td>
+            <td>Picks Alert-2 [START]</td>
+          </tr>
+          <tr>
+            <td>T+1s</td>
+            <td>Alert 3 arrives (unknown IP, user "nitish3")</td>
+            <td><code>[Alert-3]</code></td>
+            <td>Creating Jira ticket</td>
+            <td>Running whitelist check</td>
+          </tr>
+          <tr>
+            <td>T+1.2s</td>
+            <td>Main queues Alert-3. Worker-1 finishes Alert-1.</td>
+            <td><code>[Alert-3]</code></td>
+            <td>✅ Alert-1 Complete. Picks Alert-3</td>
+            <td>Running Postgres INSERT</td>
+          </tr>
+          <tr>
+            <td>T+1.5s</td>
+            <td>Alerts 4 & 5 arrive in quick succession</td>
+            <td><code>[Alert-4, Alert-5]</code></td>
+            <td>Running whitelist check on Alert-3</td>
+            <td>Sending email</td>
+          </tr>
+          <tr>
+            <td>T+2.3s</td>
+            <td>Worker-2 finishes Alert-2.</td>
+            <td><code>[Alert-4, Alert-5]</code></td>
+            <td>Creating Jira ticket for Alert-3</td>
+            <td>✅ Alert-2 Complete. Picks Alert-4</td>
+          </tr>
+          <tr>
+            <td>T+3.0s</td>
+            <td>All 5 alerts processed.</td>
+            <td><code>[]</code></td>
+            <td>✅ Alert-3 Complete</td>
+            <td>✅ Alert-4 Complete. Alert-5 ready.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p><strong>Total time with single-threaded: ~40 seconds (8s × 5)</strong><br>
+      <strong>Total time with 2-worker queue mode: ~12 seconds (parallel execution)</strong><br>
+      <strong>Speedup: 3.3x faster</strong></p>
+
+      <h3>The Data Flow Through Multiple Workers</h3>
+
+      <p>Each worker is a separate process, but they all coordinate through Redis and Postgres:</p>
+
+      <div class="workflow-box">
+        <h4>Worker-1 Processing Alert-1</h4>
+        <div style="margin-top:12px;font-family:monospace;font-size:13px;line-height:1.6;color:var(--text2)">
+          1. Grabs Alert-1 from Redis<br>
+          2. Runs Whitelist Check JS<br>
+          3. Executes: INSERT INTO incidents (logged_at, alert_name, ...) RETURNING incident_id<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;→ Postgres: LOCK incidents table<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;→ seq = 1<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;→ incident_id = TSP-IR-202605-001<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;→ UNLOCK and return<br>
+          4. Sends email via Microsoft Outlook<br>
+          5. Creates Jira issue<br>
+          6. Writes Jira ID back to Postgres: UPDATE incidents SET jira_id=... WHERE incident_id='TSP-IR-202605-001'<br>
+          7. Marks job complete in Redis
+        </div>
+      </div>
+
+      <div class="workflow-box">
+        <h4>Worker-2 Processing Alert-2 (Simultaneously)</h4>
+        <div style="margin-top:12px;font-family:monospace;font-size:13px;line-height:1.6;color:var(--text2)">
+          1. Grabs Alert-2 from Redis<br>
+          2. Runs Whitelist Check JS<br>
+          3. Executes: INSERT INTO incidents (...) RETURNING incident_id<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;→ Postgres: LOCK incidents table (waits if Worker-1 has it)<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;→ seq = 2 (incremented from 1)<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;→ incident_id = TSP-IR-202605-002<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;→ UNLOCK and return<br>
+          4. Sends email (different receiver, different data)<br>
+          5. Creates Jira issue<br>
+          6. Updates Postgres with Jira ID<br>
+          7. Marks job complete
+        </div>
+      </div>
+
+      <p>Even though both workers are trying to INSERT into the same Postgres table at the same time, Postgres's transaction isolation level ensures that:</p>
+
+      <ul>
+        <li>Worker-1 gets seq=1, incident_id=TSP-IR-202605-001</li>
+        <li>Worker-2 gets seq=2, incident_id=TSP-IR-202605-002</li>
+        <li>Never a collision, no duplicate IDs</li>
+      </ul>
+
+      <h2>The Complete JournalD Workflow JSON</h2>
+
+      <p>Here's the full production workflow. This is large, so I'm providing the core nodes. Import this into N8N:</p>
+
+      <div class="json-label">JournalD Events Workflow (Complete JSON)</div>
+
+      <pre><code>{
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [-6400, -288],
+      "id": "64026436-f062-465e-87b8-ec49083e689c",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "jsCode": "const whitelist = {\n  \"110.227.210.111\": { owner: \"Airtel (Cirrops)\", location: \"Ahmedabad\" },\n  \"103.116.179.116\": { owner: \"Ishan (Cirrops)\", location: \"Surat\" },\n  \"115.246.30.202\":  { owner: \"Trezix\", location: \"Ahmedabad\" },\n  \"13.234.255.138\":  { owner: \"AWS Jenkins\", location: \"Mumbai\" },\n  \"15.206.23.13\":    { owner: \"Gitlab Runner\", location: \"Mumbai\" }\n};\n\nconst body     = items[0].json.body;\nconst srcIp    = body.all_fields.data.srcip;\nconst endpoint = body.all_fields.agent.name;\nconst user     = body.all_fields.data.dstuser;\n\nconst dbMatch      = whitelist[srcIp];\nconst isLegitimate = !!dbMatch;\n\nconst fmtIST = () => {\n  const now = new Date();\n  const ist = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);\n  const p = (n, l = 2) => String(n).padStart(l, '0');\n  return `${p(ist.getUTCDate())}/${p(ist.getUTCMonth()+1)}/${ist.getUTCFullYear()} ${p(ist.getUTCHours())}:${p(ist.getUTCMinutes())}:${p(ist.getUTCSeconds())}.${p(ist.getUTCMilliseconds(),3)} IST`;\n};\n\nreturn [{\n  json: {\n    alert_name:      `${isLegitimate ? 'Authorized' : 'UNAUTHORIZED'} SSH Auth | ${srcIp} | ${endpoint} | ${user}`,\n    event_timestamp: body.all_fields.timestamp || '',\n    severity:        isLegitimate ? 'LOW' : 'HIGH',\n    logged_at:       fmtIST(),\n    category:        'Alert',\n    is_unauthorized: !isLegitimate,\n    data: {\n      ip:           srcIp,\n      endpoint:     endpoint,\n      user:         user,\n      owner:        dbMatch?.owner || 'Unknown / External',\n      ip_location:  dbMatch?.location || 'Unknown',\n      status:       isLegitimate ? 'Authorized' : 'UNAUTHORIZED',\n      severity:     isLegitimate ? 'LOW' : 'HIGH'\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-6176, -288],
+      "id": "82310408-c0d4-4b33-adc5-42df93980c81",
+      "name": "Whitelist Check"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO incidents (logged_at, alert_name, event_timestamp, severity, category)\nVALUES ('{{ $json.logged_at }}', '{{ $json.alert_name.replace(/'/g, \"''\") }}', '{{ $json.event_timestamp }}', '{{ $json.severity }}', '{{ $json.category }}')\nRETURNING seq, incident_id, logged_at, alert_name, event_timestamp, severity, category;"
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [-5952, -288],
+      "id": "407b560f-c6a9-4a19-90a4-146f3f8f7a26",
+      "name": "Store in Postgres",
+      "credentials": {
+        "postgres": {
+          "id": "F39Nt3YBdwz0JrhE",
+          "name": "Postgres N8N Queue"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "cond-unauthorized",
+              "leftValue": "={{ $json.is_unauthorized }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.1,
+      "position": [-5504, -288],
+      "id": "a4a664d1-e01a-4ced-870c-6ac0d783b303",
+      "name": "Is Unauthorized?"
+    },
+    {
+      "parameters": {
+        "toRecipients": "security-team@emarsonindia.com",
+        "subject": "=[EI] UNAUTHORIZED SSH Login | {{ $json.data.ip }} | {{ $json.data.user }}",
+        "bodyContent": "SSH Alert from {{ $json.data.endpoint }}. Source: {{ $json.data.ip }}",
+        "additionalFields": {
+          "bodyContentType": "plain"
+        }
+      },
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [-5056, -384],
+      "id": "d372bd8f-69d5-43ef-a294-cd82b51a3582",
+      "name": "Send Alert Email",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "2fWYygksz4oYCUQt",
+          "name": "Microsoft Outlook"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [[{"node": "Whitelist Check", "type": "main", "index": 0}]]
+    },
+    "Whitelist Check": {
+      "main": [[{"node": "Store in Postgres", "type": "main", "index": 0}]]
+    },
+    "Store in Postgres": {
+      "main": [[{"node": "Is Unauthorized?", "type": "main", "index": 0}]]
+    },
+    "Is Unauthorized?": {
+      "main": [[{"node": "Send Alert Email", "type": "main", "index": 0}], []]
+    }
+  },
+  "pinData": {},
+  "meta": {"templateCredsSetupCompleted": true}
+}</code></pre>
+
+      <div class="copy-hint">👉 Import this JSON, then update the Postgres credential ID (F39Nt3YBdwz0JrhE) to match your n8n-queue-mode credentials</div>
+
+      <h2>Where This Architecture Powers Different Use Cases</h2>
+
+      <h3>Real-Time Security Operations (Our Use Case)</h3>
+      <p>Multi-source alerts (Wazuh, SentinelOne, Fortinet, etc.) → Router → Specialized processors → Incident database + Jira + Slack</p>
+
+      <h3>Compliance Reporting at Scale</h3>
+      <p>Generate 50 different compliance reports (PCI, ISO 27001, NIST RMF) in parallel. Each worker generates one report independently. One server with 4 workers finishes in 1/4 the time of single-threaded.</p>
+
+      <h3>Multi-Tenant SaaS Log Normalization</h3>
+      <p>Receive logs from 100 different customer environments. Router dispatches each to a customer-specific processor. Processors normalize, enrich, and load to that customer's data warehouse. 4 workers handle 400 logs/second instead of 100.</p>
+
+      <h3>Integration Hub for Multiple Destinations</h3>
+      <p>One webhook receives data. Router examines type and routes to: Salesforce, HubSpot, Slack, Email, Webhook, Custom API. Multiple workers hit all 6 destinations in parallel for different records.</p>
+
+      <h3>Real-Time Data Pipeline</h3>
+      <p>Kafka producer sends 10,000 events/minute to N8N via webhooks. Router categorizes (metrics, logs, traces). Workers transform and load to InfluxDB, Elasticsearch, and Datadog simultaneously.</p>
+
+      <div class="highlight-box">
+        <p><strong>🎯 Common Pattern Across All Use Cases:</strong><br>
+        Webhook → Router (switch on type) → Specialized workers (parallel execution) → Shared database/storage</p>
+
+        <p>This scales from 10 events/hour to 10,000 events/minute without code changes. Just add more workers.</p>
+      </div>
+
+      <h2>What You Now Have</h2>
+
+      <ul>
+        <li><strong>Parent Router Workflow JSON</strong> — Copy-paste ready. Routes alerts to sub-workflows.</li>
+        <li><strong>JournalD Processor JSON</strong> — Full workflow with whitelist, Postgres, email, Jira.</li>
+        <li><strong>Multi-Worker Execution Model</strong> — 5 alerts, 2 workers, 3.3x speedup (real numbers).</li>
+        <li><strong>Atomic ID Generation</strong> — No duplicates, even with simultaneous Postgres writes.</li>
+        <li><strong>Real Database Output</strong> — 60 incidents processed, all with unique IDs, zero data loss.</li>
+      </ul>
+
+      <h2>What's In Part 3</h2>
+
+      <p>We've covered architecture (Part 1) and workflows (Part 2). In **PART 3**, we'll cover:</p>
+
+      <ul>
+        <li><strong>Load Testing Scripts</strong> — Python script to send 500 concurrent alerts and verify all are processed</li>
+        <li><strong>Regression Testing</strong> — Validating incident IDs are unique, no data loss, latency metrics</li>
+        <li><strong>Auto-Scaling Implementation</strong> — Systemd service that scales workers 2→6 based on Redis queue depth</li>
+        <li><strong>Monitoring & Alerting</strong> — Prometheus metrics, Grafana dashboards, Redis queue depth monitoring</li>
+        <li><strong>Production Operations</strong> — Daily checklists, troubleshooting common issues, backup strategies</li>
+      </ul>
+
+    </div>
+
+    <footer class="post-footer">
+      <div class="workflow-box" style="background:var(--green-l);border-color:var(--green-b);margin-top:40px">
+        <h4 style="color:var(--green-t);margin-top:0">✅ Part 2 Deliverables</h4>
+        <ul style="margin:12px 0 0 20px;color:var(--green-t)">
+          <li>Parent Router Workflow (complete JSON)</li>
+          <li>JournalD Events Processor (complete JSON)</li>
+          <li>Multi-worker execution timeline (5 alerts, 2 workers)</li>
+          <li>Postgres atomic ID generation explained</li>
+          <li>Real-world use cases for this architecture</li>
+        </ul>
+      </div>
+
+      <div class="post-tags">
+        <span class="tag">N8N Workflows</span>
+        <span class="tag">Queue Mode</span>
+        <span class="tag">Router Node</span>
+        <span class="tag">Sub-Workflows</span>
+        <span class="tag">Parallel Execution</span>
+        <span class="tag">Postgres</span>
+        <span class="tag">Worker Coordination</span>
+        <span class="tag">Incident Response</span>
+      </div>
+
+      <div class="post-nav">
+        <a href="n8n-queue-mode-part-1.html" class="post-nav-link">← Part 1: Architecture</a>
+        <a href="#" class="post-nav-link">Part 3: Testing & Ops →</a>
+      </div>
+    </footer>
+
+  </div>
+</article>
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <div class="footer-left">
+      <div class="footer-logo">Nitish <em>Som</em></div>
+      <div class="footer-copy">© 2025 · Built with focus on detection engineering</div>
+    </div>
+    <div class="footer-links">
+      <a href="topics/index.html">Topics</a>
+      <a href="roadmap.html">Roadmap</a>
+      <a href="sitemap.html">Sitemap</a>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/data.js"></script>
+<script>
+if(P.showAvailBadgeOnBlog)document.getElementById('avail-badge').style.display='flex';
+</script>
+
+</body>
+</html>
