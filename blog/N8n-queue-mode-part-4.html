@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<base href="/nitishsom.io/">
+<title>N8N Queue Mode Part 4: Production Operations & Disaster Recovery — Nitish Som</title>
+<meta name="description" content="N8N queue mode operations handbook: Daily checklists, troubleshooting, backup strategies, disaster recovery, security hardening, and scaling for production SOC environments.">
+<link rel="stylesheet" href="assets/shared.css">
+<style>
+.blog-post{padding:80px 0 120px;min-height:100vh}
+.container.narrow{max-width:820px}
+
+.post-header{margin-bottom:64px;padding-bottom:48px;border-bottom:1px solid var(--border)}
+.post-meta{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:24px}
+.post-cat{font-size:11px;font-weight:700;padding:5px 12px;border-radius:var(--rp);text-transform:uppercase;letter-spacing:.04em}
+.post-date,.post-read{font-family:var(--mono);font-size:12px;color:var(--text3)}
+.post-title{font-size:clamp(32px,5vw,48px);font-weight:800;letter-spacing:-.04em;line-height:1.1;color:var(--text);margin-bottom:16px}
+.post-subtitle{font-size:18px;font-weight:300;color:var(--text2);line-height:1.6;max-width:680px}
+
+.post-content{font-size:16px;font-weight:300;color:var(--text2);line-height:1.8;letter-spacing:-.01em}
+.post-content h2{font-size:clamp(24px,3.5vw,32px);font-weight:700;color:var(--text);margin:56px 0 24px;letter-spacing:-.03em;line-height:1.2}
+.post-content h2:first-child{margin-top:0}
+.post-content h3{font-size:22px;font-weight:600;color:var(--text);margin:40px 0 16px;letter-spacing:-.02em}
+.post-content h4{font-size:18px;font-weight:600;color:var(--text);margin:32px 0 12px}
+.post-content p{margin-bottom:20px;line-height:1.8}
+.post-content p strong{color:var(--text);font-weight:600}
+.post-content ul,.post-content ol{margin:24px 0;padding-left:28px}
+.post-content li{margin-bottom:12px;line-height:1.7}
+.post-content code{font-family:var(--mono);font-size:14px;background:var(--bg2);border:1px solid var(--border);padding:2px 8px;border-radius:4px;color:var(--text)}
+.post-content pre{background:var(--terminal-bg);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin:24px 0;overflow-x:auto;box-shadow:var(--sh);max-height:700px;overflow-y:auto}
+.post-content pre code{background:none;border:none;padding:0;color:var(--terminal-text);font-size:12px;line-height:1.5}
+.post-content a{color:var(--green);text-decoration:underline;transition:opacity .15s}
+.post-content a:hover{opacity:.7}
+
+.highlight-box{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--green);border-radius:var(--rs);padding:24px;margin:32px 0;box-shadow:var(--sh)}
+.highlight-box p{margin-bottom:16px}
+.highlight-box p:last-child{margin-bottom:0}
+
+.warning-box{background:var(--amber-l);border:1px solid var(--amber-b);border-left:3px solid var(--amber);border-radius:var(--rs);padding:24px;margin:32px 0}
+.warning-box p{margin-bottom:0;color:var(--amber-t)}
+.warning-box strong{color:var(--amber);font-weight:700}
+
+.success-box{background:var(--green-l);border:1px solid var(--green-b);border-left:4px solid var(--green);border-radius:var(--rs);padding:24px;margin:32px 0}
+.success-box p{margin-bottom:12px;color:var(--green-t)}
+
+.checklist{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:24px;margin:24px 0}
+.checklist-item{display:flex;gap:12px;margin-bottom:12px;align-items:flex-start}
+.checklist-item input{margin-top:2px;accent-color:var(--green);cursor:pointer}
+.checklist-item label{cursor:pointer;line-height:1.5}
+.checklist-item:last-child{margin-bottom:0}
+
+.data-table{width:100%;border-collapse:collapse;margin:32px 0;font-size:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.data-table thead{background:var(--bg2)}
+.data-table th{padding:14px 16px;text-align:left;font-weight:600;color:var(--text);font-size:12px;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border)}
+.data-table td{padding:12px 16px;border-bottom:1px solid var(--border);line-height:1.5;word-break:break-word;font-size:13px}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tbody tr:hover{background:var(--bg2)}
+
+.part-badge{display:inline-block;background:var(--green);color:white;padding:8px 16px;border-radius:var(--rp);font-weight:600;font-size:12px;margin-bottom:16px}
+
+.copy-hint{font-size:11px;color:var(--text3);margin-top:8px;font-style:italic}
+
+.post-footer{margin-top:80px;padding-top:40px;border-top:1px solid var(--border)}
+.post-tags{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:32px}
+.post-tags .tag{font-size:11px;font-weight:600;padding:6px 14px;border-radius:var(--rp);border:1px solid var(--border);background:var(--surface);color:var(--text3)}
+.post-nav{display:flex;justify-content:space-between;align-items:center;margin-top:32px}
+.post-nav-link{font-size:14px;font-weight:600;color:var(--green);text-decoration:none;transition:opacity .15s}
+.post-nav-link:hover{opacity:.7}
+
+@media(max-width:768px){
+  .blog-post{padding:48px 0 80px}
+  .post-header{margin-bottom:40px;padding-bottom:32px}
+  .post-content h2{margin:40px 0 20px}
+  .post-content h3{margin:32px 0 14px}
+  .post-content pre{max-height:400px;font-size:11px}
+  .checklist-item{flex-direction:column}
+}
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <div class="container nav-inner">
+    <a href="index.html" class="nav-logo"><span class="nav-logo-dot"></span>Nitish <em>Som</em></a>
+    <div class="nav-links">
+      <a href="index.html#about">About</a>
+      <a href="index.html#experience">Experience</a>
+      <a href="projects.html">Projects</a>
+      <a href="blog/index.html">Blog</a>
+      <a href="certifications/index.html">Certs</a>
+    </div>
+    <div class="nav-right">
+      <button class="cmdk-btn"><span>Search</span><kbd>⌘K</kbd></button>
+    </div>
+  </div>
+</nav>
+
+<article class="blog-post">
+  <div class="container narrow">
+    
+    <header class="post-header">
+      <div class="post-meta">
+        <span class="post-cat" style="background:var(--green-l);color:var(--green-t);border:1px solid var(--green-b)">Operations</span>
+        <span class="post-date">May 29, 2026</span>
+        <span class="post-read">Part 4 — 24 min read</span>
+      </div>
+      <div class="part-badge">📕 PART 4: Operations, Troubleshooting & DR</div>
+      <h1 class="post-title">Running N8N Queue Mode in Production: Operations Handbook</h1>
+      <p class="post-subtitle">Daily checklists, disaster recovery procedures, security hardening, backup strategies, and troubleshooting the issues you'll actually encounter.</p>
+    </header>
+
+    <div class="post-content">
+
+      <h2>Daily Operations Checklist</h2>
+
+      <p>These are the tasks your team should complete daily to maintain a healthy N8N queue-mode setup:</p>
+
+      <div class="checklist">
+        <div class="checklist-item">
+          <input type="checkbox" id="check1">
+          <label for="check1"><strong>Check container health</strong> — All 5 containers (main, 2+ workers, Redis, Postgres) should be UP. If any are DOWN, investigate.</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="check2">
+          <label for="check2"><strong>Monitor queue depth</strong> — Redis queue should be <5 jobs. If >10, workflows are backing up. Check for slow executions or crashed workers.</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="check3">
+          <label for="check3"><strong>Check Postgres disk usage</strong> — Should be <5GB with 7-day pruning. If >10GB, execution logs aren't being deleted.</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="check4">
+          <label for="check4"><strong>Review error logs</strong> — Check N8N main and worker logs for ERROR or CRITICAL messages. Fix any credential/permission issues.</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="check5">
+          <label for="check5"><strong>Validate workflow executions</strong> — Sample 10-20 recent executions. Verify they completed successfully and created incidents/tickets correctly.</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="check6">
+          <label for="check6"><strong>Test at least one workflow end-to-end</strong> — Send a test alert manually. Verify it flows through the system and appears in database/Jira/email.</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="check7">
+          <label for="check7"><strong>Check for worker scaling anomalies</strong> — If workers scaled from 2→6, investigate why load spiked. Review workflows for inefficiencies.</label>
+        </div>
+      </div>
+
+      <h2>Backup & Disaster Recovery Strategy</h2>
+
+      <h3>What Needs Backing Up</h3>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Component</th>
+            <th>What to Backup</th>
+            <th>Frequency</th>
+            <th>Retention</th>
+            <th>RTO / RPO</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>PostgreSQL</strong></td>
+            <td>Full database dump (n8n_queue) + WAL logs</td>
+            <td>Daily (automated)</td>
+            <td>30 days</td>
+            <td>RTO: 1h | RPO: 15min</td>
+          </tr>
+          <tr>
+            <td><strong>N8N Encryption Key</strong></td>
+            <td>N8N_ENCRYPTION_KEY value</td>
+            <td>Once (save securely)</td>
+            <td>Forever</td>
+            <td>CRITICAL - store in vault</td>
+          </tr>
+          <tr>
+            <td><strong>Workflow Definitions</strong></td>
+            <td>N8N export (all workflows/credentials)</td>
+            <td>Weekly (automated)</td>
+            <td>12 weeks</td>
+            <td>RTO: 2h | RPO: 1 week</td>
+          </tr>
+          <tr>
+            <td><strong>.env Configuration</strong></td>
+            <td>Encrypted copy of .env file</td>
+            <td>When changed</td>
+            <td>30 days</td>
+            <td>RTO: 30min | RPO: 0</td>
+          </tr>
+          <tr>
+            <td><strong>Docker Compose Config</strong></td>
+            <td>docker-compose.yml + autoscale.sh</td>
+            <td>When changed</td>
+            <td>In Git</td>
+            <td>RTO: 10min | RPO: 0</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Backup Script</h3>
+
+      <p>Automate daily Postgres backups with this script:</p>
+
+      <pre><code>#!/bin/bash
+
+# N8N Queue Mode Backup Script
+# Run daily via cron
+
+BACKUP_DIR="/backups/n8n-queue"
+DB_CONTAINER="n8nq-postgres"
+DB_NAME="n8n_queue"
+DB_USER="n8n_queue"
+RETENTION_DAYS=30
+
+mkdir -p "$BACKUP_DIR"
+
+DATE=$(date +%Y%m%d_%H%M%S)
+BACKUP_FILE="$BACKUP_DIR/n8n_backup_${DATE}.sql.gz"
+ENCRYPTION_KEY_FILE="$BACKUP_DIR/.encryption_key"
+
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
+}
+
+# Backup Postgres
+log "Starting Postgres backup..."
+docker exec $DB_CONTAINER pg_dump \
+    -U $DB_USER \
+    -d $DB_NAME \
+    --no-password | gzip > "$BACKUP_FILE"
+
+if [ $? -eq 0 ]; then
+    SIZE=$(du -h "$BACKUP_FILE" | cut -f1)
+    log "✅ Backup complete: $SIZE ($BACKUP_FILE)"
+else
+    log "❌ Backup failed"
+    exit 1
+fi
+
+# Backup encryption key (if .env changed)
+ENV_FILE="/opt/n8n-queue-mode/.env"
+if [ -f "$ENV_FILE" ]; then
+    KEY=$(grep ^N8N_ENCRYPTION_KEY "$ENV_FILE" | cut -d= -f2)
+    echo "$KEY" > "$ENCRYPTION_KEY_FILE"
+    chmod 600 "$ENCRYPTION_KEY_FILE"
+fi
+
+# Clean up old backups
+log "Cleaning up backups older than ${RETENTION_DAYS} days..."
+find "$BACKUP_DIR" -name "n8n_backup_*.sql.gz" -mtime +${RETENTION_DAYS} -delete
+
+log "Backup job complete"
+</code></pre>
+
+      <div class="copy-hint">👉 Save as `/usr/local/bin/n8n-backup.sh`. Add to crontab: `0 2 * * * /usr/local/bin/n8n-backup.sh`</div>
+
+      <h3>Disaster Recovery Procedure: Postgres Corruption</h3>
+
+      <p><strong>Scenario:</strong> Postgres container crashes. Database corrupted. Need to restore from backup.</p>
+
+      <p><strong>Recovery Steps:</strong></p>
+
+      <pre><code># 1. Stop N8N services (don't let workers write to corrupted DB)
+cd /opt/n8n-queue-mode
+docker compose down
+
+# 2. Verify backup exists and is readable
+ls -lh /backups/n8n-queue/n8n_backup_*.sql.gz
+
+# 3. Start only Postgres (not main/workers yet)
+docker compose up -d n8nq-postgres
+
+# 4. Wait for Postgres to be ready
+sleep 10
+
+# 5. Drop the corrupted database
+docker exec n8nq-postgres dropdb -U n8n_queue n8n_queue
+
+# 6. Create a fresh database
+docker exec n8nq-postgres createdb -U n8n_queue -O n8n_queue n8n_queue
+
+# 7. Restore from backup (choose the LATEST backup)
+zcat /backups/n8n-queue/n8n_backup_20260529_020000.sql.gz | \
+    docker exec -i n8nq-postgres psql -U n8n_queue -d n8n_queue
+
+# 8. Verify restoration
+docker exec n8nq-postgres psql -U n8n_queue -d n8n_queue \
+    -c "SELECT COUNT(*) as incidents FROM incidents;"
+
+# Expected: Should show the incident count at backup time
+
+# 9. Start the full stack
+docker compose up -d
+
+# 10. Monitor logs
+docker compose logs -f n8nq-main | head -50
+</code></pre>
+
+      <h2>Troubleshooting: Common Issues & Solutions</h2>
+
+      <h3>Issue 1: Workers Not Executing Workflows</h3>
+
+      <p><strong>Symptom:</strong> Redis shows jobs in queue, but workers aren't processing them. Workflows sit pending for 10+ minutes.</p>
+
+      <p><strong>Debug:</strong></p>
+
+      <pre><code># Check if workers are running
+docker compose ps n8nq-worker
+
+# Check worker logs for errors
+docker compose logs n8nq-worker | grep -i error | head -20
+
+# Verify Redis connection from worker
+docker exec n8nq-worker redis-cli -h n8nq-redis -a $REDIS_PASSWORD ping
+
+# Check if EXECUTIONS_MODE=queue is set in workers
+docker exec n8nq-worker printenv | grep EXECUTIONS_MODE
+</code></pre>
+
+      <p><strong>Likely Causes & Fixes:</strong></p>
+
+      <ul>
+        <li><code>EXECUTIONS_MODE</code> not set on workers — Update <code>.env</code> and restart: <code>docker compose restart n8nq-worker</code></li>
+        <li>Redis password mismatch — Verify <code>QUEUE_BULL_REDIS_PASSWORD</code> in <code>.env</code> matches <code>REDIS_PASSWORD</code></li>
+        <li>Workers crashed on startup — Check logs: <code>docker compose logs n8nq-worker --tail=100</code></li>
+        <li>Encryption key mismatch — Main and workers must have identical <code>N8N_ENCRYPTION_KEY</code></li>
+      </ul>
+
+      <h3>Issue 2: Duplicate Incident IDs</h3>
+
+      <p><strong>Symptom:</strong> Two incidents with the same ID (e.g., both TSP-IR-202605-001). Should never happen with Postgres sequence, but indicates corruption.</p>
+
+      <p><strong>Debug:</strong></p>
+
+      <pre><code>docker exec n8nq-postgres psql -U n8n_queue -d n8n_queue << 'SQL'
+SELECT incident_id, COUNT(*) as cnt 
+FROM incidents 
+GROUP BY incident_id 
+HAVING COUNT(*) > 1
+ORDER BY cnt DESC;
+SQL
+</code></pre>
+
+      <p><strong>Fix:</strong></p>
+
+      <pre><code># Check the sequence value
+docker exec n8nq-postgres psql -U n8n_queue -d n8n_queue \
+    -c "SELECT nextval('incidents_seq');"
+
+# If sequence is behind (e.g., 500 but table has 600 rows):
+docker exec n8nq-postgres psql -U n8n_queue -d n8n_queue << 'SQL'
+SELECT setval('incidents_seq', (SELECT MAX(seq) FROM incidents));
+SQL
+
+# Verify
+docker exec n8nq-postgres psql -U n8n_queue -d n8n_queue \
+    -c "SELECT MAX(seq) FROM incidents;"
+</code></pre>
+
+      <h3>Issue 3: Postgres Connection Timeout</h3>
+
+      <p><strong>Symptom:</strong> Error: "connection timeout" in N8N logs. Workflows fail to insert into Postgres.</p>
+
+      <p><strong>Debug:</strong></p>
+
+      <pre><code># Check Postgres is running
+docker compose ps n8nq-postgres
+
+# Check active connections
+docker exec n8nq-postgres psql -U n8n_queue -d n8n_queue \
+    -c "SELECT count(*) FROM pg_stat_activity;"
+
+# Check max connections setting
+docker exec n8nq-postgres psql -U n8n_queue -d n8n_queue \
+    -c "SHOW max_connections;"
+</code></pre>
+
+      <p><strong>Likely Causes:</strong></p>
+
+      <ul>
+        <li>Too many workers (6+ workers × 5 concurrency = 30 connections). Default Postgres max is 100, but you want <80 active.</li>
+        <li>Long-running queries holding connections. Check for slow INSERT/UPDATE statements.</li>
+        <li>Connection pool exhaustion. N8N isn't releasing connections properly.</li>
+      </ul>
+
+      <p><strong>Fix:</strong></p>
+
+      <pre><code># Restart Postgres to reset connections
+docker compose restart n8nq-postgres
+
+# Or: reduce worker concurrency in .env
+N8N_CONCURRENCY_PRODUCTION_LIMIT=3  # down from 5
+
+# Or: increase Postgres max connections
+docker exec n8nq-postgres psql -U postgres -c \
+    "ALTER SYSTEM SET max_connections = 200;"
+docker compose restart n8nq-postgres
+</code></pre>
+
+      <h3>Issue 4: Redis Memory Full</h3>
+
+      <p><strong>Symptom:</strong> Error: "OOM command not allowed when used memory > 'maxmemory'" in logs. Queue not accepting new jobs.</p>
+
+      <p><strong>Debug:</strong></p>
+
+      <pre><code>docker exec n8nq-redis redis-cli -a $REDIS_PASSWORD info memory | grep used_memory
+
+# Expected: <200MB (we set maxmemory=256MB)
+</code></pre>
+
+      <p><strong>Cause:</strong> Queue is full. Jobs aren't being consumed (workers are slow or down). Pending jobs accumulate in Redis.</p>
+
+      <p><strong>Fix:</strong></p>
+
+      <pre><code># Quick: Clear the queue (loses pending jobs — only if needed)
+docker exec n8nq-redis redis-cli -a $REDIS_PASSWORD FLUSHALL
+
+# Better: Scale up workers
+docker compose up -d --scale n8nq-worker=6 --no-recreate
+
+# Best: Investigate slow workflows and optimize them
+# Check N8N execution times for > 5 second workflows
+</code></pre>
+
+      <h2>Security Hardening Checklist</h2>
+
+      <div class="warning-box">
+        <p><strong>⚠️ Before going to production, ensure:</strong></p>
+      </div>
+
+      <div class="checklist">
+        <div class="checklist-item">
+          <input type="checkbox" id="sec1">
+          <label for="sec1"><strong>Replace self-signed SSL certificate</strong> — Use a proper certificate from Let's Encrypt or your CA. Self-signed works for testing, not production.</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="sec2">
+          <label for="sec2"><strong>Restrict N8N port (5678)</strong> — Close to public internet. Only allow from your dashboard/SOC network.</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="sec3">
+          <label for="sec3"><strong>Restrict Postgres port (5433)</strong> — Never expose to public. Only Docker network access.</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="sec4">
+          <label for="sec4"><strong>Restrict Redis port (6380)</strong> — Only Docker network. No external access.</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="sec5">
+          <label for="sec5"><strong>Back up N8N_ENCRYPTION_KEY securely</strong> — Store in password manager, encrypted vault, or secure note. NOT in Git. NOT in plaintext.</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="sec6">
+          <label for="sec6"><strong>Use strong Postgres/Redis passwords</strong> — 20+ characters, random, no dictionary words.</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="sec7">
+          <label for="sec7"><strong>Enable Postgres SSL connections</strong> — Encrypt data in transit between N8N and Postgres.</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="sec8">
+          <label for="sec8"><strong>Set up access logging</strong> — Log all N8N API calls and Postgres queries for audit trail.</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="sec9">
+          <label for="sec9"><strong>Rotate credentials quarterly</strong> — Change Postgres/Redis passwords every 3 months.</label>
+        </div>
+      </div>
+
+      <h2>Performance Tuning for High-Volume Alerts</h2>
+
+      <h3>Workflow-Level Optimization</h3>
+
+      <ul>
+        <li><strong>Remove unnecessary nodes</strong> — Each node = latency. If a node isn't needed, delete it.</li>
+        <li><strong>Parallelize sub-workflows</strong> — Instead of email → Jira → Slack sequentially, execute them in parallel branches.</li>
+        <li><strong>Cache lookups</strong> — If whitelist check hits the same IPs repeatedly, cache the result.</li>
+        <li><strong>Batch database writes</strong> — Instead of 1 INSERT per workflow, accumulate 100 and bulk INSERT.</li>
+      </ul>
+
+      <h3>Infrastructure-Level Optimization</h3>
+
+      <ul>
+        <li><strong>Postgres indexing</strong> — Add indexes on frequently queried columns (incident_id, alert_name, severity).</li>
+        <li><strong>Postgres vacuum</strong> — Run VACUUM and ANALYZE nightly to defragment and update stats.</li>
+        <li><strong>Redis persistence tuning</strong> — Adjust <code>--appendfsync</code> from "always" to "everysec" for better throughput.</li>
+        <li><strong>Worker concurrency tuning</strong> — N8N_CONCURRENCY_PRODUCTION_LIMIT: 3 for CPU-heavy, 10 for I/O-heavy.</li>
+      </ul>
+
+      <h3>Monitoring Performance Trends</h3>
+
+      <pre><code># Weekly: Check average execution time trend
+docker exec n8nq-postgres psql -U n8n_queue -d n8n_queue << 'SQL'
+SELECT DATE(startedAt) as date,
+       ROUND(AVG(EXTRACT(EPOCH FROM (stoppedAt - startedAt))), 2) as avg_seconds,
+       COUNT(*) as executions
+FROM execution_entity
+WHERE startedAt > NOW() - INTERVAL '30 days'
+GROUP BY DATE(startedAt)
+ORDER BY date DESC;
+SQL
+
+# If trend is increasing (workflows getting slower), 
+# investigate workflow inefficiencies or infrastructure bottlenecks
+</code></pre>
+
+      <h2>Scaling Beyond 500 Alerts/Hour</h2>
+
+      <p>If you're processing >500 alerts/hour, the single-server setup becomes tight. Consider:</p>
+
+      <ul>
+        <li><strong>Separate Postgres onto its own server</strong> — Dedicate hardware to database. Current setup is colocated.</li>
+        <li><strong>Separate Redis onto its own server</strong> — Allows independent Redis tuning and monitoring.</li>
+        <li><strong>Run N8N main on one server, workers on 2-3 others</strong> — Distribute load. Main stays on one, workers scale horizontally.</li>
+        <li><strong>Use managed cloud services</strong> — RDS for Postgres, ElastiCache for Redis. Reduces ops burden.</li>
+        <li><strong>Multi-region setup</strong> — Primary region + standby. Failover on disaster.</li>
+      </ul>
+
+      <h2>Production Migration Checklist</h2>
+
+      <p>Moving from your current setup to queue mode? Use this:</p>
+
+      <div class="checklist">
+        <div class="checklist-item">
+          <input type="checkbox" id="migrate1">
+          <label for="migrate1">Deploy queue-mode stack on test server</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="migrate2">
+          <label for="migrate2">Export workflows from current N8N instance</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="migrate3">
+          <label for="migrate3">Import workflows into queue-mode instance</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="migrate4">
+          <label for="migrate4">Export credentials from current instance</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="migrate5">
+          <label for="migrate5">Recreate API keys/OAuth tokens in queue-mode instance</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="migrate6">
+          <label for="migrate6">Run all 3 test suites (load, regression, autoscale)</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="migrate7">
+          <label for="migrate7">Send test alerts to queue-mode webhook. Verify database/Jira/email</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="migrate8">
+          <label for="migrate8">Update webhook URL in Wazuh/SentinelOne to point to queue-mode</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="migrate9">
+          <label for="migrate9">Monitor for 24 hours. Check queue depth, error rates, performance</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="migrate10">
+          <label for="migrate10">Keep old instance running as fallback for 1 week</label>
+        </div>
+        <div class="checklist-item">
+          <input type="checkbox" id="migrate11">
+          <label for="migrate11">After 1 week, shut down old instance and archive backups</label>
+        </div>
+      </div>
+
+      <h2>Key Takeaways</h2>
+
+      <div class="success-box">
+        <p><strong>✅ You now have:</strong></p>
+        <ul style="margin:12px 0 0 20px;color:var(--green-t)">
+          <li>Complete 4-part architecture guide (Parts 1-4)</li>
+          <li>Real production workflows with JSON exports</li>
+          <li>Load testing scripts (500 concurrent alerts)</li>
+          <li>Regression testing for data consistency</li>
+          <li>Auto-scaling implementation (2-6 workers)</li>
+          <li>Backup and disaster recovery procedures</li>
+          <li>Troubleshooting guide for 4+ common issues</li>
+          <li>Security hardening checklist</li>
+          <li>Performance tuning recommendations</li>
+          <li>Production migration playbook</li>
+        </ul>
+      </div>
+
+      <h2>What This Architecture Powers</h2>
+
+      <p>This isn't just for Wazuh + SentinelOne. The same architecture works for:</p>
+
+      <ul>
+        <li>✅ Multi-source SIEM (Splunk, Elastic, Suricata)</li>
+        <li>✅ Cloud provider alerts (AWS GuardDuty, Azure Sentinel, GCP Security Command Center)</li>
+        <li>✅ Compliance automation (PCI, ISO 27001, SOC 2 reports)</li>
+        <li>✅ Real-time data pipelines (Kafka → normalization → warehouse)</li>
+        <li>✅ Multi-tenant integrations (Salesforce, HubSpot, Slack, custom APIs)</li>
+        <li>✅ Incident response automation (IP blocking, user account disable, endpoint isolation)</li>
+      </ul>
+
+      <p>The limiting factor is your server resources and workflow complexity. If you need to process 10,000+ events/hour, consider multi-server deployment or cloud-managed Postgres/Redis.</p>
+
+      <h2>Final Recommendations</h2>
+
+      <ul>
+        <li><strong>Start with 2 workers.</strong> Monitor for a week. Scale up only if needed.</li>
+        <li><strong>Always test before production.</strong> Run the load test suite on a staging server.</li>
+        <li><strong>Back up the encryption key.</strong> Losing it = all credentials unrecoverable.</li>
+        <li><strong>Monitor daily.</strong> A single command checking queue depth takes 30 seconds.</li>
+        <li><strong>Plan for failure.</strong> Postgres will crash. Redis will fill. A worker will die. Have recovery procedures.</li>
+        <li><strong>Iterate on workflows.</strong> Your first workflows won't be perfect. Measure, optimize, repeat.</li>
+      </ul>
+
+    </div>
+
+    <footer class="post-footer">
+      <div class="highlight-box" style="margin-top:40px">
+        <p><strong>🎓 Complete Learning Path</strong></p>
+        <p><strong>Part 1:</strong> Architecture & Real Problems<br>
+        <strong>Part 2:</strong> Workflows & Multi-Worker Execution<br>
+        <strong>Part 3:</strong> Load Testing & Auto-Scaling<br>
+        <strong>Part 4 (current):</strong> Operations & Disaster Recovery<br>
+        <br>Total: 98 minutes of reading | 50+ code examples | Real production data</p>
+      </div>
+
+      <div class="post-tags">
+        <span class="tag">Operations</span>
+        <span class="tag">Disaster Recovery</span>
+        <span class="tag">Troubleshooting</span>
+        <span class="tag">Security</span>
+        <span class="tag">Backup Strategy</span>
+        <span class="tag">Performance Tuning</span>
+        <span class="tag">Production Readiness</span>
+        <span class="tag">Migration Guide</span>
+      </div>
+
+      <div class="post-nav">
+        <a href="n8n-queue-mode-part-3.html" class="post-nav-link">← Part 3: Testing & Scaling</a>
+        <a href="blog/index.html" class="post-nav-link">All Posts →</a>
+      </div>
+    </footer>
+
+  </div>
+</article>
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <div class="footer-left">
+      <div class="footer-logo">Nitish <em>Som</em></div>
+      <div class="footer-copy">© 2025 · Built with focus on detection engineering</div>
+    </div>
+    <div class="footer-links">
+      <a href="topics/index.html">Topics</a>
+      <a href="roadmap.html">Roadmap</a>
+      <a href="sitemap.html">Sitemap</a>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/data.js"></script>
+<script>
+if(P.showAvailBadgeOnBlog)document.getElementById('avail-badge').style.display='flex';
+</script>
+
+</body>
+</html>
