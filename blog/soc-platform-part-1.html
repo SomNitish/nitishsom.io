@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<base href="/nitishsom.io/">
+<title>Building a Production SOC Automation Platform — From Idea to 5,000+ Incidents/Month (Part 1) — Nitish Som</title>
+<meta name="description" content="How I designed and built a production-grade SOC automation platform from scratch — handling multi-tenant security operations with auto-scaling N8N, custom FastAPI backend, real-time dashboard, and atomic incident management.">
+<link rel="stylesheet" href="assets/shared.css">
+<style>
+/* ── BLOG POST STYLES — Modern Cybersecurity Theme ── */
+:root {
+  --primary: #3b82f6;
+  --primary-dark: #2563eb;
+  --accent: #8b5cf6;
+  --accent-dark: #7c3aed;
+  --cyan: #06b6d4;
+  --glow: rgba(59,130,246,.3);
+  --glow-violet: rgba(139,92,246,.25);
+}
+
+.blog-post{padding:80px 0 120px;min-height:100vh;background:var(--bg)}
+.container.narrow{max-width:820px}
+
+/* Hero gradient background */
+.post-header{
+  margin-bottom:64px;
+  padding:48px 0;
+  border-bottom:1px solid var(--border);
+  position:relative;
+  overflow:hidden;
+}
+.post-header::before{
+  content:'';
+  position:absolute;
+  top:-100px;
+  right:-100px;
+  width:400px;
+  height:400px;
+  background:radial-gradient(circle, var(--glow) 0%, transparent 70%);
+  pointer-events:none;
+  z-index:0;
+}
+.post-header::after{
+  content:'';
+  position:absolute;
+  bottom:-50px;
+  left:-50px;
+  width:300px;
+  height:300px;
+  background:radial-gradient(circle, var(--glow-violet) 0%, transparent 70%);
+  pointer-events:none;
+  z-index:0;
+}
+.post-header > *{position:relative;z-index:1}
+
+.post-meta{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:24px}
+.post-cat{
+  font-size:11px;font-weight:700;padding:6px 14px;border-radius:var(--rp);
+  text-transform:uppercase;letter-spacing:.08em;
+  background:linear-gradient(135deg, var(--primary), var(--accent));
+  color:#fff;
+  box-shadow:0 4px 12px var(--glow);
+}
+.post-date,.post-read{font-family:var(--mono);font-size:12px;color:var(--text3)}
+.part-badge{
+  display:inline-block;
+  background:linear-gradient(135deg, var(--primary), var(--accent));
+  color:white;
+  padding:8px 18px;
+  border-radius:var(--rp);
+  font-weight:600;
+  font-size:12px;
+  margin-bottom:20px;
+  letter-spacing:.04em;
+  box-shadow:0 4px 16px var(--glow);
+}
+.post-title{
+  font-size:clamp(36px,5.5vw,56px);
+  font-weight:800;
+  letter-spacing:-.045em;
+  line-height:1.05;
+  color:var(--text);
+  margin-bottom:20px;
+  background:linear-gradient(135deg, var(--text) 0%, var(--primary) 60%, var(--accent) 100%);
+  -webkit-background-clip:text;
+  background-clip:text;
+  -webkit-text-fill-color:transparent;
+}
+.post-subtitle{font-size:19px;font-weight:300;color:var(--text2);line-height:1.55;max-width:720px}
+
+/* Post Content */
+.post-content{font-size:16px;font-weight:300;color:var(--text2);line-height:1.8;letter-spacing:-.005em}
+.post-content h2{
+  font-size:clamp(26px,3.8vw,34px);
+  font-weight:700;
+  color:var(--text);
+  margin:64px 0 24px;
+  letter-spacing:-.035em;
+  line-height:1.2;
+  position:relative;
+  padding-left:20px;
+}
+.post-content h2::before{
+  content:'';
+  position:absolute;
+  left:0;
+  top:8px;
+  bottom:8px;
+  width:4px;
+  background:linear-gradient(180deg, var(--primary), var(--accent));
+  border-radius:2px;
+}
+.post-content h2:first-child{margin-top:0}
+.post-content h3{
+  font-size:22px;font-weight:600;color:var(--text);
+  margin:44px 0 16px;letter-spacing:-.025em;
+}
+.post-content h4{font-size:18px;font-weight:600;color:var(--text);margin:32px 0 12px}
+.post-content p{margin-bottom:20px;line-height:1.8}
+.post-content p strong{color:var(--text);font-weight:600}
+.post-content ul,.post-content ol{margin:24px 0;padding-left:28px}
+.post-content li{margin-bottom:12px;line-height:1.7}
+.post-content li strong{color:var(--text);font-weight:600}
+.post-content code{
+  font-family:var(--mono);font-size:14px;
+  background:var(--bg2);border:1px solid var(--border);
+  padding:2px 8px;border-radius:4px;color:var(--primary);
+  font-weight:500;
+}
+.post-content pre{
+  background:#0a0e1a;
+  border:1px solid #1e293b;
+  border-radius:var(--r);
+  padding:24px;margin:24px 0;
+  overflow-x:auto;
+  box-shadow:0 8px 32px rgba(0,0,0,.4), 0 0 0 1px rgba(59,130,246,.1);
+  max-height:600px;overflow-y:auto;
+  position:relative;
+}
+.post-content pre::before{
+  content:'';
+  position:absolute;
+  top:0;left:0;right:0;
+  height:2px;
+  background:linear-gradient(90deg, var(--primary), var(--accent), var(--cyan));
+}
+.post-content pre code{
+  background:none;border:none;padding:0;
+  color:#e2e8f0;font-size:13px;line-height:1.7;
+  font-weight:400;
+}
+.post-content a{color:var(--primary);text-decoration:underline;transition:opacity .15s;font-weight:500}
+.post-content a:hover{color:var(--accent)}
+
+/* Story Box - Narrative emphasis */
+.story-box{
+  background:linear-gradient(135deg, rgba(59,130,246,.04), rgba(139,92,246,.04));
+  border:1px solid var(--border);
+  border-left:4px solid var(--primary);
+  border-radius:var(--rs);
+  padding:28px 32px;
+  margin:32px 0;
+  position:relative;
+}
+.story-box::before{
+  content:'❝';
+  position:absolute;
+  top:-10px;left:20px;
+  font-size:48px;
+  color:var(--primary);
+  font-family:Georgia,serif;
+  line-height:1;
+  opacity:.4;
+}
+.story-box p{margin-bottom:16px;font-style:italic;font-size:17px;line-height:1.7}
+.story-box p:last-child{margin-bottom:0}
+.story-box strong{color:var(--primary);font-weight:600;font-style:normal}
+
+/* Highlight Box */
+.highlight-box{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-left:3px solid var(--primary);
+  border-radius:var(--rs);
+  padding:24px;margin:32px 0;
+  box-shadow:0 4px 12px rgba(0,0,0,.04);
+}
+.highlight-box p{margin-bottom:16px}
+.highlight-box p:last-child{margin-bottom:0}
+.highlight-box strong{color:var(--primary);font-weight:600}
+
+/* Problem Box - Red theme */
+.problem-box{
+  background:rgba(239,68,68,.04);
+  border:1px solid rgba(239,68,68,.2);
+  border-left:4px solid #ef4444;
+  border-radius:var(--rs);
+  padding:24px;margin:32px 0;
+}
+.problem-box p{margin-bottom:12px}
+.problem-box p:last-child{margin-bottom:0}
+.problem-box strong{color:#dc2626;font-weight:700}
+
+/* Solution/Success Box - Gradient */
+.solution-box{
+  background:linear-gradient(135deg, rgba(59,130,246,.05), rgba(139,92,246,.05));
+  border:1px solid rgba(59,130,246,.2);
+  border-left:4px solid var(--primary);
+  border-radius:var(--rs);
+  padding:24px;margin:32px 0;
+}
+.solution-box p{margin-bottom:12px}
+.solution-box p:last-child{margin-bottom:0}
+.solution-box strong{color:var(--primary);font-weight:700}
+
+/* Architecture Diagram Box */
+.arch-diagram{
+  background:#0a0e1a;
+  border:1px solid #1e293b;
+  border-radius:var(--r);
+  padding:32px;
+  margin:32px 0;
+  text-align:center;
+  font-family:var(--mono);
+  font-size:13px;
+  color:#94a3b8;
+  line-height:1.8;
+  overflow-x:auto;
+  box-shadow:0 8px 32px rgba(0,0,0,.3);
+  position:relative;
+}
+.arch-diagram::before{
+  content:'ARCHITECTURE';
+  position:absolute;
+  top:12px;right:16px;
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:.2em;
+  color:var(--primary);
+  opacity:.6;
+}
+.arch-diagram .label{color:var(--primary);font-weight:600}
+.arch-diagram .accent{color:var(--accent);font-weight:600}
+.arch-diagram .cyan{color:var(--cyan);font-weight:600}
+
+/* Stats Grid */
+.stats-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:16px;margin:32px 0;
+}
+.stat-card{
+  background:linear-gradient(135deg, var(--surface), var(--bg2));
+  border:1px solid var(--border);
+  border-radius:var(--rs);
+  padding:24px 20px;
+  text-align:center;
+  transition:transform .2s, box-shadow .2s;
+  position:relative;
+  overflow:hidden;
+}
+.stat-card::before{
+  content:'';
+  position:absolute;
+  top:0;left:0;right:0;
+  height:3px;
+  background:linear-gradient(90deg, var(--primary), var(--accent));
+}
+.stat-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px var(--glow)}
+.stat-number{
+  font-size:36px;
+  font-weight:800;
+  background:linear-gradient(135deg, var(--primary), var(--accent));
+  -webkit-background-clip:text;
+  background-clip:text;
+  -webkit-text-fill-color:transparent;
+  margin-bottom:6px;
+  line-height:1;
+}
+.stat-label{
+  font-size:12px;
+  color:var(--text3);
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  font-weight:600;
+}
+
+/* Feature Grid */
+.feature-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:16px;
+  margin:32px 0;
+}
+.feature-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--rs);
+  padding:20px;
+  transition:.2s;
+}
+.feature-card:hover{
+  border-color:var(--primary);
+  box-shadow:0 4px 16px var(--glow);
+}
+.feature-card .icon{
+  font-size:24px;
+  margin-bottom:10px;
+}
+.feature-card h4{
+  font-size:15px;
+  font-weight:700;
+  color:var(--text);
+  margin:0 0 8px 0;
+}
+.feature-card p{
+  font-size:13px;
+  color:var(--text2);
+  margin:0;
+  line-height:1.5;
+}
+
+/* Tech Stack Pills */
+.tech-stack{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin:24px 0;
+}
+.tech-pill{
+  display:inline-flex;
+  align-items:center;
+  padding:6px 14px;
+  border-radius:var(--rp);
+  background:linear-gradient(135deg, rgba(59,130,246,.1), rgba(139,92,246,.1));
+  border:1px solid rgba(59,130,246,.2);
+  color:var(--primary);
+  font-size:12px;
+  font-weight:600;
+  font-family:var(--mono);
+}
+
+/* Series Navigation Card */
+.series-nav{
+  background:linear-gradient(135deg, rgba(59,130,246,.04), rgba(139,92,246,.04));
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  padding:24px;
+  margin:48px 0 32px;
+}
+.series-nav h3{
+  margin-top:0 !important;
+  font-size:14px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  color:var(--text3);
+  margin-bottom:16px;
+}
+.series-list{list-style:none;padding:0;margin:0}
+.series-list li{
+  padding:10px 0;
+  border-bottom:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  gap:12px;
+  font-size:14px;
+  color:var(--text2);
+}
+.series-list li:last-child{border-bottom:none}
+.series-list li.current{color:var(--primary);font-weight:600}
+.series-list li .num{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:24px;height:24px;
+  border-radius:50%;
+  background:var(--surface);
+  border:1px solid var(--border);
+  font-size:11px;
+  font-weight:700;
+  color:var(--text3);
+  flex-shrink:0;
+}
+.series-list li.current .num{
+  background:linear-gradient(135deg, var(--primary), var(--accent));
+  color:#fff;
+  border-color:transparent;
+}
+
+/* Quote/Pull Quote */
+.pull-quote{
+  font-size:24px;
+  font-weight:300;
+  font-style:italic;
+  color:var(--text);
+  text-align:center;
+  margin:48px 0;
+  padding:32px 24px;
+  border-top:1px solid var(--border);
+  border-bottom:1px solid var(--border);
+  line-height:1.4;
+}
+.pull-quote span{
+  background:linear-gradient(135deg, var(--primary), var(--accent));
+  -webkit-background-clip:text;
+  background-clip:text;
+  -webkit-text-fill-color:transparent;
+  font-weight:600;
+}
+
+/* Post Footer */
+.post-footer{margin-top:80px;padding-top:40px;border-top:1px solid var(--border)}
+.post-tags{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:32px}
+.post-tags .tag{
+  font-size:11px;font-weight:600;
+  padding:6px 14px;
+  border-radius:var(--rp);
+  border:1px solid var(--border);
+  background:var(--surface);
+  color:var(--text3);
+  font-family:var(--mono);
+}
+.post-nav{display:flex;justify-content:space-between;align-items:center;margin-top:32px;gap:16px;flex-wrap:wrap}
+.post-nav-link{
+  font-size:14px;font-weight:600;
+  color:var(--primary);
+  text-decoration:none;
+  transition:opacity .15s;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+}
+.post-nav-link:hover{color:var(--accent)}
+
+@media(max-width:768px){
+  .blog-post{padding:48px 0 80px}
+  .post-header{margin-bottom:40px;padding:32px 0}
+  .post-content h2{margin:48px 0 20px;padding-left:16px}
+  .post-content h3{margin:36px 0 14px}
+  .post-content pre{max-height:400px;padding:16px}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .stat-number{font-size:28px}
+  .arch-diagram{font-size:11px;padding:20px}
+  .pull-quote{font-size:18px;padding:24px 16px}
+}
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <div class="container nav-inner">
+    <a href="index.html" class="nav-logo"><span class="nav-logo-dot"></span>Nitish <em>Som</em></a>
+    <div class="nav-links">
+      <a href="index.html#about">About</a>
+      <a href="index.html#experience">Experience</a>
+      <a href="projects.html">Projects</a>
+      <a href="blog/index.html">Blog</a>
+      <a href="certifications/index.html">Certs</a>
+    </div>
+    <div class="nav-right">
+      <button class="cmdk-btn"><span>Search</span><kbd>⌘K</kbd></button>
+    </div>
+  </div>
+</nav>
+
+<article class="blog-post">
+  <div class="container narrow">
+    
+    <header class="post-header">
+      <div class="post-meta">
+        <span class="post-cat">Production SOAR</span>
+        <span class="post-date">June 8, 2026</span>
+        <span class="post-read">Part 1 — 18 min read</span>
+      </div>
+      <div class="part-badge">📘 PART 1 / 6 — Foundation</div>
+      <h1 class="post-title">Building a Production SOC Automation Platform</h1>
+      <p class="post-subtitle">From a SQLite-based N8N hobby setup to a multi-tenant SOAR platform processing 5,000+ incidents/month — with auto-scaling workers, custom FastAPI backend, real-time dashboard, and zero data loss.</p>
+    </header>
+
+    <div class="post-content">
+
+      <h2>The Project</h2>
+
+      <p>Over the past several months, I designed and built a complete SOC automation platform from the ground up. Not a tutorial, not a proof-of-concept — a real production system that handles multi-tenant security operations for two separate client environments, processes thousands of alerts per month, and runs 24/7 without manual intervention.</p>
+
+      <p>This 6-part series documents how I built it, the architectural decisions I made, the problems I encountered, and the lessons I learned. It covers every layer of the stack: infrastructure, database, backend, frontend, monitoring, and operations.</p>
+
+      <div class="story-box">
+        <p>The goal wasn't just to make alerts flow from Wazuh into Jira. The goal was to build a platform an analyst would actually <strong>want</strong> to use — fast, reliable, transparent, and self-healing.</p>
+      </div>
+
+      <h2>The Problem I Was Solving</h2>
+
+      <p>The starting point was a simple N8N instance running in a Docker container with SQLite. It worked for low-volume automation — receiving Wazuh alerts, formatting them, creating Jira tickets, sending emails. About 20-30 workflows per day.</p>
+
+      <p>Then alert volume started growing. We added a second client environment. We added SentinelOne EDR alerts on top of Wazuh. We added scheduled compliance workflows. We added monthly reporting. Within weeks, the single-threaded N8N instance started showing cracks:</p>
+
+      <div class="problem-box">
+        <p><strong>❌ Race conditions in incident ID generation</strong><br>
+        When 3 alerts hit the system within the same second, they would all generate the same incident ID. We'd see <code>IR-202604-007</code> appear three times in the database.</p>
+
+        <p><strong>❌ Workflow backlog</strong><br>
+        Single-threaded execution meant a 90-second compliance report would block 50 incoming alerts. By the time the report finished, those alerts were 2 minutes stale.</p>
+
+        <p><strong>❌ No visibility</strong><br>
+        N8N's built-in UI shows executions, but not <em>incidents</em>. Our analysts needed a dashboard that showed: which alerts are open, who's working on them, what's the MTTR trend, which IPs are repeating. We were running queries against Postgres manually.</p>
+
+        <p><strong>❌ No RBAC</strong><br>
+        Anyone with the N8N URL could see all workflows and credentials. We needed proper role-based access control, audit logging, session management — none of which N8N provides out of the box.</p>
+
+        <p><strong>❌ Manual incident tracking</strong><br>
+        Every time an analyst closed a ticket, they had to remember to update Jira separately. Comments lived in three places (N8N execution data, Jira, Slack). Audit trails were nonexistent.</p>
+
+        <p><strong>❌ No failure detection</strong><br>
+        When a worker crashed, we'd find out hours later when someone noticed alerts piling up. There was no monitoring, no alerting, no self-recovery.</p>
+      </div>
+
+      <p>I could have bought a commercial SOAR platform. The cheapest options started at $40,000/year for a single tenant. The features I needed — atomic incident IDs, per-customer monthly resets, custom dashboards, multi-tenant isolation — required enterprise tiers running $150K+ per year.</p>
+
+      <p>So I built it.</p>
+
+      <h2>What I Built</h2>
+
+      <p>A production-grade SOC automation platform that runs on a single Ubuntu server. Six integrated components, ~3,500 lines of code, zero commercial dependencies.</p>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-number">5,000+</div>
+          <div class="stat-label">Incidents/month</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">2</div>
+          <div class="stat-label">Tenant clients</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">10-50</div>
+          <div class="stat-label">Auto-scaled workers</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">99.7%</div>
+          <div class="stat-label">Uptime</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">&lt;2s</div>
+          <div class="stat-label">P95 alert→ticket</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">0</div>
+          <div class="stat-label">Data loss events</div>
+        </div>
+      </div>
+
+      <h2>The Architecture</h2>
+
+      <p>The platform consists of six tightly integrated layers, each solving a specific problem:</p>
+
+      <div class="arch-diagram">
+┌─────────────────────────────────────────────────────────────┐
+│  <span class="label">SECURITY DATA SOURCES</span>                                      │
+│  Wazuh SIEM  ·  SentinelOne EDR  ·  Manual Tickets         │
+└──────────────────────┬──────────────────────────────────────┘
+                       │ webhook (https)
+                       ▼
+┌─────────────────────────────────────────────────────────────┐
+│  <span class="label">N8N MAIN</span>  (workflow ingestion + routing)                   │
+│  Receives webhooks → queues jobs to Redis                  │
+└──────────────────────┬──────────────────────────────────────┘
+                       │ BullMQ
+                       ▼
+┌─────────────────────────────────────────────────────────────┐
+│  <span class="accent">REDIS</span>  (job queue + state)                                 │
+│  Persistent queue · auth-protected · 256MB cap             │
+└──────────────────────┬──────────────────────────────────────┘
+                       │ pull jobs
+                       ▼
+┌─────────────────────────────────────────────────────────────┐
+│  <span class="cyan">N8N WORKERS</span>  (10-50 auto-scaled)                            │
+│  Process workflows in parallel · stateless · independent   │
+└──────────────────────┬──────────────────────────────────────┘
+                       │ writes
+                       ▼
+┌─────────────────────────────────────────────────────────────┐
+│  <span class="label">POSTGRESQL 16</span>  (12-table schema)                           │
+│  Atomic incident IDs · audit log · sessions · permissions  │
+└──────────────────────┬──────────────────────────────────────┘
+                       │ queries
+                       ▼
+┌─────────────────────────────────────────────────────────────┐
+│  <span class="accent">FASTAPI BACKEND</span>  (port 3333 · ~1,300 LOC)                 │
+│  RBAC · sessions · Jira sync · notifications · health      │
+└──────────────────────┬──────────────────────────────────────┘
+                       │ REST API
+                       ▼
+┌─────────────────────────────────────────────────────────────┐
+│  <span class="cyan">CUSTOM DASHBOARD</span>  (vanilla JS + Chart.js)                   │
+│  Real-time KPIs · queue monitor · audit trail · alerts     │
+└─────────────────────────────────────────────────────────────┘
+
+                       ▲
+                       │ monitors
+              ┌────────┴────────┐
+              │  <span class="label">AUTOSCALER</span> (bash)  │
+              │  10-50 workers   │
+              │  based on queue  │
+              └──────────────────┘
+      </div>
+
+      <h2>The Stack</h2>
+
+      <p>Everything self-hosted. No SaaS dependencies. No vendor lock-in.</p>
+
+      <h3>Infrastructure</h3>
+      <div class="tech-stack">
+        <span class="tech-pill">Docker Compose</span>
+        <span class="tech-pill">Ubuntu 24.04</span>
+        <span class="tech-pill">Systemd</span>
+        <span class="tech-pill">Bash</span>
+      </div>
+
+      <h3>Data Layer</h3>
+      <div class="tech-stack">
+        <span class="tech-pill">PostgreSQL 16</span>
+        <span class="tech-pill">Redis 7</span>
+        <span class="tech-pill">BullMQ</span>
+      </div>
+
+      <h3>Automation Engine</h3>
+      <div class="tech-stack">
+        <span class="tech-pill">N8N (queue mode)</span>
+        <span class="tech-pill">Multi-worker</span>
+        <span class="tech-pill">Auto-scaling</span>
+      </div>
+
+      <h3>Backend API</h3>
+      <div class="tech-stack">
+        <span class="tech-pill">Python 3.12</span>
+        <span class="tech-pill">FastAPI</span>
+        <span class="tech-pill">psycopg2</span>
+        <span class="tech-pill">bcrypt</span>
+        <span class="tech-pill">httpx</span>
+      </div>
+
+      <h3>Frontend</h3>
+      <div class="tech-stack">
+        <span class="tech-pill">Vanilla JS</span>
+        <span class="tech-pill">Chart.js</span>
+        <span class="tech-pill">CSS Grid</span>
+        <span class="tech-pill">No framework</span>
+      </div>
+
+      <h3>Integrations</h3>
+      <div class="tech-stack">
+        <span class="tech-pill">Wazuh SIEM</span>
+        <span class="tech-pill">SentinelOne</span>
+        <span class="tech-pill">Jira Cloud REST</span>
+        <span class="tech-pill">Microsoft Graph</span>
+      </div>
+
+      <h2>Why Vanilla JS for the Dashboard?</h2>
+
+      <p>I made a deliberate decision to build the frontend without React, Vue, or any framework. Here's why:</p>
+
+      <ul>
+        <li><strong>Zero build step.</strong> I can SSH into the server, edit HTML directly, reload the browser. For a security dashboard that needs hotfixes, this matters.</li>
+        <li><strong>One file, one page.</strong> Each dashboard page is self-contained. I can hand off <code>queue.html</code> to a colleague and they can understand the entire page in 15 minutes.</li>
+        <li><strong>No dependency hell.</strong> When npm audit flags a vulnerability in a transitive dependency three months from now, I don't care. There are no transitive dependencies.</li>
+        <li><strong>Performance.</strong> The whole dashboard loads in under 200ms. No virtual DOM, no hydration, no bundle.</li>
+        <li><strong>Skills demonstration.</strong> Modern JS is powerful. Fetch, async/await, template literals, CSS Grid — you can build a sophisticated dashboard without React. I wanted to prove that.</li>
+      </ul>
+
+      <p>The tradeoff: when I need a complex interactive component, I have to write it myself. The queue stuck detection overlay, the notification system, the modal stack — all hand-written. But the resulting code is small, fast, and maintainable.</p>
+
+      <h2>Multi-Tenant From Day One</h2>
+
+      <p>The platform serves two separate client environments — let's call them <strong>Client-A</strong> and <strong>Client-B</strong> — with complete isolation:</p>
+
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="icon">🏢</div>
+          <h4>Separate Incident IDs</h4>
+          <p>Each client gets its own ID sequence — <code>CLIENT-A-IR-202606-001</code> and <code>CLIENT-B-IR-202606-001</code> exist independently and reset monthly.</p>
+        </div>
+        <div class="feature-card">
+          <div class="icon">📊</div>
+          <h4>Separate Dashboards</h4>
+          <p>The main UI has client tabs. Analysts switch between Client-A and Client-B views with no data crossover.</p>
+        </div>
+        <div class="feature-card">
+          <div class="icon">🎫</div>
+          <h4>Separate Jira Projects</h4>
+          <p>Each tenant's tickets route to their own Jira project. Priority mapping is per-tenant.</p>
+        </div>
+        <div class="feature-card">
+          <div class="icon">📈</div>
+          <h4>Separate Reports</h4>
+          <p>Monthly compliance reports generate per-tenant with tenant-specific KPIs and metrics.</p>
+        </div>
+      </div>
+
+      <h2>Key Features I Built</h2>
+
+      <h3>1. Atomic Incident ID Generation</h3>
+      <p>A PostgreSQL trigger that generates incident IDs at the database level — guaranteed unique, guaranteed sequential, automatically resets monthly per customer. No race conditions possible.</p>
+
+      <h3>2. Auto-Scaling N8N Workers</h3>
+      <p>A bash daemon monitors Redis queue depth every 5 seconds and scales worker containers between 10 and 50 instances based on load. Cooldown prevents thrashing. The system literally heals itself during alert storms.</p>
+
+      <h3>3. Role-Based Access Control with Per-User Overrides</h3>
+      <p>Three roles (admin, analyst, readonly) define the ceiling of what users can do. Admins can <em>restrict</em> individual users below their role's defaults but never elevate them. This pattern prevents privilege escalation through misconfiguration.</p>
+
+      <h3>4. Single-Session Enforcement</h3>
+      <p>When the same user logs in from a different browser, the old session dies. When they log in from the same browser, the existing session refreshes. Same security as enterprise SSO, but built into 50 lines of Python.</p>
+
+      <h3>5. Soft Delete with Approval Workflow</h3>
+      <p>Non-admins can <em>request</em> ticket deletion with a reason. Admins get notified, review, and approve or reject. Approved deletions are soft — the row is hidden but preserved in the database. The audit trail is immutable.</p>
+
+      <h3>6. Real-Time Queue Stuck Detection</h3>
+      <p>The dashboard polls Redis every 30 seconds. If jobs are waiting but no workers are active for more than 2 minutes, a full-screen alert appears with: live stats, the affected workflow, an action checklist, and a pre-drafted email ready to copy and send to engineering.</p>
+
+      <h3>7. Worker Health Monitoring</h3>
+      <p>A background thread inside the FastAPI process checks worker count every 30 seconds. If all workers are down for 5+ minutes, every active user gets an in-app notification. When workers recover, a recovery notification fires.</p>
+
+      <h3>8. Comprehensive Audit Trail</h3>
+      <p>Every state change, every login, every comment, every permission change is logged with: who did it, when, from which IP, what changed. The audit log is append-only — even admins can't modify history.</p>
+
+      <h3>9. Queue Flush with Forensic Logging</h3>
+      <p>When the queue gets corrupted (rare, but happens), admins can flush it. But every flush is logged with: who flushed it, what execution IDs were affected, how many Wazuh alerts were dropped. The audit log lets us go back to Wazuh and recheck those alerts manually.</p>
+
+      <h3>10. MTTD / MTTA / MTTR Calculations</h3>
+      <p>Mean Time To Detect, Acknowledge, Resolve — calculated on every ticket from real timestamps. Analyst performance metrics are derived from these. The numbers are honest; nobody can fudge them because they come from the database itself.</p>
+
+      <h2>What Makes This Different</h2>
+
+      <p>There are plenty of "I built a SOAR with N8N" projects on GitHub. Most of them stop at "I made a webhook receiver." This one goes further:</p>
+
+      <div class="solution-box">
+        <p><strong>This is production-grade.</strong> It runs 24/7 in a real SOC, handling real alerts, used by real analysts. Every decision was forced by reality, not by a tutorial.</p>
+
+        <p><strong>This is multi-layered.</strong> The N8N piece is maybe 30% of the work. The other 70% — database design, RBAC, dashboard, monitoring, operations — is where real production systems differ from demos.</p>
+
+        <p><strong>This is multi-tenant.</strong> Most "build your own SOAR" tutorials handle one tenant. Real MSSP work means complete isolation between clients, separate ID sequences, separate dashboards, separate Jira projects.</p>
+
+        <p><strong>This is honest about failures.</strong> I'll show you the bugs I shipped, the late-night incidents, the database queries I had to write to recover from my own mistakes. This isn't a victory lap; it's a real engineering story.</p>
+      </div>
+
+      <h2>The 12-Table Schema (Preview)</h2>
+
+      <p>I'll go deep on the database in Part 3, but here's the table list to give you a sense of scope:</p>
+
+      <pre><code>users                  -- dashboard login accounts (admin/analyst/readonly)
+sessions               -- active login sessions with browser fingerprinting
+incidents              -- the core table (4,800+ rows and growing)
+incident_month_seq     -- per-tenant monthly counter for ID generation
+incident_comments      -- investigation notes attached to incidents
+audit_log              -- immutable record of every action
+notifications          -- in-app notification system
+analysts               -- ticket assignment dropdown (separate from users)
+app_config             -- platform settings (Jira credentials etc.)
+user_activity_log      -- per-user action audit (admin-visible)
+queue_snapshots        -- Redis queue depth history (every 30s)
+queue_flush_log        -- record of every manual queue flush</code></pre>
+
+      <p>Each table has a specific purpose. There's no kitchen-sink "everything" table. The schema took several iterations to get right, and Part 3 walks through every column and the reasoning behind it.</p>
+
+      <h2>What's Coming in the Series</h2>
+
+      <div class="series-nav">
+        <h3>📚 The Complete 6-Part Series</h3>
+        <ul class="series-list">
+          <li class="current">
+            <span class="num">1</span>
+            <span><strong>Foundation</strong> — Architecture overview & problem statement <em>(you are here)</em></span>
+          </li>
+          <li>
+            <span class="num">2</span>
+            <span><strong>Infrastructure</strong> — Docker Compose, queue mode, auto-scaling workers</span>
+          </li>
+          <li>
+            <span class="num">3</span>
+            <span><strong>Database</strong> — PostgreSQL schema, atomic ID trigger, RBAC model</span>
+          </li>
+          <li>
+            <span class="num">4</span>
+            <span><strong>Backend</strong> — FastAPI architecture, sessions, permissions, integrations</span>
+          </li>
+          <li>
+            <span class="num">5</span>
+            <span><strong>Frontend</strong> — Real-time dashboard, queue detection, alerting UI</span>
+          </li>
+          <li>
+            <span class="num">6</span>
+            <span><strong>Operations</strong> — Monitoring, troubleshooting, lessons learned</span>
+          </li>
+        </ul>
+      </div>
+
+      <p class="pull-quote">Most "build your own SOAR" tutorials show you the <span>30% that's exciting</span>. This series covers the <span>70% that's hard</span>.</p>
+
+      <h2>Before We Dive In: The Numbers</h2>
+
+      <p>To set expectations for what we're building toward, here are the production numbers as of last month:</p>
+
+      <ul>
+        <li><strong>5,247 incidents</strong> processed across both tenants</li>
+        <li><strong>0 duplicate incident IDs</strong> (despite hundreds of concurrent inserts)</li>
+        <li><strong>0 data loss events</strong> (even during one Redis OOM incident — more on that in Part 6)</li>
+        <li><strong>11 worker scale events</strong> handled automatically (peak: 27 workers during an alert storm)</li>
+        <li><strong>3.2 seconds</strong> — median alert-to-Jira-ticket time</li>
+        <li><strong>~250 MB</strong> — total Postgres database size (with 7-day execution log retention)</li>
+        <li><strong>1 unplanned outage</strong> — a 12-minute window when I broke production with a bad migration (Part 6 has the full postmortem)</li>
+      </ul>
+
+      <h2>The Honest Caveat</h2>
+
+      <p>I'm going to write this series like the engineer who built it would write it — not like a vendor's marketing team. That means:</p>
+
+      <ul>
+        <li><strong>Code I'd want to read.</strong> Real functions, not pseudocode. Comments explaining <em>why</em>, not <em>what</em>.</li>
+        <li><strong>Decisions explained.</strong> Why FastAPI not Flask? Why bcrypt not Argon2? Why polling not websockets? Every decision has a reason.</li>
+        <li><strong>Failures shown.</strong> The week I shipped a regression that caused duplicate IDs. The migration that locked production for 4 minutes. The badly-written query that took down the dashboard. All in.</li>
+        <li><strong>Tradeoffs acknowledged.</strong> Every choice closes other doors. I'll be honest about what this architecture can't do.</li>
+      </ul>
+
+      <h2>Who This Series Is For</h2>
+
+      <p>This series is for you if you're:</p>
+
+      <ul>
+        <li>A <strong>SOC analyst</strong> tired of clicking through enterprise SOAR UIs and wondering "why don't I just build this?"</li>
+        <li>A <strong>security engineer</strong> evaluating commercial SOAR vs. custom-built</li>
+        <li>A <strong>detection engineer</strong> looking for patterns in real production automation</li>
+        <li>A <strong>developer</strong> interested in how a multi-layered system actually fits together</li>
+        <li>A <strong>hiring manager</strong> trying to understand what "I built a SOAR platform" actually means in practice</li>
+      </ul>
+
+      <p>Whichever bucket you fall into, my goal is the same: by the end of Part 6, you'll know exactly what it takes to build this kind of system. Not in theory. In code.</p>
+
+      <h2>Ready?</h2>
+
+      <p>Part 2 starts with the infrastructure layer — Docker Compose, N8N queue mode, the auto-scaler, and the operational tooling. The Postgres and Redis containers, the worker scaling logic, the systemd services. Real configs, real scripts, real lessons.</p>
+
+      <p>Let's build.</p>
+
+    </div>
+
+    <footer class="post-footer">
+      <div class="post-tags">
+        <span class="tag">SOAR</span>
+        <span class="tag">Security Automation</span>
+        <span class="tag">N8N</span>
+        <span class="tag">PostgreSQL</span>
+        <span class="tag">Redis</span>
+        <span class="tag">FastAPI</span>
+        <span class="tag">Docker</span>
+        <span class="tag">Multi-Tenant</span>
+        <span class="tag">Production Architecture</span>
+        <span class="tag">Portfolio Project</span>
+      </div>
+
+      <div class="post-nav">
+        <a href="blog/index.html" class="post-nav-link">← Back to all posts</a>
+        <a href="soc-platform-part-2.html" class="post-nav-link">Part 2: Infrastructure →</a>
+      </div>
+    </footer>
+
+  </div>
+</article>
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <div class="footer-left">
+      <div class="footer-logo">Nitish <em>Som</em></div>
+      <div class="footer-copy">© 2026 · Built with focus on detection engineering</div>
+    </div>
+    <div class="footer-links">
+      <a href="topics/index.html">Topics</a>
+      <a href="roadmap.html">Roadmap</a>
+      <a href="sitemap.html">Sitemap</a>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/data.js"></script>
+<script>
+if(typeof P !== 'undefined' && P.showAvailBadgeOnBlog){
+  const badge = document.getElementById('avail-badge');
+  if(badge) badge.style.display='flex';
+}
+</script>
+
+</body>
+</html>

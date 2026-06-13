@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<base href="/nitishsom.io/">
+<title>Infrastructure: Docker Compose, Queue Mode & Auto-Scaling (Part 2) — Nitish Som</title>
+<meta name="description" content="The infrastructure layer of a production SOC platform — Docker Compose architecture, N8N queue mode configuration, auto-scaling workers from 10 to 50 based on Redis queue depth, and the operational tooling that keeps it running.">
+<link rel="stylesheet" href="assets/shared.css">
+<style>
+/* ── Modern Cybersecurity Theme (matches Part 1) ── */
+:root {
+  --primary: #3b82f6;
+  --primary-dark: #2563eb;
+  --accent: #8b5cf6;
+  --accent-dark: #7c3aed;
+  --cyan: #06b6d4;
+  --glow: rgba(59,130,246,.3);
+  --glow-violet: rgba(139,92,246,.25);
+}
+
+.blog-post{padding:80px 0 120px;min-height:100vh;background:var(--bg)}
+.container.narrow{max-width:840px}
+
+.post-header{
+  margin-bottom:64px;padding:48px 0;
+  border-bottom:1px solid var(--border);
+  position:relative;overflow:hidden;
+}
+.post-header::before{
+  content:'';position:absolute;top:-100px;right:-100px;
+  width:400px;height:400px;
+  background:radial-gradient(circle, var(--glow) 0%, transparent 70%);
+  pointer-events:none;z-index:0;
+}
+.post-header::after{
+  content:'';position:absolute;bottom:-50px;left:-50px;
+  width:300px;height:300px;
+  background:radial-gradient(circle, var(--glow-violet) 0%, transparent 70%);
+  pointer-events:none;z-index:0;
+}
+.post-header > *{position:relative;z-index:1}
+
+.post-meta{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:24px}
+.post-cat{
+  font-size:11px;font-weight:700;padding:6px 14px;border-radius:var(--rp);
+  text-transform:uppercase;letter-spacing:.08em;
+  background:linear-gradient(135deg, var(--primary), var(--accent));
+  color:#fff;box-shadow:0 4px 12px var(--glow);
+}
+.post-date,.post-read{font-family:var(--mono);font-size:12px;color:var(--text3)}
+.part-badge{
+  display:inline-block;
+  background:linear-gradient(135deg, var(--primary), var(--accent));
+  color:white;padding:8px 18px;border-radius:var(--rp);
+  font-weight:600;font-size:12px;margin-bottom:20px;
+  letter-spacing:.04em;box-shadow:0 4px 16px var(--glow);
+}
+.post-title{
+  font-size:clamp(36px,5.5vw,56px);font-weight:800;
+  letter-spacing:-.045em;line-height:1.05;color:var(--text);
+  margin-bottom:20px;
+  background:linear-gradient(135deg, var(--text) 0%, var(--primary) 60%, var(--accent) 100%);
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;
+}
+.post-subtitle{font-size:19px;font-weight:300;color:var(--text2);line-height:1.55;max-width:720px}
+
+.post-content{font-size:16px;font-weight:300;color:var(--text2);line-height:1.8;letter-spacing:-.005em}
+.post-content h2{
+  font-size:clamp(26px,3.8vw,34px);font-weight:700;color:var(--text);
+  margin:64px 0 24px;letter-spacing:-.035em;line-height:1.2;
+  position:relative;padding-left:20px;
+}
+.post-content h2::before{
+  content:'';position:absolute;left:0;top:8px;bottom:8px;
+  width:4px;background:linear-gradient(180deg, var(--primary), var(--accent));
+  border-radius:2px;
+}
+.post-content h2:first-child{margin-top:0}
+.post-content h3{
+  font-size:22px;font-weight:600;color:var(--text);
+  margin:44px 0 16px;letter-spacing:-.025em;
+}
+.post-content h4{font-size:18px;font-weight:600;color:var(--text);margin:32px 0 12px}
+.post-content p{margin-bottom:20px;line-height:1.8}
+.post-content p strong{color:var(--text);font-weight:600}
+.post-content ul,.post-content ol{margin:24px 0;padding-left:28px}
+.post-content li{margin-bottom:12px;line-height:1.7}
+.post-content li strong{color:var(--text);font-weight:600}
+.post-content code{
+  font-family:var(--mono);font-size:14px;
+  background:var(--bg2);border:1px solid var(--border);
+  padding:2px 8px;border-radius:4px;color:var(--primary);font-weight:500;
+}
+.post-content pre{
+  background:#0a0e1a;border:1px solid #1e293b;
+  border-radius:var(--r);padding:24px;margin:24px 0;
+  overflow-x:auto;
+  box-shadow:0 8px 32px rgba(0,0,0,.4), 0 0 0 1px rgba(59,130,246,.1);
+  max-height:600px;overflow-y:auto;position:relative;
+}
+.post-content pre::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg, var(--primary), var(--accent), var(--cyan));
+}
+.post-content pre code{
+  background:none;border:none;padding:0;
+  color:#e2e8f0;font-size:13px;line-height:1.7;font-weight:400;
+}
+/* File label on code blocks */
+.code-label{
+  display:inline-block;
+  font-family:var(--mono);font-size:11px;font-weight:600;
+  padding:4px 12px;border-radius:6px 6px 0 0;
+  background:#0a0e1a;border:1px solid #1e293b;border-bottom:none;
+  color:var(--primary);letter-spacing:.04em;
+  margin-bottom:-1px;
+}
+.code-label + pre{border-top-left-radius:0;margin-top:0}
+
+.post-content a{color:var(--primary);text-decoration:underline;transition:opacity .15s;font-weight:500}
+.post-content a:hover{color:var(--accent)}
+
+/* Boxes */
+.story-box{
+  background:linear-gradient(135deg, rgba(59,130,246,.04), rgba(139,92,246,.04));
+  border:1px solid var(--border);border-left:4px solid var(--primary);
+  border-radius:var(--rs);padding:28px 32px;margin:32px 0;position:relative;
+}
+.story-box::before{
+  content:'❝';position:absolute;top:-10px;left:20px;
+  font-size:48px;color:var(--primary);font-family:Georgia,serif;
+  line-height:1;opacity:.4;
+}
+.story-box p{margin-bottom:16px;font-style:italic;font-size:17px;line-height:1.7}
+.story-box p:last-child{margin-bottom:0}
+.story-box strong{color:var(--primary);font-weight:600;font-style:normal}
+
+.highlight-box{
+  background:var(--surface);border:1px solid var(--border);
+  border-left:3px solid var(--primary);border-radius:var(--rs);
+  padding:24px;margin:32px 0;box-shadow:0 4px 12px rgba(0,0,0,.04);
+}
+.highlight-box p{margin-bottom:16px}
+.highlight-box p:last-child{margin-bottom:0}
+.highlight-box strong{color:var(--primary);font-weight:600}
+
+.problem-box{
+  background:rgba(239,68,68,.04);border:1px solid rgba(239,68,68,.2);
+  border-left:4px solid #ef4444;border-radius:var(--rs);
+  padding:24px;margin:32px 0;
+}
+.problem-box strong{color:#dc2626;font-weight:700}
+
+.solution-box{
+  background:linear-gradient(135deg, rgba(59,130,246,.05), rgba(139,92,246,.05));
+  border:1px solid rgba(59,130,246,.2);border-left:4px solid var(--primary);
+  border-radius:var(--rs);padding:24px;margin:32px 0;
+}
+.solution-box strong{color:var(--primary);font-weight:700}
+
+.warning-box{
+  background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.2);
+  border-left:4px solid #f59e0b;border-radius:var(--rs);
+  padding:24px;margin:32px 0;
+}
+.warning-box strong{color:#d97706;font-weight:700}
+
+/* Diagram */
+.arch-diagram{
+  background:#0a0e1a;border:1px solid #1e293b;
+  border-radius:var(--r);padding:32px;margin:32px 0;
+  text-align:left;font-family:var(--mono);font-size:13px;
+  color:#94a3b8;line-height:1.8;overflow-x:auto;
+  box-shadow:0 8px 32px rgba(0,0,0,.3);position:relative;
+}
+.arch-diagram::before{
+  content:'DATA FLOW';position:absolute;top:12px;right:16px;
+  font-size:10px;font-weight:700;letter-spacing:.2em;
+  color:var(--primary);opacity:.6;
+}
+.arch-diagram .label{color:var(--primary);font-weight:600}
+.arch-diagram .accent{color:var(--accent);font-weight:600}
+.arch-diagram .cyan{color:var(--cyan);font-weight:600}
+.arch-diagram .red{color:#ef4444;font-weight:600}
+
+/* Tables */
+.data-table{
+  width:100%;border-collapse:collapse;margin:32px 0;font-size:14px;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);overflow:hidden;
+}
+.data-table thead{background:linear-gradient(135deg, rgba(59,130,246,.08), rgba(139,92,246,.08))}
+.data-table th{
+  padding:14px 16px;text-align:left;font-weight:700;color:var(--text);
+  font-size:11px;text-transform:uppercase;letter-spacing:.06em;
+  border-bottom:1px solid var(--border);
+}
+.data-table td{padding:12px 16px;border-bottom:1px solid var(--border);line-height:1.5;font-size:13px}
+.data-table td code{font-size:12px}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tbody tr:hover{background:rgba(59,130,246,.03)}
+
+/* Stats Grid */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin:32px 0}
+.stat-card{
+  background:linear-gradient(135deg, var(--surface), var(--bg2));
+  border:1px solid var(--border);border-radius:var(--rs);
+  padding:24px 20px;text-align:center;
+  transition:transform .2s, box-shadow .2s;
+  position:relative;overflow:hidden;
+}
+.stat-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg, var(--primary), var(--accent));
+}
+.stat-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px var(--glow)}
+.stat-number{
+  font-size:32px;font-weight:800;
+  background:linear-gradient(135deg, var(--primary), var(--accent));
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;
+  margin-bottom:6px;line-height:1;
+}
+.stat-label{
+  font-size:12px;color:var(--text3);
+  text-transform:uppercase;letter-spacing:.06em;font-weight:600;
+}
+
+/* Series Nav */
+.series-nav{
+  background:linear-gradient(135deg, rgba(59,130,246,.04), rgba(139,92,246,.04));
+  border:1px solid var(--border);border-radius:var(--r);
+  padding:24px;margin:48px 0 32px;
+}
+.series-nav h3{
+  margin-top:0 !important;font-size:14px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.06em;
+  color:var(--text3);margin-bottom:16px;padding-left:0;
+}
+.series-nav h3::before{display:none}
+.series-list{list-style:none;padding:0;margin:0}
+.series-list li{
+  padding:10px 0;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:12px;
+  font-size:14px;color:var(--text2);
+}
+.series-list li:last-child{border-bottom:none}
+.series-list li.current{color:var(--primary);font-weight:600}
+.series-list li .num{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:24px;height:24px;border-radius:50%;
+  background:var(--surface);border:1px solid var(--border);
+  font-size:11px;font-weight:700;color:var(--text3);flex-shrink:0;
+}
+.series-list li.current .num{
+  background:linear-gradient(135deg, var(--primary), var(--accent));
+  color:#fff;border-color:transparent;
+}
+
+/* Pull quote */
+.pull-quote{
+  font-size:24px;font-weight:300;font-style:italic;
+  color:var(--text);text-align:center;margin:48px 0;
+  padding:32px 24px;border-top:1px solid var(--border);
+  border-bottom:1px solid var(--border);line-height:1.4;
+}
+.pull-quote span{
+  background:linear-gradient(135deg, var(--primary), var(--accent));
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;font-weight:600;
+}
+
+/* Footer */
+.post-footer{margin-top:80px;padding-top:40px;border-top:1px solid var(--border)}
+.post-tags{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:32px}
+.post-tags .tag{
+  font-size:11px;font-weight:600;padding:6px 14px;
+  border-radius:var(--rp);border:1px solid var(--border);
+  background:var(--surface);color:var(--text3);font-family:var(--mono);
+}
+.post-nav{display:flex;justify-content:space-between;align-items:center;margin-top:32px;gap:16px;flex-wrap:wrap}
+.post-nav-link{
+  font-size:14px;font-weight:600;color:var(--primary);
+  text-decoration:none;transition:opacity .15s;
+  display:inline-flex;align-items:center;gap:6px;
+}
+.post-nav-link:hover{color:var(--accent)}
+
+@media(max-width:768px){
+  .blog-post{padding:48px 0 80px}
+  .post-header{margin-bottom:40px;padding:32px 0}
+  .post-content h2{margin:48px 0 20px;padding-left:16px}
+  .post-content h3{margin:36px 0 14px}
+  .post-content pre{max-height:400px;padding:16px}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .arch-diagram{font-size:11px;padding:20px}
+  .pull-quote{font-size:18px;padding:24px 16px}
+}
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <div class="container nav-inner">
+    <a href="index.html" class="nav-logo"><span class="nav-logo-dot"></span>Nitish <em>Som</em></a>
+    <div class="nav-links">
+      <a href="index.html#about">About</a>
+      <a href="index.html#experience">Experience</a>
+      <a href="projects.html">Projects</a>
+      <a href="blog/index.html">Blog</a>
+      <a href="certifications/index.html">Certs</a>
+    </div>
+    <div class="nav-right">
+      <button class="cmdk-btn"><span>Search</span><kbd>⌘K</kbd></button>
+    </div>
+  </div>
+</nav>
+
+<article class="blog-post">
+  <div class="container narrow">
+    
+    <header class="post-header">
+      <div class="post-meta">
+        <span class="post-cat">Infrastructure</span>
+        <span class="post-date">June 8, 2026</span>
+        <span class="post-read">Part 2 — 24 min read</span>
+      </div>
+      <div class="part-badge">📗 PART 2 / 6 — Infrastructure</div>
+      <h1 class="post-title">Multi-Threaded N8N with Auto-Scaling Workers</h1>
+      <p class="post-subtitle">Docker Compose architecture, queue mode configuration, and the bash daemon that scales worker containers from 10 to 50 based on Redis queue depth — keeping latency low during alert storms without burning resources at idle.</p>
+    </header>
+
+    <div class="post-content">
+
+      <h2>Where We Are</h2>
+
+      <p>In <a href="soc-platform-part-1.html">Part 1</a> I described the problem: a single-threaded N8N container choking on incoming alerts, race conditions producing duplicate incident IDs, and no way to scale without restarting everything. This part covers how I solved it at the infrastructure layer.</p>
+
+      <p>The whole platform runs on a single Ubuntu 24.04 server in <code>/opt/security-automation/</code>. No Kubernetes, no cloud-managed services, no fancy orchestration. Just Docker Compose, a couple of bash scripts, and systemd.</p>
+
+      <p>That's deliberate. Complexity has a cost. The simpler the operations layer, the easier it is to debug at 2 AM when something breaks.</p>
+
+      <div class="story-box">
+        <p>Every layer of the stack should be something a new engineer can fully understand in an afternoon. If they can't, you're going to lose them at the worst possible moment — when the platform is on fire and they're the only person around to fix it.</p>
+      </div>
+
+      <h2>The Directory Layout</h2>
+
+      <p>Everything lives under one directory. Backups, logs, configs, scripts — all in one place. When something breaks, you SSH in, <code>cd /opt/security-automation/</code>, and you have everything you need.</p>
+
+      <div class="code-label">📁 /opt/security-automation/</div>
+      <pre><code>/opt/security-automation/
+├── docker-compose.yml          # The infrastructure definition
+├── .env                        # Configuration (passwords, hosts, settings)
+├── autoscale.sh                # Worker auto-scaling daemon
+├── setup_dashboard.sh          # First-time setup helper
+├── certs/
+│   ├── cert.pem                # SSL certificate (TLS for N8N)
+│   └── key.pem                 # SSL private key
+├── dashboard/                  # Custom FastAPI app + static frontend
+│   ├── api.py                  # The backend (covered in Part 4)
+│   ├── index.html              # Main dashboard (covered in Part 5)
+│   ├── queue.html              # Queue monitor page
+│   ├── login.html
+│   ├── activity.html
+│   ├── admin/                  # Admin pages
+│   │   ├── index.html
+│   │   ├── users.html
+│   │   ├── analysts.html
+│   │   ├── config.html
+│   │   └── health.html
+│   └── logo/
+└── old_config/                 # Pre-migration backup (kept intentionally)
+    └── docker-compose.yml      # The single-threaded version we replaced</code></pre>
+
+      <p>That <code>old_config/</code> directory is a deliberate choice. When you migrate something in production, <em>never delete the old version</em>. Move it aside. Keep it for at least 90 days. The number of times I've gone back to <code>old_config/docker-compose.yml</code> to compare a config value... worth its weight in gold.</p>
+
+      <h2>The Architecture We're Building</h2>
+
+      <p>Four containers, one shared network, one persistent volume per service:</p>
+
+      <div class="arch-diagram">
+                  <span class="cyan">External Webhooks</span> (Wazuh, SentinelOne, Manual)
+                                  │
+                                  │ HTTPS :5678
+                                  ▼
+                       ┌─────────────────────┐
+                       │   <span class="label">n8nq-main</span>          │  Single container
+                       │   (workflow editor   │  Receives webhooks
+                       │    + queue dispatch) │  Queues jobs to Redis
+                       └──────────┬──────────┘
+                                  │
+                  ┌───────────────┼───────────────┐
+                  │               │               │
+                  ▼               ▼               ▼
+          ┌─────────────┐ ┌─────────────┐ ┌─────────────────┐
+          │ <span class="accent">n8nq-redis</span>  │ │<span class="accent">n8nq-postgres</span>│ │  <span class="cyan">n8nq-worker</span>     │
+          │  (BullMQ    │ │  (state +   │ │  (10-50         │
+          │   queue)    │ │   audit)    │ │   replicas)     │
+          │  :6380      │ │  :5433      │ │   parallel exec │
+          └─────────────┘ └─────────────┘ └─────────────────┘
+                  ▲                              │
+                  │       pulls jobs             │
+                  └──────────────────────────────┘
+
+         <span class="red">Auto-scaler (systemd-managed bash daemon)</span> watches
+         Redis queue depth every 5s and scales worker replicas
+      </div>
+
+      <h2>Why Queue Mode (and Not Something Else)</h2>
+
+      <p>Before diving into the configs, I want to address the obvious question: why N8N queue mode? Why not Celery? Why not just a different tool entirely?</p>
+
+      <p>The honest answer is that I evaluated several options:</p>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Option</th>
+            <th>Pros</th>
+            <th>Cons</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Apache Airflow</strong></td>
+            <td>Mature, distributed, scheduled</td>
+            <td>Heavy, DAG model is wrong for event-driven SOAR</td>
+          </tr>
+          <tr>
+            <td><strong>Temporal</strong></td>
+            <td>Best-in-class workflow engine</td>
+            <td>Steep learning curve, code-first (no GUI for analysts)</td>
+          </tr>
+          <tr>
+            <td><strong>Custom Celery</strong></td>
+            <td>Full control, Python-native</td>
+            <td>3-6 months of dev time, no visual workflow editor</td>
+          </tr>
+          <tr>
+            <td><strong>StackStorm</strong></td>
+            <td>Built for SOAR, mature</td>
+            <td>YAML hell, declining community, hard to debug</td>
+          </tr>
+          <tr>
+            <td><strong>N8N queue mode</strong></td>
+            <td>Visual editor, queue mode is production-ready, huge integration library</td>
+            <td>Some quirks around concurrency, less battle-tested at scale</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>N8N won on the dimension that matters most for a SOC: <strong>an analyst can look at a workflow and understand it</strong>. When I'm on vacation and a junior analyst needs to figure out why an alert didn't generate a ticket, they can open the N8N editor and visually trace the flow. That's not possible with Celery or Temporal.</p>
+
+      <p>The "less battle-tested at scale" concern was solved by understanding the queue mode architecture deeply. Which is what we'll do next.</p>
+
+      <h2>How Queue Mode Actually Works</h2>
+
+      <p>In default mode, N8N is a single process. Webhook arrives → workflow executes in the same process → result is written to the database. If that process is busy executing a 90-second workflow, every new webhook waits.</p>
+
+      <p>Queue mode separates the responsibilities:</p>
+
+      <ol>
+        <li><strong>The main process</strong> only handles the editor UI, webhook ingestion, and scheduling. It doesn't execute workflows.</li>
+        <li><strong>Redis</strong> becomes the queue. The main process pushes jobs onto Redis. Workers pull them off.</li>
+        <li><strong>Worker processes</strong> are completely separate. They connect to Redis, claim jobs, execute them, write results to Postgres. You can have 1 worker or 50 — N8N doesn't care.</li>
+      </ol>
+
+      <p>The magic property of this design: <strong>workers are stateless</strong>. Any worker can execute any workflow. If a worker crashes mid-execution, the job goes back to the queue and another worker picks it up. No coordinator, no leader election, no consensus protocol. Just Redis and BullMQ doing what they do best.</p>
+
+      <div class="solution-box">
+        <p><strong>The implication:</strong> scaling becomes a matter of running more workers. There's no code change. There's no config change. There's no coordination. <code>docker compose up -d --scale n8nq-worker=20</code> and you've gone from 10 to 20 workers. Five seconds later they're processing jobs.</p>
+      </div>
+
+      <h2>The Docker Compose File</h2>
+
+      <p>This is the production <code>docker-compose.yml</code> we run. I'll show it in full first, then walk through each service.</p>
+
+      <div class="code-label">📄 docker-compose.yml</div>
+      <pre><code>services:
+  n8nq-postgres:
+    image: postgres:16-alpine
+    container_name: n8nq-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - n8nq_pgdata:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"                   # Host 5433 → container 5432
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U n8n_queue -d n8n_queue"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    networks:
+      - n8nq-net
+
+  n8nq-redis:
+    image: redis:7-alpine
+    container_name: n8nq-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD}
+      --appendonly yes
+      --maxmemory 256mb
+      --maxmemory-policy noeviction
+    volumes:
+      - n8nq_redisdata:/data
+    ports:
+      - "6380:6379"                   # Host 6380 → container 6379
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    networks:
+      - n8nq-net
+
+  n8nq-main:
+    image: n8nio/n8n:latest
+    container_name: n8nq-main
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "5678:5678"                   # Webhook + editor
+    volumes:
+      - n8nq_data:/home/node/.n8n
+      - n8nq_files:/files
+      - ./certs:/home/node/.n8n/certs:ro
+    depends_on:
+      n8nq-postgres:
+        condition: service_healthy
+      n8nq-redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 5678 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 4
+      start_period: 30s
+    networks:
+      - n8nq-net
+
+  n8nq-worker:
+    image: n8nio/n8n:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    command: worker                   # Magic word: run as worker, not main
+    volumes:
+      - n8nq_data:/home/node/.n8n
+      - n8nq_files:/files
+      - ./certs:/home/node/.n8n/certs:ro
+    depends_on:
+      n8nq-main:
+        condition: service_healthy
+      n8nq-postgres:
+        condition: service_healthy
+      n8nq-redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f 'n8n worker' > /dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 4
+      start_period: 20s
+    networks:
+      - n8nq-net
+    deploy:
+      replicas: 2                     # Default at boot; autoscaler adjusts
+
+volumes:
+  n8nq_pgdata:
+  n8nq_redisdata:
+  n8nq_data:
+  n8nq_files:
+
+networks:
+  n8nq-net:
+    name: n8nq-net
+    driver: bridge</code></pre>
+
+      <h3>The PostgreSQL Service</h3>
+
+      <p>Three things worth pointing out:</p>
+
+      <ul>
+        <li><strong>Port 5433 on host, 5432 in container.</strong> The host server already had a Postgres instance running for an old project on the default port. Rather than fight that, I mapped the new instance to 5433. This is a one-character change that saves you hours of "why won't Postgres start" debugging.</li>
+        <li><strong>The healthcheck uses <code>pg_isready</code></strong>, not a generic <code>nc -z</code>. <code>pg_isready</code> actually verifies the database is accepting connections and can authenticate. <code>nc -z</code> just checks if the port is open — which it would be even if Postgres was still loading.</li>
+        <li><strong>start_period: 10s.</strong> Postgres takes a few seconds to initialize on first boot. Without <code>start_period</code>, the healthcheck fails immediately and Docker marks the container unhealthy. The first 10 seconds are a grace period.</li>
+      </ul>
+
+      <h3>The Redis Service</h3>
+
+      <p>This one is worth understanding because Redis misconfiguration is the #1 cause of "my queue mode setup just disappears jobs."</p>
+
+      <ul>
+        <li><strong><code>--requirepass</code></strong> — Always set a password. Even on a private network. The number of unauthenticated Redis instances exposed on the internet is staggering. Defense in depth.</li>
+        <li><strong><code>--appendonly yes</code></strong> — This enables AOF (Append-Only File) persistence. If the Redis container restarts, the queue survives. Without this, every restart drops pending jobs on the floor.</li>
+        <li><strong><code>--maxmemory 256mb</code></strong> — Caps Redis memory at 256MB. Plenty for queue mode (we've never come close).</li>
+        <li><strong><code>--maxmemory-policy noeviction</code></strong> — This is critical. The default is <code>noeviction</code> but I set it explicitly because the alternatives are dangerous. With <code>allkeys-lru</code> (the default for caching), Redis would silently delete old queued jobs to make room for new ones. <strong>You'd lose alerts and not know about it.</strong> With <code>noeviction</code>, if memory fills up, new writes fail loudly, and we get an alert. Loud failure beats silent data loss every time.</li>
+      </ul>
+
+      <h3>The N8N Main Service</h3>
+
+      <p>The main process runs the editor UI and ingests webhooks. It's the entry point. Three details matter:</p>
+
+      <ul>
+        <li><strong>Reads from <code>.env</code></strong> via <code>env_file: .env</code>. All config lives in one place. Workers read from the same file, ensuring main and workers agree on every setting.</li>
+        <li><strong>SSL certs mounted read-only</strong> at <code>/home/node/.n8n/certs</code>. The <code>:ro</code> flag means even if N8N got compromised, it can't modify the certs. Small detail, real security value.</li>
+        <li><strong>The healthcheck uses <code>nc -z localhost 5678</code></strong>. We're just checking the port is bound. A full HTTP healthcheck would be better, but N8N's <code>/healthz</code> endpoint sometimes responds before the queue subsystem is actually ready. The TCP check is more reliable in practice.</li>
+      </ul>
+
+      <h3>The N8N Worker Service</h3>
+
+      <p>This is where the magic happens. Note these subtle but important details:</p>
+
+      <ul>
+        <li><strong><code>command: worker</code></strong> — This single word turns an N8N container into a worker. Same image, same env vars, completely different role. That's elegant.</li>
+        <li><strong>No <code>container_name</code></strong> — When you have multiple replicas, you can't name them all the same thing. Docker auto-generates names like <code>n8nq-worker-1</code>, <code>n8nq-worker-2</code>, etc.</li>
+        <li><strong>No ports exposed</strong> — Workers don't serve HTTP. They only pull from Redis and write to Postgres. There's nothing to expose.</li>
+        <li><strong><code>deploy.replicas: 2</code></strong> — This is the default at boot. The autoscaler (next section) adjusts this dynamically.</li>
+        <li><strong>The healthcheck uses <code>pgrep</code></strong> — We check that the <code>n8n worker</code> process is actually running. If the process died but the container is still alive (rare, but it happens), the healthcheck catches it.</li>
+      </ul>
+
+      <h2>The .env File</h2>
+
+      <p>Configuration lives in one place, sourced by every container. Here's the structure (with passwords redacted):</p>
+
+      <div class="code-label">📄 .env</div>
+      <pre><code># ── N8N basics ──────────────────────────────────────────────
+N8N_HOST=0.0.0.0
+N8N_PORT=5678
+N8N_PROTOCOL=https
+N8N_SECURE_COOKIE=true
+N8N_EDITOR_BASE_URL=https://&lt;soc-server-ip&gt;:5678
+WEBHOOK_URL=https://&lt;soc-server-ip&gt;:5678/
+N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=false
+
+# ── Queue mode (THE important bit) ──────────────────────────
+EXECUTIONS_MODE=queue
+OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS=true
+QUEUE_HEALTH_CHECK_ACTIVE=true
+QUEUE_BULL_REDIS_HOST=n8nq-redis
+QUEUE_BULL_REDIS_PORT=6379
+QUEUE_BULL_REDIS_DB=0
+
+# ── Database connection ─────────────────────────────────────
+DB_TYPE=postgresdb
+DB_POSTGRESDB_HOST=n8nq-postgres
+DB_POSTGRESDB_PORT=5432
+DB_POSTGRESDB_DATABASE=n8n_queue
+DB_POSTGRESDB_USER=n8n_queue
+
+# ── Execution data retention ────────────────────────────────
+EXECUTIONS_DATA_PRUNE=true
+EXECUTIONS_DATA_MAX_AGE=168           # 7 days, in hours
+EXECUTIONS_DATA_SAVE_ON_ERROR=all
+EXECUTIONS_DATA_SAVE_ON_SUCCESS=all
+EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS=true
+
+# ── Concurrency per worker ──────────────────────────────────
+N8N_CONCURRENCY_PRODUCTION_LIMIT=5
+
+# ── Locale ──────────────────────────────────────────────────
+GENERIC_TIMEZONE=Asia/Kolkata
+TZ=Asia/Kolkata
+N8N_LOG_LEVEL=info
+
+# ── Secrets (REDACTED) ──────────────────────────────────────
+QUEUE_BULL_REDIS_PASSWORD=&lt;REDIS_PASSWORD&gt;
+DB_POSTGRESDB_PASSWORD=&lt;DB_PASSWORD&gt;
+N8N_ENCRYPTION_KEY=&lt;32_BYTE_HEX_KEY&gt;
+
+# ── Container vars (used by Compose, not N8N) ───────────────
+POSTGRES_DB=n8n_queue
+POSTGRES_USER=n8n_queue
+POSTGRES_PASSWORD=&lt;DB_PASSWORD&gt;
+REDIS_PASSWORD=&lt;REDIS_PASSWORD&gt;
+
+# ── SSL ─────────────────────────────────────────────────────
+N8N_SSL_KEY=/home/node/.n8n/certs/key.pem
+N8N_SSL_CERT=/home/node/.n8n/certs/cert.pem
+
+# ── Stability flag ──────────────────────────────────────────
+N8N_PARTIAL_EXECUTION_VERSION_DEFAULT=0</code></pre>
+
+      <h3>The Settings That Matter Most</h3>
+
+      <p>Let me call out the ones that aren't obvious:</p>
+
+      <h4>EXECUTIONS_MODE=queue</h4>
+      <p>This is the master switch. Without it, N8N ignores Redis entirely and runs in default single-threaded mode. The setting must be present in <em>both</em> main and worker containers. If main has it but workers don't, workers won't start. If workers have it but main doesn't, main will execute workflows itself and ignore the workers. The <code>env_file: .env</code> approach guarantees both read the same value.</p>
+
+      <h4>N8N_CONCURRENCY_PRODUCTION_LIMIT=5</h4>
+      <p>Each worker can execute up to 5 workflows in parallel before it stops claiming new jobs. With 10 workers, the platform can run 50 workflows simultaneously. With 50 workers, 250. This number is the lever you pull when you want each worker to do more vs. when you want to scale horizontally.</p>
+      
+      <p>I settled on 5 after testing values from 1 to 20. Below 5, workers were underutilized. Above 8, individual workflows started timing out because the worker was thrashing. Five is the sweet spot for our workload (Wazuh whitelist checks + Postgres inserts + HTTP calls to Jira and Microsoft Graph).</p>
+
+      <h4>N8N_ENCRYPTION_KEY</h4>
+      <p>This is the most important value in the entire <code>.env</code>. N8N encrypts all credentials (Jira API tokens, OAuth refresh tokens, database passwords stored in workflows) using this key.</p>
+
+      <div class="problem-box">
+        <p><strong>⚠ Lose this key and every credential in your N8N instance becomes unrecoverable.</strong> You'll have to re-enter every API token, every OAuth setup, every database connection. For us, that meant ~30 credentials and about 4 hours of work.</p>
+
+        <p>The first day I had this set up, I rotated the key without saving the old one. Spent an entire Saturday afternoon rebuilding credentials. Don't do that.</p>
+      </div>
+
+      <h4>OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS=true</h4>
+      <p>By default, when you click "Execute Workflow" in the N8N editor, the workflow runs in the main process. That blocks the UI thread and defeats the purpose of queue mode for manual testing. This setting routes manual executions through workers too. Always set this in queue mode.</p>
+
+      <h4>EXECUTIONS_DATA_MAX_AGE=168</h4>
+      <p>168 hours = 7 days. N8N stores every execution's full payload by default. At 5,000 executions per month, this database grows fast. We retain 7 days for debugging and discard older data. The pruner runs automatically on the main process. If you don't set this, expect Postgres disk usage to grow by 5-10GB per week.</p>
+
+      <h4>N8N_PARTIAL_EXECUTION_VERSION_DEFAULT=0</h4>
+      <p>N8N has two execution engines. Version 0 is the older, more stable one. Version 1 has edge cases when sub-workflows pass data between each other — exactly the pattern our SOAR workflows use. Pinning to version 0 saved us from a class of weird bugs. If you start fresh on a newer N8N, test version 1 carefully before turning it on.</p>
+
+      <h2>Starting Everything Up</h2>
+
+      <p>The first-time setup boils down to four commands:</p>
+
+      <pre><code>cd /opt/security-automation/
+
+# Generate SSL cert (self-signed is fine for internal SOC)
+mkdir -p certs && cd certs
+openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem \
+    -sha256 -days 365 -nodes \
+    -subj "/CN=soc-platform-host"
+chmod 600 key.pem && chmod 644 cert.pem
+cd ..
+
+# Bring it all up
+docker compose up -d
+
+# Verify
+docker compose ps</code></pre>
+
+      <p>If everything is healthy, you'll see something like this:</p>
+
+      <pre><code>NAME              IMAGE                STATUS                    PORTS
+n8nq-main         n8nio/n8n:latest     Up 2 minutes (healthy)    0.0.0.0:5678->5678/tcp
+n8nq-postgres     postgres:16-alpine   Up 2 minutes (healthy)    0.0.0.0:5433->5432/tcp
+n8nq-redis        redis:7-alpine       Up 2 minutes (healthy)    0.0.0.0:6380->6379/tcp
+n8nq-worker-1     n8nio/n8n:latest     Up 2 minutes (healthy)
+n8nq-worker-2     n8nio/n8n:latest     Up 2 minutes (healthy)</code></pre>
+
+      <p>Two workers by default. Both healthy. The webhook URL is live at <code>https://&lt;soc-server-ip&gt;:5678/webhook/...</code> and ready to receive alerts.</p>
+
+      <h2>The Auto-Scaler</h2>
+
+      <p>Two workers handle our baseline load with room to spare. But baseline isn't the problem — burst traffic is.</p>
+
+      <p>An "alert storm" in our environment looks like this: a misconfigured app deploys, and 200 alerts hit the system in 90 seconds. With 2 workers running 5-concurrency each, that's 10 parallel executions. The remaining 190 alerts queue up. With a workflow average of 2-3 seconds, the queue clears in about a minute. Not terrible — but not great.</p>
+
+      <p>The right answer is: scale up automatically during the storm, scale back down when it's over. This is what the autoscaler does.</p>
+
+      <div class="code-label">📄 autoscale.sh</div>
+      <pre><code>#!/bin/bash
+# ─────────────────────────────────────────────────────────────
+# N8N Worker Auto-Scaler
+# 
+# Polls Redis queue depth every 5 seconds and adjusts worker
+# count between MIN_WORKERS and MAX_WORKERS based on load.
+# 
+# Cooldown prevents thrashing during transient spikes.
+# ─────────────────────────────────────────────────────────────
+
+MIN_WORKERS=10
+MAX_WORKERS=50
+SCALE_UP_THRESHOLD=1        # ≥ this many queued → scale up
+SCALE_DOWN_THRESHOLD=2      # ≤ this many queued → scale down
+COOLDOWN=10                 # seconds between scaling actions
+COMPOSE_DIR="/opt/security-automation"
+
+REDIS_PASS=$(grep ^REDIS_PASSWORD "$COMPOSE_DIR/.env" | cut -d= -f2)
+LAST_SCALE=0
+
+# Total queue depth = pending jobs + active jobs
+get_queue_depth() {
+    local wait active
+    wait=$(docker exec n8nq-redis redis-cli -a "$REDIS_PASS" \
+        --no-auth-warning LLEN "bull:jobs:wait" 2>/dev/null | tr -cd '0-9')
+    active=$(docker exec n8nq-redis redis-cli -a "$REDIS_PASS" \
+        --no-auth-warning LLEN "bull:jobs:active" 2>/dev/null | tr -cd '0-9')
+    echo $(( ${wait:-0} + ${active:-0} ))
+}
+
+# Count running worker containers
+get_current_workers() {
+    local count
+    count=$(docker compose -f "$COMPOSE_DIR/docker-compose.yml" \
+        ps --format json 2>/dev/null | grep -c "n8nq-worker" || echo 2)
+    echo "${count:-2}"
+}
+
+# Scale the worker service, respecting cooldown
+scale_workers() {
+    local target=$1
+    local now current elapsed
+    now=$(date +%s)
+    elapsed=$((now - LAST_SCALE))
+
+    # Skip if we're still in cooldown
+    [ "$elapsed" -lt "$COOLDOWN" ] && return
+
+    current=$(get_current_workers)
+    # Skip if already at target
+    [ "$current" -eq "$target" ] && return
+
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Scaling workers: $current -> $target"
+    cd "$COMPOSE_DIR"
+    docker compose up -d --scale n8nq-worker="$target" --no-recreate 2>/dev/null
+    LAST_SCALE=$now
+}
+
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Auto-scaler started | Min=$MIN_WORKERS Max=$MAX_WORKERS"
+
+# Main loop
+while true; do
+    QUEUE=$(get_queue_depth)
+    CURRENT=$(get_current_workers)
+
+    echo "[$(date '+%H:%M:%S')] Queue depth: $QUEUE | Workers: $CURRENT"
+
+    # Scale up if queue is busy
+    if [ "$QUEUE" -ge "$SCALE_UP_THRESHOLD" ] && [ "$CURRENT" -lt "$MAX_WORKERS" ]; then
+        NEW=$((CURRENT + 1))
+        [ "$NEW" -gt "$MAX_WORKERS" ] && NEW=$MAX_WORKERS
+        scale_workers "$NEW"
+
+    # Scale down if queue is empty and we have spare workers
+    elif [ "$QUEUE" -le "$SCALE_DOWN_THRESHOLD" ] && [ "$CURRENT" -gt "$MIN_WORKERS" ]; then
+        NEW=$((CURRENT - 1))
+        [ "$NEW" -lt "$MIN_WORKERS" ] && NEW=$MIN_WORKERS
+        scale_workers "$NEW"
+    fi
+
+    sleep 5
+done</code></pre>
+
+      <h3>Design Decisions in the Autoscaler</h3>
+
+      <p>Several things in this script are worth talking about because they're not obvious.</p>
+
+      <h4>Why MIN_WORKERS=10 and not 2?</h4>
+      <p>Baseline capacity. With 2 workers, a sudden burst means jobs queue up for ~30 seconds before the autoscaler reacts and a new worker becomes ready. With 10 workers running 5-concurrency, we can absorb a burst of 50 simultaneous workflows with zero queue depth. The 8 extra idle workers cost us about 200MB of RAM. That's a trivial cost for never having a queue backlog under normal conditions.</p>
+
+      <h4>Why scale up at queue depth = 1?</h4>
+      <p>Because by the time you see queue depth = 5, you're already late. The whole point of autoscaling is to react before the user notices. Setting the threshold at 1 means we're scaling up the instant anything starts queueing — and during a real burst, we'll be at MAX_WORKERS within 30-40 seconds.</p>
+
+      <h4>Why scale down at queue depth ≤ 2 (not 0)?</h4>
+      <p>To avoid flapping. If we scale down at 0, then a single arriving job triggers scale-up. The system thrashes. Scale-down at 2 means there's some buffer — we only release workers when the queue is genuinely quiet.</p>
+
+      <h4>The COOLDOWN of 10 seconds</h4>
+      <p>This is the key anti-flapping mechanism. After any scaling action, the script ignores further scale signals for 10 seconds. That gives Docker time to actually start the new worker and for it to start claiming jobs. Without the cooldown, you'd see scale up → scale down → scale up patterns when the queue is hovering around the threshold.</p>
+
+      <h4>The <code>--no-recreate</code> flag</h4>
+      <p>This is critical. Without it, every <code>docker compose up -d --scale</code> would tear down and recreate <em>all</em> worker containers. With it, only the delta is applied — going from 10 to 11 workers starts 1 new container, doesn't touch the existing 10. This matters because jobs in flight on existing workers would be killed during recreation. <strong>Setting this saved me from a class of subtle bugs.</strong></p>
+
+      <h4>Reading Redis password from .env</h4>
+      <p><code>REDIS_PASS=$(grep ^REDIS_PASSWORD "$COMPOSE_DIR/.env" | cut -d= -f2)</code> — The autoscaler reads the Redis password from the same <code>.env</code> file the containers use. No duplication, no risk of drift. When you rotate the Redis password, you change it in one place.</p>
+
+      <h2>Running the Autoscaler as a Systemd Service</h2>
+
+      <p>You don't want to leave the autoscaler running in a screen session. You want it to start on boot, restart on failure, and log to journald. That's what systemd is for.</p>
+
+      <div class="code-label">📄 /etc/systemd/system/n8n-autoscale.service</div>
+      <pre><code>[Unit]
+Description=N8N Worker Auto-Scaler
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/security-automation
+ExecStart=/bin/bash /opt/security-automation/autoscale.sh
+Restart=always
+RestartSec=5
+StandardOutput=append:/opt/security-automation/autoscale.log
+StandardError=append:/opt/security-automation/autoscale.log
+User=root
+
+# Don't allow runaway resource use
+LimitNOFILE=4096
+
+[Install]
+WantedBy=multi-user.target</code></pre>
+
+      <p>Enable and start:</p>
+
+      <pre><code>sudo systemctl daemon-reload
+sudo systemctl enable n8n-autoscale.service
+sudo systemctl start n8n-autoscale.service
+
+# Check status
+sudo systemctl status n8n-autoscale.service
+
+# Watch the logs
+tail -f /opt/security-automation/autoscale.log</code></pre>
+
+      <p>The log output during a real alert burst looks like this:</p>
+
+      <pre><code>[14:22:31] Queue depth: 0 | Workers: 10
+[14:22:36] Queue depth: 0 | Workers: 10
+[14:22:41] Queue depth: 47 | Workers: 10
+[2026-06-08 14:22:42] Scaling workers: 10 -> 11
+[14:22:52] Queue depth: 41 | Workers: 11
+[2026-06-08 14:22:53] Scaling workers: 11 -> 12
+[14:23:03] Queue depth: 33 | Workers: 12
+[2026-06-08 14:23:04] Scaling workers: 12 -> 13
+[14:23:14] Queue depth: 22 | Workers: 13
+[2026-06-08 14:23:15] Scaling workers: 13 -> 14
+[14:23:25] Queue depth: 8 | Workers: 14
+[14:23:35] Queue depth: 2 | Workers: 14
+[14:23:45] Queue depth: 0 | Workers: 14
+[2026-06-08 14:23:46] Scaling workers: 14 -> 13
+[14:23:56] Queue depth: 0 | Workers: 13
+[2026-06-08 14:23:57] Scaling workers: 13 -> 12
+[14:24:07] Queue depth: 0 | Workers: 12</code></pre>
+
+      <p>You can see the entire sequence: burst arrives at 14:22:41, autoscaler ramps from 10 → 14 workers in 32 seconds, queue clears by 14:23:45, and then we gradually scale back down to the floor of 10. The whole event took about 90 seconds and no analyst ever noticed.</p>
+
+      <h2>Why I Use Bash and Not Python</h2>
+
+      <p>The autoscaler is 60 lines of bash. I could have written it in Python with a proper logging library, type hints, and a config schema. I chose bash because:</p>
+
+      <ul>
+        <li><strong>Zero dependencies.</strong> Bash and <code>docker</code> are already on the box. No <code>pip install</code>, no virtualenv, no Python version drift.</li>
+        <li><strong>One file, end-to-end readable.</strong> Anyone on the team can read 60 lines of bash and understand what's happening. A Python equivalent would be 200+ lines once you add proper structure.</li>
+        <li><strong>No moving parts.</strong> The script either runs or it doesn't. Bash's failure modes are simpler than Python's.</li>
+        <li><strong>Composes with shell tools.</strong> <code>docker compose</code>, <code>redis-cli</code>, <code>grep</code>, <code>cut</code> — these are all command-line tools. Calling them from Python adds friction.</li>
+      </ul>
+
+      <p>If the script grew past 200 lines or needed structured config, I'd port it to Python. At 60 lines it would be over-engineered.</p>
+
+      <h2>What Happens During Worker Container Failure</h2>
+
+      <p>This is the design question that determines whether queue mode is "production-grade" or "neat demo": what happens when a worker dies mid-execution?</p>
+
+      <p>BullMQ (the queue library N8N uses) handles this with job ownership leases. When a worker claims a job, it's marked as "active" with a timestamp. If the worker doesn't complete or refresh the lease within a timeout, BullMQ marks the job as stalled and re-queues it. Another worker picks it up.</p>
+
+      <p>The exact behavior:</p>
+
+      <ol>
+        <li>Worker-3 claims job <code>exec_id=4521</code> at T+0s</li>
+        <li>Worker-3 starts executing — runs Whitelist Check node, runs Postgres insert</li>
+        <li>Worker-3's container crashes at T+1.2s (OOM kill, host reboot, whatever)</li>
+        <li>BullMQ's stalled-job checker runs (default every 30 seconds)</li>
+        <li>Job <code>exec_id=4521</code> is marked as stalled and re-queued</li>
+        <li>Worker-5 claims it, executes it from the start</li>
+      </ol>
+
+      <div class="warning-box">
+        <p><strong>⚠ The catch: workflows must be idempotent for this to work safely.</strong></p>
+        <p>If the original execution wrote a row to Postgres before crashing, the retry will write a second row. We solved this in two ways:</p>
+        <ol style="margin:8px 0 0 20px">
+          <li>The incident ID generator (covered in Part 3) is wrapped in a Postgres trigger so duplicate inserts get unique IDs — they don't collide.</li>
+          <li>External API calls (Jira ticket creation) are at the end of the workflow. If a worker crashes before that, the only side effect is a half-written database row, which we clean up via a maintenance script.</li>
+        </ol>
+      </div>
+
+      <h2>Operational Numbers</h2>
+
+      <p>After ~6 months of running this stack, here's what the operational metrics look like:</p>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-number">99.7%</div>
+          <div class="stat-label">Uptime (workers)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">10-27</div>
+          <div class="stat-label">Worker range observed</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">~250</div>
+          <div class="stat-label">Scale events / month</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">3.2s</div>
+          <div class="stat-label">Median alert→ticket</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">12s</div>
+          <div class="stat-label">P99 alert→ticket</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">0</div>
+          <div class="stat-label">Queue overflows</div>
+        </div>
+      </div>
+
+      <p>The peak observed worker count was 27 — during an incident where a misconfigured firewall rule generated about 800 alerts in a 4-minute window. The autoscaler caught it, ramped from 10 to 27 workers in 90 seconds, drained the queue, and ramped back down. The total alert backlog never exceeded 60 seconds.</p>
+
+      <h2>What I'd Do Differently</h2>
+
+      <p>In the spirit of honesty I promised in Part 1, here are the parts of this setup I'd revisit:</p>
+
+      <h3>1. The 5-second polling interval is too tight</h3>
+      <p>Every 5 seconds, the autoscaler runs <code>docker exec</code> against the Redis container. That's about 17,000 <code>docker exec</code> calls per day. It works, but it generates a lot of unnecessary Docker daemon traffic. I'd switch to a Python script using <code>redis-py</code> connecting directly to Redis (port 6380 is exposed) — same effect, no <code>docker exec</code> overhead.</p>
+
+      <h3>2. Cooldown should be asymmetric</h3>
+      <p>Scaling up should be fast (no cooldown, or 5 seconds). Scaling down should be slow (60+ seconds) to absorb transient quiet periods. Currently both use the same 10-second cooldown. I noticed during testing that the system sometimes scales down a worker, then immediately scales it back up when the next burst arrives — wasting the container teardown cycle.</p>
+
+      <h3>3. Should publish metrics to Prometheus</h3>
+      <p>The autoscaler logs everything to a flat file. That's fine for grep-and-investigate. But for time-series analysis — "what's our peak worker count this quarter?" — I'd want Prometheus scraping the autoscaler. Maybe Part 6 will cover this.</p>
+
+      <h3>4. The healthchecks could be smarter</h3>
+      <p>The worker healthcheck just checks <code>pgrep -f 'n8n worker'</code>. If the worker process is alive but has a stuck job (e.g., infinite loop in a custom node), the healthcheck passes. A smarter check would query the worker's local state and verify it's actively processing.</p>
+
+      <h2>What's Next</h2>
+
+      <p>The infrastructure layer is now solid. Workers scale on demand. Containers heal themselves. Logs go where they should. The next problem is data.</p>
+
+      <p>Part 3 covers the PostgreSQL schema. The 12 tables, the atomic incident ID trigger that guarantees uniqueness across concurrent inserts, the RBAC model with role defaults and per-user overrides, and the design decisions that turned the database from a dumb store into the platform's source of truth.</p>
+
+      <p class="pull-quote">The infrastructure runs the platform. The <span>database</span> defines its behavior.</p>
+
+      <p>Stay with me.</p>
+
+      <div class="series-nav">
+        <h3>📚 The Complete 6-Part Series</h3>
+        <ul class="series-list">
+          <li>
+            <span class="num">1</span>
+            <span><strong>Foundation</strong> — Architecture overview & problem statement</span>
+          </li>
+          <li class="current">
+            <span class="num">2</span>
+            <span><strong>Infrastructure</strong> — Docker Compose, queue mode, auto-scaling workers <em>(you are here)</em></span>
+          </li>
+          <li>
+            <span class="num">3</span>
+            <span><strong>Database</strong> — PostgreSQL schema, atomic ID trigger, RBAC model</span>
+          </li>
+          <li>
+            <span class="num">4</span>
+            <span><strong>Backend</strong> — FastAPI architecture, sessions, permissions, integrations</span>
+          </li>
+          <li>
+            <span class="num">5</span>
+            <span><strong>Frontend</strong> — Real-time dashboard, queue detection, alerting UI</span>
+          </li>
+          <li>
+            <span class="num">6</span>
+            <span><strong>Operations</strong> — Monitoring, troubleshooting, lessons learned</span>
+          </li>
+        </ul>
+      </div>
+
+    </div>
+
+    <footer class="post-footer">
+      <div class="post-tags">
+        <span class="tag">Docker</span>
+        <span class="tag">N8N</span>
+        <span class="tag">Queue Mode</span>
+        <span class="tag">Redis</span>
+        <span class="tag">PostgreSQL</span>
+        <span class="tag">Auto-Scaling</span>
+        <span class="tag">Systemd</span>
+        <span class="tag">Bash</span>
+        <span class="tag">BullMQ</span>
+        <span class="tag">Production Operations</span>
+      </div>
+
+      <div class="post-nav">
+        <a href="soc-platform-part-1.html" class="post-nav-link">← Part 1: Foundation</a>
+        <a href="soc-platform-part-3.html" class="post-nav-link">Part 3: Database →</a>
+      </div>
+    </footer>
+
+  </div>
+</article>
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <div class="footer-left">
+      <div class="footer-logo">Nitish <em>Som</em></div>
+      <div class="footer-copy">© 2026 · Built with focus on detection engineering</div>
+    </div>
+    <div class="footer-links">
+      <a href="topics/index.html">Topics</a>
+      <a href="roadmap.html">Roadmap</a>
+      <a href="sitemap.html">Sitemap</a>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/data.js"></script>
+<script>
+if(typeof P !== 'undefined' && P.showAvailBadgeOnBlog){
+  const badge = document.getElementById('avail-badge');
+  if(badge) badge.style.display='flex';
+}
+</script>
+
+</body>
+</html>
