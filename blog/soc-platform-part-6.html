@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<base href="/nitishsom.io/">
+<title>Operations — Monitoring, Backups, Postmortems (Part 6) — Nitish Som</title>
+<meta name="description" content="The final part of the series. The unsexy layer that turns a project into a system — daily checks I actually run, the monitoring I do without Prometheus, backups and restore drills, a troubleshooting cookbook from six months of real failures, and the two postmortems that taught me the most.">
+<link rel="stylesheet" href="assets/shared.css">
+<style>
+:root{
+  --primary:#3b82f6;--primary-dark:#2563eb;
+  --accent:#8b5cf6;--accent-dark:#7c3aed;
+  --cyan:#06b6d4;
+  --glow:rgba(59,130,246,.3);
+  --glow-violet:rgba(139,92,246,.25);
+}
+
+.blog-post{padding:80px 0 120px;min-height:100vh;background:var(--bg)}
+.container.narrow{max-width:840px}
+
+.post-header{margin-bottom:64px;padding:48px 0;border-bottom:1px solid var(--border);position:relative;overflow:hidden}
+.post-header::before{content:'';position:absolute;top:-100px;right:-100px;width:400px;height:400px;background:radial-gradient(circle,var(--glow) 0%,transparent 70%);pointer-events:none;z-index:0}
+.post-header::after{content:'';position:absolute;bottom:-50px;left:-50px;width:300px;height:300px;background:radial-gradient(circle,var(--glow-violet) 0%,transparent 70%);pointer-events:none;z-index:0}
+.post-header > *{position:relative;z-index:1}
+.post-meta{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:24px}
+.post-cat{font-size:11px;font-weight:700;padding:6px 14px;border-radius:var(--rp);text-transform:uppercase;letter-spacing:.08em;background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;box-shadow:0 4px 12px var(--glow)}
+.post-date,.post-read{font-family:var(--mono);font-size:12px;color:var(--text3)}
+.part-badge{display:inline-block;background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;padding:8px 18px;border-radius:var(--rp);font-weight:600;font-size:12px;margin-bottom:20px;letter-spacing:.04em;box-shadow:0 4px 16px var(--glow)}
+.post-title{font-size:clamp(36px,5.5vw,56px);font-weight:800;letter-spacing:-.045em;line-height:1.05;color:var(--text);margin-bottom:20px;background:linear-gradient(135deg,var(--text) 0%,var(--primary) 60%,var(--accent) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.post-subtitle{font-size:19px;font-weight:300;color:var(--text2);line-height:1.55;max-width:720px}
+
+.post-content{font-size:16px;font-weight:300;color:var(--text2);line-height:1.8;letter-spacing:-.005em}
+.post-content h2{font-size:clamp(26px,3.8vw,34px);font-weight:700;color:var(--text);margin:64px 0 24px;letter-spacing:-.035em;line-height:1.2;position:relative;padding-left:20px}
+.post-content h2::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:4px;background:linear-gradient(180deg,var(--primary),var(--accent));border-radius:2px}
+.post-content h2:first-child{margin-top:0}
+.post-content h3{font-size:22px;font-weight:600;color:var(--text);margin:44px 0 16px;letter-spacing:-.025em}
+.post-content h4{font-size:18px;font-weight:600;color:var(--text);margin:32px 0 12px}
+.post-content p{margin-bottom:20px;line-height:1.8}
+.post-content p strong{color:var(--text);font-weight:600}
+.post-content ul,.post-content ol{margin:24px 0;padding-left:28px}
+.post-content li{margin-bottom:12px;line-height:1.7}
+.post-content li strong{color:var(--text);font-weight:600}
+.post-content code{font-family:var(--mono);font-size:14px;background:var(--bg2);border:1px solid var(--border);padding:2px 8px;border-radius:4px;color:var(--primary);font-weight:500}
+.post-content a{color:var(--primary);text-decoration:underline;font-weight:500;transition:opacity .15s}
+.post-content a:hover{color:var(--accent)}
+
+.code-wrap{margin:24px 0;border-radius:var(--r);overflow:hidden;border:1px solid #1e293b;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.code-bar{display:flex;align-items:center;justify-content:space-between;background:#0a0e1a;padding:10px 16px;border-bottom:1px solid #1e293b;position:relative}
+.code-bar::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--primary),var(--accent),var(--cyan))}
+.code-label{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--primary);letter-spacing:.04em}
+.copy-btn{font-family:var(--mono);font-size:11px;font-weight:600;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);color:#cbd5e1;padding:5px 12px;border-radius:4px;cursor:pointer;transition:.15s;display:inline-flex;align-items:center;gap:6px}
+.copy-btn:hover{background:rgba(59,130,246,.2);border-color:rgba(59,130,246,.5);color:#fff}
+.copy-btn.copied{background:rgba(34,197,94,.15);border-color:rgba(34,197,94,.4);color:#86efac}
+.code-wrap pre{background:#0a0e1a;border:none;margin:0;border-radius:0;padding:20px 24px;max-height:600px;overflow:auto;box-shadow:none}
+.code-wrap pre::before{display:none}
+.code-wrap pre code{background:none;border:none;padding:0;color:#e2e8f0;font-size:13px;line-height:1.7;font-weight:400;font-family:var(--mono)}
+
+.story-box{background:linear-gradient(135deg,rgba(59,130,246,.04),rgba(139,92,246,.04));border:1px solid var(--border);border-left:4px solid var(--primary);border-radius:var(--rs);padding:28px 32px;margin:32px 0;position:relative}
+.story-box::before{content:'❝';position:absolute;top:-10px;left:20px;font-size:48px;color:var(--primary);font-family:Georgia,serif;line-height:1;opacity:.4}
+.story-box p{margin-bottom:16px;font-style:italic;font-size:17px;line-height:1.7}
+.story-box p:last-child{margin-bottom:0}
+.story-box strong{color:var(--primary);font-weight:600;font-style:normal}
+
+.problem-box{background:rgba(239,68,68,.04);border:1px solid rgba(239,68,68,.2);border-left:4px solid #ef4444;border-radius:var(--rs);padding:24px;margin:32px 0}
+.problem-box strong{color:#dc2626;font-weight:700}
+
+.solution-box{background:linear-gradient(135deg,rgba(59,130,246,.05),rgba(139,92,246,.05));border:1px solid rgba(59,130,246,.2);border-left:4px solid var(--primary);border-radius:var(--rs);padding:24px;margin:32px 0}
+.solution-box strong{color:var(--primary);font-weight:700}
+
+.warning-box{background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.2);border-left:4px solid #f59e0b;border-radius:var(--rs);padding:24px;margin:32px 0}
+.warning-box strong{color:#d97706;font-weight:700}
+
+.applies-box{background:linear-gradient(135deg,rgba(6,182,212,.04),rgba(59,130,246,.04));border:1px solid rgba(6,182,212,.2);border-left:4px solid var(--cyan);border-radius:var(--rs);padding:24px;margin:32px 0}
+.applies-box h4{margin:0 0 12px 0;color:var(--cyan);font-size:15px;text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+.applies-box ul{margin:0;padding-left:20px}
+.applies-box li{font-size:14px;color:var(--text2);margin-bottom:8px;line-height:1.6}
+.applies-box li strong{color:var(--text);font-weight:600}
+
+/* Postmortem block */
+.pm-block{
+  background:#0a0e1a;border:1px solid #1e293b;
+  border-radius:var(--r);padding:28px;margin:32px 0;
+  box-shadow:0 8px 32px rgba(0,0,0,.3);
+  position:relative;
+}
+.pm-block::before{
+  content:'POSTMORTEM';position:absolute;top:14px;right:18px;
+  font-family:var(--mono);font-size:10px;font-weight:700;
+  letter-spacing:.2em;color:#ef4444;opacity:.7;
+}
+.pm-block h4{
+  color:#fca5a5;margin:0 0 18px 0;font-size:18px;font-weight:700;
+}
+.pm-meta{
+  display:flex;gap:18px;flex-wrap:wrap;
+  margin-bottom:18px;font-family:var(--mono);font-size:12px;
+}
+.pm-meta .item{color:#94a3b8}
+.pm-meta .item b{color:#cbd5e1;font-weight:700;margin-right:6px}
+.pm-timeline{font-family:var(--mono);font-size:13px;color:#cbd5e1;line-height:1.9}
+.pm-timeline .t{color:#fcd34d;font-weight:700;display:inline-block;min-width:60px}
+.pm-timeline .bad{color:#fca5a5}
+.pm-timeline .good{color:#86efac}
+.pm-section{margin-top:16px}
+.pm-section .title{
+  color:#67e8f9;font-size:11px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;
+}
+.pm-section .body{color:#cbd5e1;font-size:14px;line-height:1.65}
+.pm-section ul{margin:6px 0;padding-left:22px;color:#cbd5e1}
+.pm-section li{font-size:14px;margin-bottom:6px}
+
+/* Cookbook entry */
+.cookbook{
+  background:var(--surface);border:1px solid var(--border);
+  border-left:3px solid var(--accent);
+  border-radius:var(--rs);padding:18px 22px;margin:18px 0;
+}
+.cookbook .symptom{
+  color:#dc2626;font-weight:700;font-size:14px;margin-bottom:10px;
+  display:flex;align-items:center;gap:8px;
+}
+.cookbook .symptom::before{content:'⚠';font-size:18px}
+.cookbook p{margin:8px 0;font-size:14px}
+.cookbook p strong{color:var(--text)}
+
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin:32px 0}
+.stat-card{background:linear-gradient(135deg,var(--surface),var(--bg2));border:1px solid var(--border);border-radius:var(--rs);padding:22px 18px;text-align:center;position:relative;overflow:hidden;transition:.2s}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--primary),var(--accent))}
+.stat-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px var(--glow)}
+.stat-number{font-size:28px;font-weight:800;background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px;line-height:1}
+.stat-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+
+.series-nav{background:linear-gradient(135deg,rgba(59,130,246,.04),rgba(139,92,246,.04));border:1px solid var(--border);border-radius:var(--r);padding:24px;margin:48px 0 32px}
+.series-nav h3{margin-top:0!important;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:16px;padding-left:0}
+.series-nav h3::before{display:none}
+.series-list{list-style:none;padding:0;margin:0}
+.series-list li{padding:10px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;font-size:14px;color:var(--text2)}
+.series-list li:last-child{border-bottom:none}
+.series-list li.current{color:var(--primary);font-weight:600}
+.series-list li .num{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--surface);border:1px solid var(--border);font-size:11px;font-weight:700;color:var(--text3);flex-shrink:0}
+.series-list li.current .num{background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;border-color:transparent}
+
+.pull-quote{font-size:24px;font-weight:300;font-style:italic;color:var(--text);text-align:center;margin:48px 0;padding:32px 24px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);line-height:1.4}
+.pull-quote span{background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;font-weight:600}
+
+/* Series wrap */
+.series-wrap{
+  background:linear-gradient(135deg,rgba(59,130,246,.06),rgba(139,92,246,.06));
+  border:1px solid rgba(59,130,246,.2);border-radius:var(--r);
+  padding:40px 36px;margin:48px 0;text-align:center;
+}
+.series-wrap h2{margin-top:0;padding-left:0;border:none}
+.series-wrap h2::before{display:none}
+.series-wrap p{font-size:17px;line-height:1.7;color:var(--text2);margin:0 auto 14px;max-width:620px}
+.series-wrap p strong{color:var(--text)}
+
+.post-footer{margin-top:80px;padding-top:40px;border-top:1px solid var(--border)}
+.post-tags{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:32px}
+.post-tags .tag{font-size:11px;font-weight:600;padding:6px 14px;border-radius:var(--rp);border:1px solid var(--border);background:var(--surface);color:var(--text3);font-family:var(--mono)}
+.post-nav{display:flex;justify-content:space-between;align-items:center;margin-top:32px;gap:16px;flex-wrap:wrap}
+.post-nav-link{font-size:14px;font-weight:600;color:var(--primary);text-decoration:none;display:inline-flex;align-items:center;gap:6px;transition:opacity .15s}
+.post-nav-link:hover{color:var(--accent)}
+
+@media(max-width:768px){
+  .blog-post{padding:48px 0 80px}
+  .post-header{margin-bottom:40px;padding:32px 0}
+  .post-content h2{margin:48px 0 20px;padding-left:16px}
+  .post-content h3{margin:36px 0 14px}
+  .code-wrap pre{max-height:400px;padding:14px 16px}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .pull-quote{font-size:18px;padding:24px 16px}
+  .series-wrap{padding:28px 22px}
+}
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <div class="container nav-inner">
+    <a href="index.html" class="nav-logo"><span class="nav-logo-dot"></span>Nitish <em>Som</em></a>
+    <div class="nav-links">
+      <a href="index.html#about">About</a>
+      <a href="index.html#experience">Experience</a>
+      <a href="projects.html">Projects</a>
+      <a href="blog/index.html">Blog</a>
+      <a href="certifications/index.html">Certs</a>
+    </div>
+    <div class="nav-right">
+      <button class="cmdk-btn"><span>Search</span><kbd>⌘K</kbd></button>
+    </div>
+  </div>
+</nav>
+
+<article class="blog-post">
+  <div class="container narrow">
+
+    <header class="post-header">
+      <div class="post-meta">
+        <span class="post-cat">Operations</span>
+        <span class="post-date">June 8, 2026</span>
+        <span class="post-read">Part 6 — 24 min read</span>
+      </div>
+      <div class="part-badge">📓 PART 6 / 6 — Keeping It Alive</div>
+      <h1 class="post-title">The Boring Part That Turns a Project Into a System</h1>
+      <p class="post-subtitle">Building the platform was the fun half. Keeping it alive — backups that actually restore, monitoring that catches things before users do, postmortems that change behaviour — is the half that matters more. Six months in production, two outages, every lesson written down.</p>
+    </header>
+
+    <div class="post-content">
+
+      <h2>Where We Left Off</h2>
+
+      <p>Parts 1 through 5 built the platform. Workflows running, IDs atomic, API locked down, dashboard live. Everything works on a good day.</p>
+
+      <p>This part is about the bad days. The Saturday morning when the workers crashed and nobody noticed for three hours. The migration that locked the database for four minutes. The Wednesday afternoon when the Postgres container hit its connection limit. The disk that quietly filled with old execution logs until N8N couldn't write anymore.</p>
+
+      <p>Every one of those things happened. Every one of them taught me something. This part is the cumulative version of those lessons — the routine I run now, the tooling I added afterwards, and the two postmortems that taught me the most.</p>
+
+      <h2>The Morning Routine</h2>
+
+      <p>Every morning at 9 AM IST I run one command. It takes about three seconds and tells me whether anything is wrong before I open the dashboard.</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">📄 /opt/security-automation/morning_check.sh</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>#!/bin/bash
+# 9 AM sanity check. Output should fit on one screen.
+
+set -e
+cd /opt/security-automation
+source .env
+
+echo "=== Containers ==="
+docker compose ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"
+
+echo
+echo "=== Disk (/opt) ==="
+df -h /opt | awk 'NR==1 || /\/opt/'
+
+echo
+echo "=== Postgres ==="
+docker exec n8nq-postgres psql -U n8n_queue -d n8n_queue -t -c \
+  "SELECT
+     (SELECT COUNT(*) FROM incidents WHERE created_at &gt; NOW() - INTERVAL '24 hours')
+       AS incidents_24h,
+     (SELECT COUNT(*) FROM pg_stat_activity WHERE datname='n8n_queue')
+       AS connections,
+     (SELECT pg_size_pretty(pg_database_size('n8n_queue')))
+       AS db_size;"
+
+echo
+echo "=== Redis ==="
+docker exec n8nq-redis redis-cli -a "$REDIS_PASSWORD" --no-auth-warning \
+  INFO memory | grep -E "used_memory_human|maxmemory_human"
+docker exec n8nq-redis redis-cli -a "$REDIS_PASSWORD" --no-auth-warning \
+  LLEN bull:jobs:wait | awk '{print "waiting jobs: " $1}'
+
+echo
+echo "=== Latest backup ==="
+ls -lh /var/backups/soc-platform/postgres-*.sql.gz 2&gt;/dev/null | tail -1
+
+echo
+echo "=== SSL cert expiry ==="
+openssl x509 -in certs/cert.pem -enddate -noout</code></pre>
+      </div>
+
+      <p>Six checks, three seconds, one screen of output. If everything is normal I know in five seconds and move on. If something is off — disk over 80%, connections climbing, no recent backup — I see it before I've even started the workday.</p>
+
+      <p>This is more valuable than any dashboard. Dashboards make you look. Scripts make you check.</p>
+
+      <h2>Why I Don't Run Prometheus</h2>
+
+      <p>The default advice for monitoring would be: install Prometheus, install Grafana, scrape metrics from the host, build alert rules, set up Alertmanager. That's the proper way. I considered it. I didn't do it.</p>
+
+      <p>Reasons:</p>
+
+      <ul>
+        <li><strong>Prometheus + Grafana is more code than the platform.</strong> For a single-host setup with ~20 users, the monitoring stack would have a bigger operational surface than the thing being monitored. Wrong ratio.</li>
+        <li><strong>The dashboard already does most of it.</strong> Queue depth chart, worker count, recent incidents — all rendered live from data the API already serves. Adding Grafana would be a second window showing the same numbers.</li>
+        <li><strong>Alert fatigue.</strong> Every monitoring system I've worked with eventually fires too many low-signal alerts. The 4-condition queue-stuck overlay from Part 5 fires <em>only</em> when something is actually wrong. That's better than 20 Grafana panels that I've muted because they cried wolf.</li>
+        <li><strong>If the platform grows past this size,</strong> Prometheus becomes the right answer. We're not there yet.</li>
+      </ul>
+
+      <p>What I have instead: the morning script, the dashboard, the queue-stuck overlay, and a few <code>cron</code> jobs that catch the boring stuff before it bites.</p>
+
+      <h2>The Cron Jobs That Catch Boring Things</h2>
+
+      <p>Three cron jobs run on the host. None of them are clever. All of them have saved me at least once.</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">📄 /etc/cron.d/soc-platform</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code># 1. Backup every 6 hours
+0 */6 * * * root /opt/security-automation/backup.sh &gt;&gt; /var/log/soc-backup.log 2&gt;&amp;1
+
+# 2. Disk usage alert (email if /opt &gt; 80%)
+*/15 * * * * root /opt/security-automation/disk_alert.sh
+
+# 3. SSL cert expiry alert (email 14 days before expiry)
+0 9 * * * root /opt/security-automation/cert_alert.sh</code></pre>
+      </div>
+
+      <p>The disk check is the simplest possible thing:</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">📄 disk_alert.sh</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>#!/bin/bash
+USED=$(df /opt | awk 'NR==2 {gsub(/%/,"",$5); print $5}')
+if [ "$USED" -gt 80 ]; then
+  echo "Disk usage on /opt is at ${USED}%" | \
+    mail -s "[SOC-PLATFORM] Disk warning" admin@company.com
+fi</code></pre>
+      </div>
+
+      <p>Eight lines. The first time it fired, I had three weeks before <code>/opt</code> would have filled. That's three weeks to clean up old execution data, archive old logs, or expand the disk — instead of three minutes between "everything is fine" and "the platform is down."</p>
+
+      <h2>Backups (And Why I Test Them)</h2>
+
+      <p>Every six hours a backup script runs. It dumps Postgres, copies the encryption key and <code>.env</code>, and rotates old backups. Standard stuff. The detail that matters is the <em>restore drill</em>.</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">📄 /opt/security-automation/backup.sh</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>#!/bin/bash
+set -euo pipefail
+cd /opt/security-automation
+source .env
+
+TS=$(date +%Y%m%d-%H%M%S)
+DEST=/var/backups/soc-platform
+mkdir -p "$DEST"
+
+# 1. Postgres dump
+docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" n8nq-postgres \
+  pg_dump -U n8n_queue -d n8n_queue --no-owner --clean --if-exists \
+  | gzip &gt; "$DEST/postgres-$TS.sql.gz"
+
+# 2. Critical config (encryption key lives in here)
+cp .env "$DEST/env-$TS"
+cp -r certs "$DEST/certs-$TS"
+
+# 3. Rotate: keep daily for 30 days, weekly older
+find "$DEST" -name "postgres-*.sql.gz" -mtime +30 -delete
+find "$DEST" -name "env-*" -mtime +30 -delete
+find "$DEST" -name "certs-*" -mtime +30 -type d -exec rm -rf {} +
+
+# 4. Verify size sanity (catches dumps that produced empty output)
+SIZE=$(stat -c%s "$DEST/postgres-$TS.sql.gz")
+if [ "$SIZE" -lt 100000 ]; then
+  echo "Backup is suspiciously small: $SIZE bytes" \
+    | mail -s "[SOC-PLATFORM] Backup small" admin@company.com
+fi
+
+echo "[$(date)] Backup OK: $DEST/postgres-$TS.sql.gz ($SIZE bytes)"</code></pre>
+      </div>
+
+      <h3>The restore drill</h3>
+
+      <p>Every month I run a restore against a throwaway container. Backup files that haven't been tested aren't backups — they're hope.</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">▸ monthly restore drill</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code># Pick the most recent backup
+BACKUP=$(ls -t /var/backups/soc-platform/postgres-*.sql.gz | head -1)
+
+# Spin up a throwaway Postgres
+docker run --rm -d --name pg-restore-test \
+  -e POSTGRES_PASSWORD=test -e POSTGRES_DB=restore_test \
+  postgres:16-alpine
+
+sleep 5  # let it boot
+
+# Restore into it
+gunzip -c "$BACKUP" | \
+  docker exec -i pg-restore-test psql -U postgres -d restore_test
+
+# Verify counts
+docker exec pg-restore-test psql -U postgres -d restore_test -c "
+  SELECT 'incidents:' AS t, COUNT(*) FROM incidents
+  UNION ALL
+  SELECT 'audit_log:' , COUNT(*) FROM audit_log
+  UNION ALL
+  SELECT 'users:'     , COUNT(*) FROM users;
+"
+
+# Clean up
+docker stop pg-restore-test</code></pre>
+      </div>
+
+      <p>If the row counts look right, I have a restore in my pocket. If they don't, I know <em>before</em> the day I actually need it.</p>
+
+      <div class="warning-box">
+        <p><strong>The one file the backup script copies that's more important than the database itself: <code>.env</code>.</strong></p>
+        <p>It contains <code>N8N_ENCRYPTION_KEY</code>. If you restore Postgres without that key, every credential stored inside N8N workflows is unrecoverable — Jira tokens, OAuth refresh tokens, integration passwords. The database dump is the table data; the <code>.env</code> is the key that decrypts it. I learned this the hard way once. Now they always travel together.</p>
+      </div>
+
+      <h2>The Troubleshooting Cookbook</h2>
+
+      <p>Six months of running this platform produced a recurring set of failures. Each one has a familiar shape. I keep these as a runbook — symptom on top, command underneath.</p>
+
+      <div class="cookbook">
+        <div class="symptom">Workers won't start after a deploy</div>
+        <p>Almost always a mismatch in <code>N8N_ENCRYPTION_KEY</code> between main and workers, or a credential file from a previous install lingering in the data volume.</p>
+        <div class="code-wrap" style="margin:10px 0">
+          <div class="code-bar">
+            <span class="code-label">▸ check</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+<pre><code>docker compose logs n8nq-worker --tail 100 | grep -i "decrypt\|encryption\|credential"
+# Look for "Could not decrypt" — that's the encryption-key mismatch signature</code></pre>
+        </div>
+      </div>
+
+      <div class="cookbook">
+        <div class="symptom">Queue depth is climbing but no errors visible</div>
+        <p>Workers are alive but stuck on something — usually a slow external API (Jira during one of Atlassian's bad days). Check active job count.</p>
+        <div class="code-wrap" style="margin:10px 0">
+          <div class="code-bar">
+            <span class="code-label">▸ check</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+<pre><code>docker exec n8nq-redis redis-cli -a "$REDIS_PASSWORD" --no-auth-warning LLEN bull:jobs:active
+# If active &gt; 0 but waiting climbing, workers are busy on long-running jobs
+# If active == 0 and waiting climbing, workers are dead -&gt; restart them</code></pre>
+        </div>
+      </div>
+
+      <div class="cookbook">
+        <div class="symptom">"Postgres connection refused" from the API logs</div>
+        <p>Either the container is down, or it's hit max connections. The second one happens when a code path forgot to release a connection — usually a recent change.</p>
+        <div class="code-wrap" style="margin:10px 0">
+          <div class="code-bar">
+            <span class="code-label">▸ check</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+<pre><code>docker exec n8nq-postgres psql -U n8n_queue -d n8n_queue -c "
+  SELECT state, COUNT(*) FROM pg_stat_activity
+  WHERE datname='n8n_queue'
+  GROUP BY state;
+"
+# If 'idle' is huge, something is holding connections without using them.
+# Restart the dashboard API first; if that fixes it, look at recent code changes.</code></pre>
+        </div>
+      </div>
+
+      <div class="cookbook">
+        <div class="symptom">Dashboard shows old data, refresh isn't working</div>
+        <p>Polling loop probably hit an unhandled exception. Open browser console — there will be an error from the api() wrapper. If the console is clean, the API itself is wedged.</p>
+        <div class="code-wrap" style="margin:10px 0">
+          <div class="code-bar">
+            <span class="code-label">▸ check</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+<pre><code>systemctl status dashboard
+tail -50 /opt/security-automation/dashboard/api.log
+# If the log shows fastapi exceptions, the API is broken but running.
+# If it's silent, restart: systemctl restart dashboard</code></pre>
+        </div>
+      </div>
+
+      <div class="cookbook">
+        <div class="symptom">Jira sync silently failing</div>
+        <p>Background thread errors don't surface to the dashboard. Have to check the API log directly.</p>
+        <div class="code-wrap" style="margin:10px 0">
+          <div class="code-bar">
+            <span class="code-label">▸ check</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+<pre><code>grep "jira_sync_status failed" /opt/security-automation/dashboard/api.log | tail -20
+# Most common: API token expired. Rotate in app_config table and restart.
+# Second most common: Atlassian Cloud rate limit (429). Wait and let the
+# reconciliation script catch up overnight.</code></pre>
+        </div>
+      </div>
+
+      <div class="cookbook">
+        <div class="symptom">Containers won't pull on update — "no space left on device"</div>
+        <p>Old Docker images and dangling volumes. Happens every few weeks if you update images regularly.</p>
+        <div class="code-wrap" style="margin:10px 0">
+          <div class="code-bar">
+            <span class="code-label">▸ fix</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+<pre><code>docker system df                              # see what's eating space
+docker image prune -f                         # untagged images
+docker container prune -f                     # stopped containers
+docker volume prune -f                        # NOT n8nq_pgdata etc -- those are still in use</code></pre>
+        </div>
+      </div>
+
+      <h2>Postmortem: The 4-Minute Migration Outage</h2>
+
+      <p>I referenced this one in Part 3. Here's the full version, because the lesson generalizes well beyond schema migrations.</p>
+
+      <div class="pm-block">
+        <h4>🔥 PM-001: ALTER TABLE blocks all inserts for 4 minutes</h4>
+        <div class="pm-meta">
+          <div class="item"><b>Date:</b>March 2026</div>
+          <div class="item"><b>Duration:</b>4 min, 12 sec</div>
+          <div class="item"><b>Impact:</b>~62 alerts queued, 0 lost</div>
+          <div class="item"><b>Severity:</b>Medium</div>
+        </div>
+
+        <div class="pm-timeline">
+<span class="t">T+0:00</span>  Ran ALTER TABLE incidents ADD COLUMN email_sent BOOLEAN NOT NULL DEFAULT FALSE
+<span class="t">T+0:15</span>  N8N worker logs start showing "relation is locked"
+<span class="t">T+0:30</span>  <span class="bad">Queue depth begins climbing rapidly</span>
+<span class="t">T+1:10</span>  Autoscaler ramps from 10 -&gt; 18 workers (new workers also block)
+<span class="t">T+2:00</span>  Dashboard API connections to Postgres time out
+<span class="t">T+2:05</span>  Queue-stuck overlay fires on the SOC TV monitor
+<span class="t">T+4:12</span>  <span class="good">ALTER TABLE completes. Locks release.</span>
+<span class="t">T+4:45</span>  Workers drain the queue
+<span class="t">T+5:30</span>  System back to normal
+        </div>
+
+        <div class="pm-section">
+          <div class="title">Root cause</div>
+          <div class="body">Postgres treats <code>ALTER TABLE ... ADD COLUMN ... NOT NULL DEFAULT &lt;value&gt;</code> as a full table rewrite on older versions and on certain default expressions. With ~4,000 incident rows it took 4 minutes of exclusive lock. During that window every INSERT to the table queued behind the lock.</div>
+        </div>
+
+        <div class="pm-section">
+          <div class="title">What I changed</div>
+          <ul>
+            <li>Every migration now splits into three statements: nullable add, batched backfill, then tighten constraints. None of those hold a long lock.</li>
+            <li>Migrations now run only during the SOC's quiet window (3-5 AM IST), monitored manually.</li>
+            <li>The morning script's row-count checks would have caught the column shape before; now they also sanity-check schema version against a known list.</li>
+            <li>The queue-stuck overlay was already in place — it correctly told the analyst something was wrong. The fix shifted left: stop letting bad migrations reach prod.</li>
+          </ul>
+        </div>
+
+        <div class="pm-section">
+          <div class="title">What I'd do differently next time</div>
+          <div class="body">Test the migration against a copy of production data. The local test database had 4 rows in <code>incidents</code> — the ALTER ran instantly there. Production had 4,000. I should have known to size-up before running.</div>
+        </div>
+      </div>
+
+      <h2>Postmortem: The Saturday Worker Crash</h2>
+
+      <p>The one that gave us the queue-stuck overlay. Worth telling in full now.</p>
+
+      <div class="pm-block">
+        <h4>🔥 PM-002: Workers crashed at 6 AM, found at 9:30 AM</h4>
+        <div class="pm-meta">
+          <div class="item"><b>Date:</b>April 2026</div>
+          <div class="item"><b>Duration:</b>3 hours, 28 minutes</div>
+          <div class="item"><b>Impact:</b>347 alerts delayed, 0 lost</div>
+          <div class="item"><b>Severity:</b>High</div>
+        </div>
+
+        <div class="pm-timeline">
+<span class="t">06:02</span>  Host kernel hit an OOM condition affecting cgroup memory accounting
+<span class="t">06:02</span>  <span class="bad">All 10 n8nq-worker containers terminated by the kernel</span>
+<span class="t">06:03</span>  Docker tried to restart them. Restart failed for the same kernel reason.
+<span class="t">06:03</span>  Autoscaler script tried to scale up; got back failed-restart errors
+<span class="t">06:05</span>  Queue starts climbing. No one watching.
+<span class="t">09:32</span>  <span class="bad">Analyst pings me on Slack about missed alerts</span>
+<span class="t">09:34</span>  I find docker daemon stuck. systemctl restart docker.
+<span class="t">09:36</span>  <span class="good">Workers come up. Queue drains in 4 minutes.</span>
+<span class="t">09:40</span>  All 347 queued alerts have tickets. Customer notifications go out.
+        </div>
+
+        <div class="pm-section">
+          <div class="title">Root cause</div>
+          <div class="body">A kernel bug in the host's cgroup memory subsystem corrupted memory accounting under specific load patterns. When that fired at 6 AM, every container N8N spawned was killed instantly. Docker daemon kept retrying but the kernel state was bad. A reboot would have fixed it; a daemon restart eventually did.</div>
+        </div>
+
+        <div class="pm-section">
+          <div class="title">What I changed</div>
+          <ul>
+            <li><strong>Built the queue-stuck overlay (Part 5).</strong> Same incident today would alert me within 2 minutes — not 3.5 hours.</li>
+            <li><strong>Added a worker-health watcher to the API process (Part 4).</strong> When workers are at zero for &gt;5 minutes, every active user gets a broadcast notification. The SOC TV monitor in particular makes this very visible.</li>
+            <li><strong>Wrote a runbook entry for "Docker daemon stuck."</strong> The fix is <code>systemctl restart docker</code> — but only if you know that's an option.</li>
+            <li><strong>Upgraded the host kernel.</strong> The bug had a fix in a newer kernel. We hadn't taken it.</li>
+          </ul>
+        </div>
+
+        <div class="pm-section">
+          <div class="title">What this taught me about monitoring</div>
+          <div class="body">The autoscaler was technically working — it tried to scale up. The container healthchecks were technically running — they reported failure. <em>Nothing told a human</em>. Every monitoring decision after this incident has been pointed at the same question: when the platform breaks, how does a human find out within minutes, not hours?</div>
+        </div>
+      </div>
+
+      <h2>Six Months In: What I'd Tell Myself on Day One</h2>
+
+      <p>If I could send notes back to the version of me starting this project, here's what they'd say.</p>
+
+      <h3>1. Start with the boring stuff first</h3>
+      <p>I built the workflow, then the database, then the API, then the dashboard. <em>Then</em> I started thinking about backups, monitoring, and runbooks. That ordering is backwards. The first thing you should build after "it runs" is "it survives." Two days I spent on a Saturday-night restore drill would have saved a week of anxiety the first time something broke.</p>
+
+      <h3>2. Test migrations against production-shaped data</h3>
+      <p>The 4-minute outage was entirely avoidable. A test database with one realistic-volume table would have shown the lock-up immediately. Now I run a docker compose stack with a copy of last night's backup whenever I'm about to ship something schema-touching.</p>
+
+      <h3>3. Logs are the single most important thing</h3>
+      <p>Every postmortem I wrote was reconstructed from logs. <code>autoscale.log</code>, <code>api.log</code>, <code>audit_log</code> in Postgres, <code>docker compose logs</code>. The instinct to "clean up logs to save disk" is wrong. Buy more disk. Keep logs longer.</p>
+
+      <h3>4. Polling is fine. Almost always.</h3>
+      <p>I spent a few hours early on prototyping WebSocket support for the dashboard. After running the polling version in production for six months, I haven't once wished for WebSockets. The bandwidth is negligible, the simplicity is invaluable. Reach for fancy infrastructure only when fancy infrastructure actually solves a problem.</p>
+
+      <h3>5. The most-used feature is the one you almost didn't build</h3>
+      <p>The queue-stuck overlay took me half a Sunday to build. It has fired meaningfully twice. Both times, it cut response time from "hours" to "minutes." It's the highest-leverage code in the entire system. <strong>The features that seem optional during the build are usually the ones that matter most when the platform breaks.</strong></p>
+
+      <h3>6. Write the runbook the first time you fix the thing</h3>
+      <p>Not the third time. Not next week. The minute you fix something at 2 AM, type the command into a file. The cookbook section above didn't exist for the first three months. Every entry is "the third time I had to figure this out from scratch."</p>
+
+      <h2>What This Layer Earns Us</h2>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-number">2</div>
+          <div class="stat-label">Postmortems in 6 months</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">0</div>
+          <div class="stat-label">Data loss events</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">99.7%</div>
+          <div class="stat-label">Uptime</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">3s</div>
+          <div class="stat-label">Morning check duration</div>
+        </div>
+      </div>
+
+      <h2>Beyond the SOC: Where This Pattern Applies</h2>
+
+      <div class="applies-box">
+        <h4>Same operational shape — any small-to-medium production system</h4>
+        <ul>
+          <li><strong>Self-hosted SaaS replacements.</strong> Single-host or small-cluster deployments of self-hosted tools (Gitea, Plausible, Bitwarden, Outline) — the morning-check + cron + backup-drill model fits all of them.</li>
+          <li><strong>Internal microservices for small teams.</strong> When your "production environment" is a handful of servers, lightweight ops practices beat enterprise observability stacks every time.</li>
+          <li><strong>Side projects that grew up.</strong> The hobby thing that's now in production at work. This series is essentially a template for "the platform grew. now what?"</li>
+          <li><strong>Bootstrapped startups.</strong> Before the team is big enough to justify a dedicated SRE, this is roughly the operational footprint that keeps a small product alive at low cost.</li>
+        </ul>
+      </div>
+
+      <p class="pull-quote">The fun part is building it. The <span>important part</span> is making sure that when it breaks at 6 AM, a human knows about it by 6:02.</p>
+
+      <h2>The Series Ends Here</h2>
+
+      <div class="series-wrap">
+        <h2 style="margin-bottom:18px">📚 What we built, together</h2>
+        <p>Six parts. One platform. Built layer by layer, each layer answering a problem the previous layer created.</p>
+        <p><strong>Part 1</strong> defined the work — the 8-step manual workflow per alert that was eating analyst time.</p>
+        <p><strong>Part 2</strong> built the engine — N8N queue mode, parallel workers, a bash autoscaler.</p>
+        <p><strong>Part 3</strong> solved the race condition — atomic incident IDs via a Postgres trigger.</p>
+        <p><strong>Part 4</strong> wrapped the database — FastAPI with sessions, permissions, and Jira sync.</p>
+        <p><strong>Part 5</strong> made it visible — vanilla JS dashboard with a queue-stuck overlay.</p>
+        <p><strong>Part 6</strong> kept it alive — backups, monitoring, runbooks, postmortems.</p>
+        <p style="margin-top:24px"><strong>5,247 incidents processed last month. 0 duplicates. ~70% analyst time reclaimed. 99.7% uptime.</strong></p>
+      </div>
+
+      <h2>One Last Thought</h2>
+
+      <p>When I started this project, I wasn't trying to build a SOAR platform. I was trying to stop typing the same Jira ticket fifty times a day.</p>
+
+      <p>The lesson I take from six months of running this thing isn't about N8N, or Postgres triggers, or FastAPI, or any of the technical pieces. It's that <strong>the gap between "annoying manual workflow" and "automated system that the team uses every day" is bridgeable</strong> — and the path across that gap is shorter than it looks if you start with the work, not the tools.</p>
+
+      <p>Pick the most painful manual task you do every week. Sketch what the automated version would look like. Build the smallest possible version of it. Run it. Find what breaks. Fix it. Repeat. Six months from now, you'll have a platform.</p>
+
+      <p>That's the whole series, compressed into a paragraph. Thanks for reading.</p>
+
+      <p style="margin-top:48px;color:var(--text3);font-size:14px;text-align:center">
+        — Nitish Som<br>
+        <span style="font-size:12px">June 2026</span>
+      </p>
+
+      <div class="series-nav">
+        <h3>📚 The Complete 6-Part Series</h3>
+        <ul class="series-list">
+          <li>
+            <span class="num">1</span>
+            <span><strong>The Use Case</strong> — Why this platform exists</span>
+          </li>
+          <li>
+            <span class="num">2</span>
+            <span><strong>The Workflow Engine</strong> — Queue mode + auto-scaling</span>
+          </li>
+          <li>
+            <span class="num">3</span>
+            <span><strong>The Data Layer</strong> — Atomic incident IDs</span>
+          </li>
+          <li>
+            <span class="num">4</span>
+            <span><strong>The Backend API</strong> — FastAPI, sessions, integrations</span>
+          </li>
+          <li>
+            <span class="num">5</span>
+            <span><strong>The Dashboard</strong> — Real-time UI, queue monitoring</span>
+          </li>
+          <li class="current">
+            <span class="num">6</span>
+            <span><strong>Operations</strong> — Monitoring, backups, postmortems <em>(you are here)</em></span>
+          </li>
+        </ul>
+      </div>
+
+    </div>
+
+    <footer class="post-footer">
+      <div class="post-tags">
+        <span class="tag">Operations</span>
+        <span class="tag">Monitoring</span>
+        <span class="tag">Backups</span>
+        <span class="tag">Postmortems</span>
+        <span class="tag">Disaster Recovery</span>
+        <span class="tag">Troubleshooting</span>
+        <span class="tag">Production</span>
+        <span class="tag">Cron</span>
+        <span class="tag">Docker Ops</span>
+        <span class="tag">Lessons Learned</span>
+      </div>
+
+      <div class="post-nav">
+        <a href="soc-platform-part-5.html" class="post-nav-link">← Part 5: The Dashboard</a>
+        <a href="blog/index.html" class="post-nav-link">All posts →</a>
+      </div>
+    </footer>
+
+  </div>
+</article>
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <div class="footer-left">
+      <div class="footer-logo">Nitish <em>Som</em></div>
+      <div class="footer-copy">© 2026 · Built with focus on detection engineering</div>
+    </div>
+    <div class="footer-links">
+      <a href="topics/index.html">Topics</a>
+      <a href="roadmap.html">Roadmap</a>
+      <a href="sitemap.html">Sitemap</a>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/data.js"></script>
+<script>
+if(typeof P !== 'undefined' && P.showAvailBadgeOnBlog){
+  const badge = document.getElementById('avail-badge');
+  if(badge) badge.style.display='flex';
+}
+
+document.querySelectorAll('.copy-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const wrap = btn.closest('.code-wrap');
+    if(!wrap) return;
+    const codeEl = wrap.querySelector('pre code');
+    if(!codeEl) return;
+    try {
+      await navigator.clipboard.writeText(codeEl.textContent);
+      const old = btn.textContent;
+      btn.textContent = '✓ Copied';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = old;
+        btn.classList.remove('copied');
+      }, 1500);
+    } catch(e) {
+      btn.textContent = 'Failed';
+      setTimeout(() => btn.textContent = 'Copy', 1500);
+    }
+  });
+});
+</script>
+
+</body>
+</html>
