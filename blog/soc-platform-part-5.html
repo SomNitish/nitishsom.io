@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<base href="/nitishsom.io/">
+<title>The Dashboard — Vanilla JS, Queue Monitoring, Alerting (Part 5) — Nitish Som</title>
+<meta name="description" content="The backend serves JSON. Analysts don't drink JSON. Part 5 builds the screen — vanilla JavaScript, no framework, no build step. A polling refresh loop, a queue-stuck overlay that drafts an emergency email for you, real-time notifications, and Chart.js for the queue history.">
+<link rel="stylesheet" href="assets/shared.css">
+<style>
+:root{
+  --primary:#3b82f6;--primary-dark:#2563eb;
+  --accent:#8b5cf6;--accent-dark:#7c3aed;
+  --cyan:#06b6d4;
+  --glow:rgba(59,130,246,.3);
+  --glow-violet:rgba(139,92,246,.25);
+}
+
+.blog-post{padding:80px 0 120px;min-height:100vh;background:var(--bg)}
+.container.narrow{max-width:840px}
+
+.post-header{margin-bottom:64px;padding:48px 0;border-bottom:1px solid var(--border);position:relative;overflow:hidden}
+.post-header::before{content:'';position:absolute;top:-100px;right:-100px;width:400px;height:400px;background:radial-gradient(circle,var(--glow) 0%,transparent 70%);pointer-events:none;z-index:0}
+.post-header::after{content:'';position:absolute;bottom:-50px;left:-50px;width:300px;height:300px;background:radial-gradient(circle,var(--glow-violet) 0%,transparent 70%);pointer-events:none;z-index:0}
+.post-header > *{position:relative;z-index:1}
+.post-meta{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:24px}
+.post-cat{font-size:11px;font-weight:700;padding:6px 14px;border-radius:var(--rp);text-transform:uppercase;letter-spacing:.08em;background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;box-shadow:0 4px 12px var(--glow)}
+.post-date,.post-read{font-family:var(--mono);font-size:12px;color:var(--text3)}
+.part-badge{display:inline-block;background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;padding:8px 18px;border-radius:var(--rp);font-weight:600;font-size:12px;margin-bottom:20px;letter-spacing:.04em;box-shadow:0 4px 16px var(--glow)}
+.post-title{font-size:clamp(36px,5.5vw,56px);font-weight:800;letter-spacing:-.045em;line-height:1.05;color:var(--text);margin-bottom:20px;background:linear-gradient(135deg,var(--text) 0%,var(--primary) 60%,var(--accent) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.post-subtitle{font-size:19px;font-weight:300;color:var(--text2);line-height:1.55;max-width:720px}
+
+.post-content{font-size:16px;font-weight:300;color:var(--text2);line-height:1.8;letter-spacing:-.005em}
+.post-content h2{font-size:clamp(26px,3.8vw,34px);font-weight:700;color:var(--text);margin:64px 0 24px;letter-spacing:-.035em;line-height:1.2;position:relative;padding-left:20px}
+.post-content h2::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:4px;background:linear-gradient(180deg,var(--primary),var(--accent));border-radius:2px}
+.post-content h2:first-child{margin-top:0}
+.post-content h3{font-size:22px;font-weight:600;color:var(--text);margin:44px 0 16px;letter-spacing:-.025em}
+.post-content h4{font-size:18px;font-weight:600;color:var(--text);margin:32px 0 12px}
+.post-content p{margin-bottom:20px;line-height:1.8}
+.post-content p strong{color:var(--text);font-weight:600}
+.post-content ul,.post-content ol{margin:24px 0;padding-left:28px}
+.post-content li{margin-bottom:12px;line-height:1.7}
+.post-content li strong{color:var(--text);font-weight:600}
+.post-content code{font-family:var(--mono);font-size:14px;background:var(--bg2);border:1px solid var(--border);padding:2px 8px;border-radius:4px;color:var(--primary);font-weight:500}
+.post-content a{color:var(--primary);text-decoration:underline;font-weight:500;transition:opacity .15s}
+.post-content a:hover{color:var(--accent)}
+
+.code-wrap{margin:24px 0;border-radius:var(--r);overflow:hidden;border:1px solid #1e293b;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.code-bar{display:flex;align-items:center;justify-content:space-between;background:#0a0e1a;padding:10px 16px;border-bottom:1px solid #1e293b;position:relative}
+.code-bar::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--primary),var(--accent),var(--cyan))}
+.code-label{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--primary);letter-spacing:.04em}
+.copy-btn{font-family:var(--mono);font-size:11px;font-weight:600;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);color:#cbd5e1;padding:5px 12px;border-radius:4px;cursor:pointer;transition:.15s;display:inline-flex;align-items:center;gap:6px}
+.copy-btn:hover{background:rgba(59,130,246,.2);border-color:rgba(59,130,246,.5);color:#fff}
+.copy-btn.copied{background:rgba(34,197,94,.15);border-color:rgba(34,197,94,.4);color:#86efac}
+.code-wrap pre{background:#0a0e1a;border:none;margin:0;border-radius:0;padding:20px 24px;max-height:600px;overflow:auto;box-shadow:none}
+.code-wrap pre::before{display:none}
+.code-wrap pre code{background:none;border:none;padding:0;color:#e2e8f0;font-size:13px;line-height:1.7;font-weight:400;font-family:var(--mono)}
+
+.story-box{background:linear-gradient(135deg,rgba(59,130,246,.04),rgba(139,92,246,.04));border:1px solid var(--border);border-left:4px solid var(--primary);border-radius:var(--rs);padding:28px 32px;margin:32px 0;position:relative}
+.story-box::before{content:'❝';position:absolute;top:-10px;left:20px;font-size:48px;color:var(--primary);font-family:Georgia,serif;line-height:1;opacity:.4}
+.story-box p{margin-bottom:16px;font-style:italic;font-size:17px;line-height:1.7}
+.story-box p:last-child{margin-bottom:0}
+.story-box strong{color:var(--primary);font-weight:600;font-style:normal}
+
+.problem-box{background:rgba(239,68,68,.04);border:1px solid rgba(239,68,68,.2);border-left:4px solid #ef4444;border-radius:var(--rs);padding:24px;margin:32px 0}
+.problem-box strong{color:#dc2626;font-weight:700}
+
+.solution-box{background:linear-gradient(135deg,rgba(59,130,246,.05),rgba(139,92,246,.05));border:1px solid rgba(59,130,246,.2);border-left:4px solid var(--primary);border-radius:var(--rs);padding:24px;margin:32px 0}
+.solution-box strong{color:var(--primary);font-weight:700}
+
+.warning-box{background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.2);border-left:4px solid #f59e0b;border-radius:var(--rs);padding:24px;margin:32px 0}
+.warning-box strong{color:#d97706;font-weight:700}
+
+.applies-box{background:linear-gradient(135deg,rgba(6,182,212,.04),rgba(59,130,246,.04));border:1px solid rgba(6,182,212,.2);border-left:4px solid var(--cyan);border-radius:var(--rs);padding:24px;margin:32px 0}
+.applies-box h4{margin:0 0 12px 0;color:var(--cyan);font-size:15px;text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+.applies-box ul{margin:0;padding-left:20px}
+.applies-box li{font-size:14px;color:var(--text2);margin-bottom:8px;line-height:1.6}
+.applies-box li strong{color:var(--text);font-weight:600}
+
+/* Dashboard wireframe */
+.wireframe{
+  background:#0a0e1a;border:1px solid #1e293b;border-radius:var(--r);
+  padding:18px;margin:28px 0;
+  box-shadow:0 8px 32px rgba(0,0,0,.3);
+  position:relative;
+}
+.wireframe::before{content:'DASHBOARD LAYOUT';position:absolute;top:10px;right:14px;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.2em;color:var(--primary);opacity:.6}
+.wire-bar{
+  background:linear-gradient(135deg,rgba(59,130,246,.15),rgba(139,92,246,.12));
+  border:1px solid rgba(59,130,246,.25);border-radius:6px;
+  padding:10px 14px;margin-bottom:10px;
+  display:flex;justify-content:space-between;align-items:center;
+  font-family:var(--mono);font-size:12px;color:#cbd5e1;
+}
+.wire-bar .right{display:flex;gap:10px}
+.wire-bar .chip{
+  background:rgba(255,255,255,.05);padding:3px 9px;border-radius:4px;
+  font-size:11px;
+}
+.wire-bar .bell{position:relative;color:#fca5a5}
+.wire-bar .bell::after{
+  content:'3';position:absolute;top:-6px;right:-8px;
+  background:#ef4444;color:#fff;font-size:9px;font-weight:700;
+  width:14px;height:14px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+}
+.wire-tabs{display:flex;gap:6px;margin-bottom:10px}
+.wire-tab{
+  background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2);
+  padding:5px 14px;border-radius:5px;font-size:11px;
+  font-family:var(--mono);color:#94a3b8;
+}
+.wire-tab.active{background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;border-color:transparent}
+.wire-grid{
+  display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:10px;
+}
+.wire-kpi{
+  background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);
+  border-radius:6px;padding:10px;text-align:center;
+}
+.wire-kpi .v{color:var(--primary);font-weight:700;font-size:18px;font-family:var(--mono)}
+.wire-kpi .l{color:#64748b;font-size:9px;text-transform:uppercase;letter-spacing:.1em;margin-top:2px}
+.wire-table{
+  background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);
+  border-radius:6px;padding:12px;
+  font-family:var(--mono);font-size:11px;color:#94a3b8;line-height:1.9;
+}
+.wire-table .head{color:#cbd5e1;font-weight:700;border-bottom:1px solid rgba(255,255,255,.08);padding-bottom:4px;margin-bottom:4px}
+.wire-table .id{color:var(--primary);font-weight:600}
+.wire-table .sev-h{color:#fca5a5}
+.wire-table .sev-m{color:#fcd34d}
+.wire-table .sev-l{color:#86efac}
+
+/* Queue stuck overlay preview */
+.overlay-demo{
+  background:rgba(239,68,68,.06);border:2px solid rgba(239,68,68,.4);
+  border-radius:var(--r);padding:28px;margin:28px 0;
+  position:relative;
+}
+.overlay-demo::before{
+  content:'WHAT THE ANALYST SEES';
+  position:absolute;top:-10px;left:18px;
+  background:var(--bg);padding:2px 10px;
+  font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.2em;color:#ef4444;
+}
+.overlay-demo h4{
+  color:#dc2626;margin:0 0 8px 0;font-size:20px;
+  display:flex;align-items:center;gap:10px;
+}
+.overlay-demo .lede{color:var(--text2);font-size:14px;margin-bottom:18px;line-height:1.6}
+.overlay-demo .panel{
+  background:#0a0e1a;border:1px solid #1e293b;border-radius:6px;
+  padding:14px 18px;font-family:var(--mono);font-size:12px;color:#cbd5e1;
+  line-height:1.85;margin-top:12px;
+}
+.overlay-demo .panel .lbl{color:#94a3b8}
+.overlay-demo .panel .val{color:#fcd34d;font-weight:700}
+.overlay-demo .panel .red{color:#fca5a5;font-weight:700}
+.overlay-demo .actions{
+  display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;
+}
+.overlay-demo .btn{
+  background:linear-gradient(135deg,#ef4444,#f97316);
+  color:#fff;font-size:12px;font-weight:600;
+  padding:8px 16px;border-radius:6px;border:none;
+}
+.overlay-demo .btn.sec{
+  background:rgba(255,255,255,.05);color:var(--text2);
+  border:1px solid var(--border);
+}
+
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin:32px 0}
+.stat-card{background:linear-gradient(135deg,var(--surface),var(--bg2));border:1px solid var(--border);border-radius:var(--rs);padding:22px 18px;text-align:center;position:relative;overflow:hidden;transition:.2s}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--primary),var(--accent))}
+.stat-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px var(--glow)}
+.stat-number{font-size:28px;font-weight:800;background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px;line-height:1}
+.stat-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+
+.series-nav{background:linear-gradient(135deg,rgba(59,130,246,.04),rgba(139,92,246,.04));border:1px solid var(--border);border-radius:var(--r);padding:24px;margin:48px 0 32px}
+.series-nav h3{margin-top:0!important;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:16px;padding-left:0}
+.series-nav h3::before{display:none}
+.series-list{list-style:none;padding:0;margin:0}
+.series-list li{padding:10px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;font-size:14px;color:var(--text2)}
+.series-list li:last-child{border-bottom:none}
+.series-list li.current{color:var(--primary);font-weight:600}
+.series-list li .num{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--surface);border:1px solid var(--border);font-size:11px;font-weight:700;color:var(--text3);flex-shrink:0}
+.series-list li.current .num{background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;border-color:transparent}
+
+.pull-quote{font-size:24px;font-weight:300;font-style:italic;color:var(--text);text-align:center;margin:48px 0;padding:32px 24px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);line-height:1.4}
+.pull-quote span{background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;font-weight:600}
+
+.post-footer{margin-top:80px;padding-top:40px;border-top:1px solid var(--border)}
+.post-tags{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:32px}
+.post-tags .tag{font-size:11px;font-weight:600;padding:6px 14px;border-radius:var(--rp);border:1px solid var(--border);background:var(--surface);color:var(--text3);font-family:var(--mono)}
+.post-nav{display:flex;justify-content:space-between;align-items:center;margin-top:32px;gap:16px;flex-wrap:wrap}
+.post-nav-link{font-size:14px;font-weight:600;color:var(--primary);text-decoration:none;display:inline-flex;align-items:center;gap:6px;transition:opacity .15s}
+.post-nav-link:hover{color:var(--accent)}
+
+@media(max-width:768px){
+  .blog-post{padding:48px 0 80px}
+  .post-header{margin-bottom:40px;padding:32px 0}
+  .post-content h2{margin:48px 0 20px;padding-left:16px}
+  .post-content h3{margin:36px 0 14px}
+  .code-wrap pre{max-height:400px;padding:14px 16px}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .pull-quote{font-size:18px;padding:24px 16px}
+  .wire-grid{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <div class="container nav-inner">
+    <a href="index.html" class="nav-logo"><span class="nav-logo-dot"></span>Nitish <em>Som</em></a>
+    <div class="nav-links">
+      <a href="index.html#about">About</a>
+      <a href="index.html#experience">Experience</a>
+      <a href="projects.html">Projects</a>
+      <a href="blog/index.html">Blog</a>
+      <a href="certifications/index.html">Certs</a>
+    </div>
+    <div class="nav-right">
+      <button class="cmdk-btn"><span>Search</span><kbd>⌘K</kbd></button>
+    </div>
+  </div>
+</nav>
+
+<article class="blog-post">
+  <div class="container narrow">
+
+    <header class="post-header">
+      <div class="post-meta">
+        <span class="post-cat">Frontend</span>
+        <span class="post-date">June 8, 2026</span>
+        <span class="post-read">Part 5 — 22 min read</span>
+      </div>
+      <div class="part-badge">📔 PART 5 / 6 — The Dashboard</div>
+      <h1 class="post-title">No Framework, No Build Step, No Excuses</h1>
+      <p class="post-subtitle">Part 4 gave us a clean JSON API. Analysts don't drink JSON. This part is the screen they actually use — built in vanilla JavaScript, with a polling refresh loop, a queue-stuck detection overlay that drafts an emergency email for you, a notification bell, and Chart.js for the queue history.</p>
+    </header>
+
+    <div class="post-content">
+
+      <h2>Where We Left Off</h2>
+
+      <p>End of Part 4: the backend is solid. About 30 REST endpoints, all auth-protected, all permission-checked, all audit-logged. Open <code>/docs</code> and there's a Swagger UI to poke around. Useful for me, useless for the team.</p>
+
+      <p>The team needs a screen. Open tickets visible at a glance, queue depth refreshing live, the bell icon turning red when something happens, a big red overlay that screams when workers stop processing. That's Part 5.</p>
+
+      <h2>Why I Didn't Reach for React</h2>
+
+      <p>This is the part where most blog posts would justify their framework choice with benchmark tables and TypeScript-vs-PropTypes arguments. I'll keep it short. I picked vanilla JavaScript on purpose, and here's why:</p>
+
+      <ul>
+        <li><strong>Zero build step.</strong> I can SSH into the server, edit <code>index.html</code> with vim, save, refresh the browser. For a tool that needs hotfixes at midnight, this matters more than people realize. No <code>npm install</code> on the production host. No webpack config. No "wait for the bundle."</li>
+        <li><strong>One file per page.</strong> Each dashboard page is a single HTML file containing its own CSS, JavaScript, and markup. A junior analyst can open <code>queue.html</code>, read it top to bottom, and understand the entire page in 15 minutes.</li>
+        <li><strong>No dependency hell.</strong> When npm audit flags a transitive dependency three months from now, it doesn't affect me. There are no transitive dependencies. The only external library is Chart.js, loaded from a CDN with SRI hashes.</li>
+        <li><strong>Speed.</strong> The whole dashboard loads in &lt;200ms. No virtual DOM, no hydration, no bundle to parse. Fetch, render, done.</li>
+      </ul>
+
+      <p>The tradeoff is real — when I need something complex (the queue-stuck overlay, the column resizer, the notification dropdown), I write it myself. That's maybe 600 extra lines of JavaScript across the entire dashboard. In exchange, I never debug a build pipeline.</p>
+
+      <h2>What the Dashboard Looks Like</h2>
+
+      <p>One page does most of the work. Header bar with KPIs and the notification bell, customer tabs, filter row, the main incidents table. Three KPI tiles that auto-refresh. A queue depth indicator that flashes red if things are backing up.</p>
+
+      <div class="wireframe">
+        <div class="wire-bar">
+          <span>🔷 SOC Platform · Dashboard</span>
+          <div class="right">
+            <span class="chip">User: nitish</span>
+            <span class="bell">🔔</span>
+          </div>
+        </div>
+        <div class="wire-tabs">
+          <span class="wire-tab active">Client-A</span>
+          <span class="wire-tab">Client-B</span>
+          <span class="wire-tab">All</span>
+        </div>
+        <div class="wire-grid">
+          <div class="wire-kpi"><div class="v">23</div><div class="l">Open today</div></div>
+          <div class="wire-kpi"><div class="v">412</div><div class="l">This month</div></div>
+          <div class="wire-kpi"><div class="v">3.2s</div><div class="l">Median MTTA</div></div>
+          <div class="wire-kpi"><div class="v">14</div><div class="l">Workers</div></div>
+        </div>
+        <div class="wire-table">
+          <div class="head">INCIDENT ID  ·  ALERT  ·  SEV  ·  ASSIGNED  ·  STATUS</div>
+          <div><span class="id">CLIENT-A-IR-062026-512</span>  ·  SSH brute-force  ·  <span class="sev-h">HIGH</span>  ·  Nitish  ·  open</div>
+          <div><span class="id">CLIENT-A-IR-062026-511</span>  ·  PowerShell decode  ·  <span class="sev-m">MED</span>  ·  Lakshay  ·  open</div>
+          <div><span class="id">CLIENT-A-IR-062026-510</span>  ·  Bad-hash file  ·  <span class="sev-h">HIGH</span>  ·  Dev  ·  open</div>
+          <div><span class="id">CLIENT-A-IR-062026-509</span>  ·  New-IP login  ·  <span class="sev-l">LOW</span>  ·  Nitish  ·  resolved</div>
+        </div>
+      </div>
+
+      <p>Everything on this page refreshes every 5 seconds without the user doing anything. Tickets appear, statuses change, the worker count moves. The page <em>feels</em> alive.</p>
+
+      <h2>The Polling Loop</h2>
+
+      <p>Every page is structured the same way: one async function that fetches all the data the page needs in parallel, then renders it. A <code>setInterval</code> calls that function on a fixed cadence. That's it — no observables, no reactive state, no virtual DOM diffing.</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">📄 dashboard/index.html — the refresh loop</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>const REFRESH_MS = 5000;
+let refreshTimer = null;
+let currentTab = 'CLIENT-A';
+
+async function api(path, opts={}) {
+  const token = localStorage.getItem('token');
+  const res = await fetch(path, {
+    ...opts,
+    headers: { 'Authorization': `Bearer ${token}`, ...(opts.headers||{}) },
+  });
+  if (res.status === 401) {                 // session died -&gt; back to login
+    localStorage.removeItem('token');
+    location.href = '/login.html';
+    return;
+  }
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+async function refreshAll() {
+  try {
+    // Three calls fire in parallel
+    const [incidents, queue, notifs] = await Promise.all([
+      api(`/api/incidents?customer=${currentTab}&amp;limit=200`),
+      api('/api/queue/status'),
+      api('/api/notifications/unread_count'),
+    ]);
+
+    renderIncidents(incidents);
+    renderQueueIndicator(queue);
+    renderNotifBadge(notifs.count);
+    checkQueueHealth(queue);                 // the stuck-detector lives here
+  } catch (err) {
+    console.error('refresh failed:', err);
+  }
+}
+
+function startRefreshLoop() {
+  refreshAll();                              // immediate first call
+  refreshTimer = setInterval(refreshAll, REFRESH_MS);
+}
+
+document.addEventListener('DOMContentLoaded', startRefreshLoop);</code></pre>
+      </div>
+
+      <p>Three things to notice:</p>
+
+      <ul>
+        <li><strong>Three endpoints, one Promise.all.</strong> Calls fire in parallel, total wall time is the slowest call (usually 60-80ms for the incidents list). Sequential calls would triple that latency.</li>
+        <li><strong>401 → redirect to login.</strong> Centralized in the <code>api()</code> wrapper so every page doesn't have to handle expired sessions individually.</li>
+        <li><strong>The <code>checkQueueHealth()</code> call after rendering.</strong> Every poll cycle also checks for queue-stuck conditions. That's the overlay we're about to build.</li>
+      </ul>
+
+      <h2>The Queue-Stuck Detection Overlay</h2>
+
+      <p>This is the feature that's saved me twice now. Here's the problem it solves.</p>
+
+      <div class="story-box">
+        <p>On a Saturday morning at 6 AM, all our N8N workers crashed simultaneously because of a kernel-level memory issue on the host. The autoscaler tried to start new ones, Docker refused, and the queue sat at <strong>347 alerts</strong> waiting for workers that would never come back. Wazuh kept piling on more.</p>
+        <p>I didn't find out until 9:30 AM when an analyst messaged me. That's three and a half hours of alerts not getting tickets. Customers were calling.</p>
+      </div>
+
+      <p>After that incident I built the overlay. Every polling cycle, the dashboard checks: <em>are jobs waiting in the queue, but no jobs being actively processed, for more than 2 minutes?</em> If yes, the dashboard knows something is wrong, and it lights up the screen so loud that nobody can miss it.</p>
+
+      <div class="overlay-demo">
+        <h4>🚨 QUEUE STUCK — Workers not processing</h4>
+        <div class="lede">347 alerts are waiting. No workflows have executed in the last 4 minutes.</div>
+
+        <div class="panel">
+<span class="lbl">Waiting jobs:</span>     <span class="red">347</span>
+<span class="lbl">Active jobs:</span>      <span class="red">0</span>
+<span class="lbl">Workers running:</span>  <span class="red">0 / 10</span>
+<span class="lbl">Last execution:</span>   <span class="val">4 min 22 sec ago</span>
+<span class="lbl">Earliest queued:</span>  <span class="val">CLIENT-A-IR-062026-487 (Wazuh, HIGH)</span>
+        </div>
+
+        <p style="margin:14px 0 0 0;font-size:13px;color:var(--text3)">Action: copy the email below and send it to the on-call engineer.</p>
+
+        <div class="actions">
+          <button class="btn">📋 Copy emergency email</button>
+          <button class="btn sec">Open container logs</button>
+          <button class="btn sec">Dismiss for 5 min</button>
+        </div>
+      </div>
+
+      <h3>The detection logic</h3>
+
+      <p>The queue status endpoint returns the same numbers the autoscaler uses (waiting, active, worker count), plus the timestamp of the last successful execution. The dashboard checks all three on every refresh:</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">📄 dashboard/index.html — checkQueueHealth()</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>const STUCK_THRESHOLD_MS = 120000;   // 2 minutes of no progress
+let dismissUntil = 0;
+
+function checkQueueHealth(q) {
+  // q = { waiting, active, workers, last_executed_at_ms, earliest_queued }
+  if (Date.now() &lt; dismissUntil) return hideStuckOverlay();
+
+  const hasBacklog   = q.waiting &gt; 0;
+  const nothingActive = q.active === 0;
+  const noProgress   = q.last_executed_at_ms &amp;&amp;
+                       (Date.now() - q.last_executed_at_ms) &gt; STUCK_THRESHOLD_MS;
+
+  if (hasBacklog &amp;&amp; nothingActive &amp;&amp; noProgress) {
+    showStuckOverlay(q);
+  } else {
+    hideStuckOverlay();
+  }
+}
+
+function showStuckOverlay(q) {
+  const overlay = document.getElementById('queue-stuck-overlay');
+  document.getElementById('stuck-waiting').textContent = q.waiting;
+  document.getElementById('stuck-workers').textContent = `${q.workers} / 10`;
+  document.getElementById('stuck-since')
+          .textContent = formatAgo(q.last_executed_at_ms);
+  document.getElementById('stuck-earliest').textContent = q.earliest_queued || '(none)';
+
+  // Pre-build the emergency email so the analyst can copy and paste
+  document.getElementById('stuck-email').textContent = buildStuckEmail(q);
+  overlay.classList.add('visible');
+}
+
+function hideStuckOverlay() {
+  document.getElementById('queue-stuck-overlay').classList.remove('visible');
+}</code></pre>
+      </div>
+
+      <p>Three conditions all have to be true. We don't want a one-second blip during a worker restart to fire this. We want it to fire when the queue is <em>actually</em> stuck.</p>
+
+      <h3>The pre-drafted emergency email</h3>
+
+      <p>This is the detail that earned the feature its place. When the overlay appears, the email is already written. The analyst clicks "Copy emergency email," pastes it into Outlook, hits send. <strong>The cognitive load of "what do I say, who do I send it to, what data do I include" — all gone</strong>.</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">📄 dashboard/index.html — buildStuckEmail()</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>function buildStuckEmail(q) {
+  const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
+  return [
+    `Subject: [SOC PLATFORM] Queue stuck — workers not processing`,
+    `To: oncall-engineer@&lt;company&gt;.com`,
+    ``,
+    `The SOC platform queue is stuck.`,
+    ``,
+    `Detected at: ${now} IST`,
+    `Waiting jobs: ${q.waiting}`,
+    `Active jobs: ${q.active}`,
+    `Workers running: ${q.workers} / 10`,
+    `Last execution: ${formatAgo(q.last_executed_at_ms)} ago`,
+    `Earliest queued alert: ${q.earliest_queued || 'unknown'}`,
+    ``,
+    `Suggested checks:`,
+    `  1. docker compose ps   (are containers actually up?)`,
+    `  2. docker compose logs n8nq-worker --tail 200`,
+    `  3. docker exec n8nq-redis redis-cli -a $REDIS_PASS LLEN bull:jobs:wait`,
+    `  4. systemctl status n8n-autoscale`,
+    ``,
+    `Auto-generated from the SOC Platform dashboard. No action taken yet.`,
+  ].join('\n');
+}
+
+document.getElementById('stuck-copy-btn').addEventListener('click', async () =&gt; {
+  const text = document.getElementById('stuck-email').textContent;
+  await navigator.clipboard.writeText(text);
+  toast('Emergency email copied to clipboard');
+});</code></pre>
+      </div>
+
+      <p>The "Dismiss for 5 minutes" button is intentional. If I'm <em>actively</em> debugging the issue (running <code>docker compose restart</code>, watching logs), I don't want the overlay obscuring the dashboard. Five minutes of silence, then it comes back if the queue is still stuck.</p>
+
+      <div class="solution-box">
+        <p><strong>Why this works:</strong> the dashboard already polls every 5 seconds for its normal data. Adding a queue-health check to that same loop costs us literally nothing. The detection logic is 10 lines of JavaScript. The pre-drafted email is the difference between "I see something is wrong" and "I have already started the response."</p>
+      </div>
+
+      <p>The Saturday-morning incident, on a re-run with the overlay in place, would have alerted the analyst within 2 minutes instead of 3.5 hours.</p>
+
+      <h2>The Notification Bell</h2>
+
+      <p>The bell icon in the header turns red when there are unread notifications. Click it, get a dropdown. The data comes from the <code>/api/notifications</code> endpoint we built in Part 4.</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">📄 dashboard/index.html — notification bell</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>function renderNotifBadge(unread) {
+  const bell  = document.getElementById('notif-bell');
+  const badge = document.getElementById('notif-badge');
+  if (unread &gt; 0) {
+    badge.textContent = unread &gt; 99 ? '99+' : unread;
+    badge.classList.add('visible');
+    bell.classList.add('has-unread');
+  } else {
+    badge.classList.remove('visible');
+    bell.classList.remove('has-unread');
+  }
+}
+
+async function openNotifPanel() {
+  const panel = document.getElementById('notif-panel');
+  const list  = document.getElementById('notif-list');
+  panel.classList.add('visible');
+  list.innerHTML = '&lt;div class="loading"&gt;Loading…&lt;/div&gt;';
+
+  const items = await api('/api/notifications?limit=20');
+  list.innerHTML = items.length
+    ? items.map(renderNotifItem).join('')
+    : '&lt;div class="empty"&gt;No notifications&lt;/div&gt;';
+
+  // Mark them as read on the server
+  await api('/api/notifications/mark_all_read', { method: 'POST' });
+  renderNotifBadge(0);
+}
+
+function renderNotifItem(n) {
+  const ago = formatAgo(new Date(n.created_at).getTime());
+  const link = n.incident_id
+    ? `&lt;a href="/incident.html?seq=${n.incident_seq}"&gt;${n.incident_id}&lt;/a&gt;`
+    : '';
+  return `&lt;div class="notif-item ${n.read ? '' : 'unread'}"&gt;
+    &lt;div class="t"&gt;${escapeHtml(n.title)}&lt;/div&gt;
+    &lt;div class="m"&gt;${escapeHtml(n.message)}&lt;/div&gt;
+    &lt;div class="x"&gt;${link} · ${ago} ago&lt;/div&gt;
+  &lt;/div&gt;`;
+}</code></pre>
+      </div>
+
+      <p>Notice <code>escapeHtml()</code> wrapping the user-provided strings. The notification message can contain user input (a comment body, an assignee name) and it goes straight into innerHTML. Without escaping, you've got an XSS vector. With it, you've got a notification.</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">▸ the only HTML-escape helper I use</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>function escapeHtml(s) {
+  if (s == null) return '';
+  return String(s)
+    .replaceAll('&amp;', '&amp;amp;')
+    .replaceAll('&lt;', '&amp;lt;')
+    .replaceAll('&gt;', '&amp;gt;')
+    .replaceAll('"', '&amp;quot;')
+    .replaceAll("'", '&amp;#039;');
+}</code></pre>
+      </div>
+
+      <p>Twelve lines. Every string from the API goes through this before it hits the DOM. No template framework. No exotic library. Just five replacements.</p>
+
+      <h2>Chart.js for the Queue History</h2>
+
+      <p>The queue snapshot writer thread from Part 4 has been writing a row to <code>queue_snapshots</code> every 30 seconds. A separate page, <code>queue.html</code>, charts those snapshots over the last 24 hours.</p>
+
+      <p>I picked Chart.js because it's the most popular library that doesn't require a build step. Single script tag, draw a chart, done. No npm, no React-Chart-Wrapper-Bindings package, no compilation step that breaks every other release.</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">📄 dashboard/queue.html — chart setup</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>&lt;script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"
+        integrity="sha384-..." crossorigin="anonymous"&gt;&lt;/script&gt;
+
+&lt;canvas id="queue-chart" height="120"&gt;&lt;/canvas&gt;
+
+&lt;script&gt;
+let chart = null;
+
+async function loadQueueHistory() {
+  const data = await api('/api/queue/history?hours=24');
+  // data = [{ captured_at, waiting, active, workers }, ...]
+
+  const labels  = data.map(p =&gt; new Date(p.captured_at)
+                                .toLocaleTimeString('en-IN',
+                                  { hour: '2-digit', minute: '2-digit' }));
+  const waiting = data.map(p =&gt; p.waiting);
+  const active  = data.map(p =&gt; p.active);
+  const workers = data.map(p =&gt; p.workers);
+
+  if (chart) chart.destroy();
+  chart = new Chart(document.getElementById('queue-chart'), {
+    type: 'line',
+    data: { labels, datasets: [
+      { label: 'Waiting', data: waiting, borderColor: '#ef4444',
+        tension: .25, fill: false },
+      { label: 'Active',  data: active,  borderColor: '#3b82f6',
+        tension: .25, fill: false },
+      { label: 'Workers', data: workers, borderColor: '#8b5cf6',
+        tension: .25, fill: false, borderDash: [4,4] },
+    ]},
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      scales: { y: { beginAtZero: true } },
+      plugins: { legend: { position: 'top' } },
+    },
+  });
+}
+
+loadQueueHistory();
+setInterval(loadQueueHistory, 30000);   // refresh every 30s
+&lt;/script&gt;</code></pre>
+      </div>
+
+      <p>The chart shows three lines. The waiting count usually hugs zero. The active count tracks worker capacity. The workers line (dashed) shows the autoscaler at work — flat at 10 most of the time, jumping during bursts.</p>
+
+      <p>What this chart turned out to be useful for: <strong>incident postmortems</strong>. After any production hiccup, I can pull up <code>queue.html</code>, look at the last 24 hours, and see exactly when the platform started struggling. The waiting line spikes, the workers line ramps, then both come back down. Visual storytelling.</p>
+
+      <h2>Smaller Details That Earned Their Keep</h2>
+
+      <h3>Column resizing on the incidents table</h3>
+
+      <p>An analyst asked for this in week 2 — the "Alert Name" column was too narrow and important text got truncated. Rather than guessing better defaults, I added drag-resize handles to the column borders. Widths persist in localStorage.</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">📄 dashboard/index.html — column resize</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>function attachColumnResize(table) {
+  table.querySelectorAll('th').forEach((th, idx) =&gt; {
+    const handle = document.createElement('div');
+    handle.className = 'col-resize';
+    th.appendChild(handle);
+
+    handle.addEventListener('mousedown', e =&gt; {
+      e.preventDefault();
+      const startX = e.pageX;
+      const startW = th.offsetWidth;
+
+      function onMove(ev) {
+        const w = Math.max(50, startW + (ev.pageX - startX));
+        th.style.width = w + 'px';
+      }
+      function onUp() {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+        // Persist
+        const widths = JSON.parse(localStorage.getItem('colW') || '{}');
+        widths[idx] = th.offsetWidth;
+        localStorage.setItem('colW', JSON.stringify(widths));
+      }
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+  });
+
+  // Restore on load
+  const widths = JSON.parse(localStorage.getItem('colW') || '{}');
+  table.querySelectorAll('th').forEach((th, idx) =&gt; {
+    if (widths[idx]) th.style.width = widths[idx] + 'px';
+  });
+}</code></pre>
+      </div>
+
+      <p>Thirty lines. The analyst's complaint was answered in the next deploy. That's the kind of agility a no-build-step frontend gives you.</p>
+
+      <h3>Theme switcher (light / dark / auto)</h3>
+
+      <p>Three CSS variable sets, a button in the header, persistence in localStorage. "Auto" follows the OS preference via <code>prefers-color-scheme</code>. Not exciting, but the SOC TV monitor account uses dark, my own account uses light, and that 15-line snippet keeps both happy.</p>
+
+      <h2>The Login Page</h2>
+
+      <p>One form, one POST. On success, save the token to localStorage and redirect. The whole file is ~80 lines including styles.</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">📄 dashboard/login.html — login.js</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>document.getElementById('login-form').addEventListener('submit', async (e) =&gt; {
+  e.preventDefault();
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value;
+  const errBox   = document.getElementById('error');
+  errBox.textContent = '';
+
+  try {
+    const res = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() =&gt; ({}));
+      errBox.textContent = err.detail || 'Login failed';
+      return;
+    }
+    const data = await res.json();
+    localStorage.setItem('token',     data.token);
+    localStorage.setItem('user_name', data.name);
+    localStorage.setItem('user_role', data.role);
+    location.href = '/index.html';
+  } catch (err) {
+    errBox.textContent = 'Network error: ' + err.message;
+  }
+});</code></pre>
+      </div>
+
+      <p>localStorage for the token is a deliberate choice over cookies. The dashboard and the API live on the same origin, so I don't get the cross-site benefit of HttpOnly cookies. localStorage is simpler, plays nicely with the <code>api()</code> wrapper, and the only risk it adds (script-based exfiltration) is mitigated by escaping every string that hits the DOM.</p>
+
+      <h2>What This Layer Earns Us</h2>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-number">7</div>
+          <div class="stat-label">HTML pages, total</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">~2,200</div>
+          <div class="stat-label">Lines of JS across all pages</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">&lt;200ms</div>
+          <div class="stat-label">First contentful paint</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">1</div>
+          <div class="stat-label">External dep (Chart.js)</div>
+        </div>
+      </div>
+
+      <p>The platform finally <em>feels like a tool</em>. The dashboard refreshes itself. The bell rings when something happens. When the queue gets stuck, the screen goes red and an emergency email is one click away. None of it requires a build, none of it requires me to install anything on production.</p>
+
+      <h2>Beyond the SOC: Where This Pattern Applies</h2>
+
+      <div class="applies-box">
+        <h4>Same frontend approach — different domains</h4>
+        <ul>
+          <li><strong>Internal admin panels for small teams.</strong> Whenever the user count is in the dozens, not the millions, vanilla JS + a single HTML file per page is dramatically easier to maintain than a React app.</li>
+          <li><strong>Operations dashboards.</strong> Anywhere you'd otherwise reach for Grafana but need custom interactions (action buttons, drill-down, modals), a polling-loop dashboard backed by your own API gives you full control.</li>
+          <li><strong>Real-time monitoring screens.</strong> The polling-loop + alarm-overlay pattern works for any system where "something needs human attention right now" is a recurring scenario.</li>
+          <li><strong>Customer-facing status pages</strong> for internal tools where you want the same kind of live updates without the operational cost of WebSockets.</li>
+          <li><strong>Demo / showcase apps.</strong> When you want to share a tool that "just works" without asking the recipient to <code>npm install</code>, this is the only path.</li>
+        </ul>
+      </div>
+
+      <p class="pull-quote">Vanilla JS isn't a statement against React. It's a statement that <span>the cheapest tool that does the job</span> is usually the right one.</p>
+
+      <h2>What's Next</h2>
+
+      <p>Five parts in, the platform is real. Webhooks flow, IDs are atomic, the API is locked down, the dashboard updates itself. It's been running in production for months.</p>
+
+      <p>Part 6 — the final part — is about keeping it running. What I monitor, how I troubleshoot when something goes wrong, the postmortems I've written from real incidents, and the operational lessons that didn't fit anywhere else in the series. The boring-but-important layer that turns a project into a system.</p>
+
+      <div class="series-nav">
+        <h3>📚 The Complete 6-Part Series</h3>
+        <ul class="series-list">
+          <li>
+            <span class="num">1</span>
+            <span><strong>The Use Case</strong> — Why this platform exists</span>
+          </li>
+          <li>
+            <span class="num">2</span>
+            <span><strong>The Workflow Engine</strong> — Queue mode + auto-scaling</span>
+          </li>
+          <li>
+            <span class="num">3</span>
+            <span><strong>The Data Layer</strong> — Atomic incident IDs</span>
+          </li>
+          <li>
+            <span class="num">4</span>
+            <span><strong>The Backend API</strong> — FastAPI, sessions, integrations</span>
+          </li>
+          <li class="current">
+            <span class="num">5</span>
+            <span><strong>The Dashboard</strong> — Real-time UI, queue monitoring <em>(you are here)</em></span>
+          </li>
+          <li>
+            <span class="num">6</span>
+            <span><strong>Operations</strong> — Monitoring, troubleshooting, postmortems</span>
+          </li>
+        </ul>
+      </div>
+
+    </div>
+
+    <footer class="post-footer">
+      <div class="post-tags">
+        <span class="tag">Vanilla JS</span>
+        <span class="tag">Frontend</span>
+        <span class="tag">Dashboard</span>
+        <span class="tag">Chart.js</span>
+        <span class="tag">Polling</span>
+        <span class="tag">Real-time UI</span>
+        <span class="tag">UX</span>
+        <span class="tag">Monitoring</span>
+        <span class="tag">XSS Prevention</span>
+        <span class="tag">No Build Step</span>
+      </div>
+
+      <div class="post-nav">
+        <a href="soc-platform-part-4.html" class="post-nav-link">← Part 4: The Backend API</a>
+        <a href="soc-platform-part-6.html" class="post-nav-link">Part 6: Operations →</a>
+      </div>
+    </footer>
+
+  </div>
+</article>
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <div class="footer-left">
+      <div class="footer-logo">Nitish <em>Som</em></div>
+      <div class="footer-copy">© 2026 · Built with focus on detection engineering</div>
+    </div>
+    <div class="footer-links">
+      <a href="topics/index.html">Topics</a>
+      <a href="roadmap.html">Roadmap</a>
+      <a href="sitemap.html">Sitemap</a>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/data.js"></script>
+<script>
+if(typeof P !== 'undefined' && P.showAvailBadgeOnBlog){
+  const badge = document.getElementById('avail-badge');
+  if(badge) badge.style.display='flex';
+}
+
+document.querySelectorAll('.copy-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const wrap = btn.closest('.code-wrap');
+    if(!wrap) return;
+    const codeEl = wrap.querySelector('pre code');
+    if(!codeEl) return;
+    try {
+      await navigator.clipboard.writeText(codeEl.textContent);
+      const old = btn.textContent;
+      btn.textContent = '✓ Copied';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = old;
+        btn.classList.remove('copied');
+      }, 1500);
+    } catch(e) {
+      btn.textContent = 'Failed';
+      setTimeout(() => btn.textContent = 'Copy', 1500);
+    }
+  });
+});
+</script>
+
+</body>
+</html>
