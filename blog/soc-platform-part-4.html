@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<base href="/nitishsom.io/">
+<title>The Backend API — FastAPI, Sessions, Permissions (Part 4) — Nitish Som</title>
+<meta name="description" content="Part 3 made the database the source of truth — but analysts still SSH in to query it. Part 4 wraps the data layer in a FastAPI backend: login, single-session enforcement with browser fingerprinting, a permission model that can only restrict (never elevate), and clean integrations with Jira.">
+<link rel="stylesheet" href="assets/shared.css">
+<style>
+:root{
+  --primary:#3b82f6;--primary-dark:#2563eb;
+  --accent:#8b5cf6;--accent-dark:#7c3aed;
+  --cyan:#06b6d4;
+  --glow:rgba(59,130,246,.3);
+  --glow-violet:rgba(139,92,246,.25);
+}
+
+.blog-post{padding:80px 0 120px;min-height:100vh;background:var(--bg)}
+.container.narrow{max-width:840px}
+
+.post-header{margin-bottom:64px;padding:48px 0;border-bottom:1px solid var(--border);position:relative;overflow:hidden}
+.post-header::before{content:'';position:absolute;top:-100px;right:-100px;width:400px;height:400px;background:radial-gradient(circle,var(--glow) 0%,transparent 70%);pointer-events:none;z-index:0}
+.post-header::after{content:'';position:absolute;bottom:-50px;left:-50px;width:300px;height:300px;background:radial-gradient(circle,var(--glow-violet) 0%,transparent 70%);pointer-events:none;z-index:0}
+.post-header > *{position:relative;z-index:1}
+.post-meta{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:24px}
+.post-cat{font-size:11px;font-weight:700;padding:6px 14px;border-radius:var(--rp);text-transform:uppercase;letter-spacing:.08em;background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;box-shadow:0 4px 12px var(--glow)}
+.post-date,.post-read{font-family:var(--mono);font-size:12px;color:var(--text3)}
+.part-badge{display:inline-block;background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;padding:8px 18px;border-radius:var(--rp);font-weight:600;font-size:12px;margin-bottom:20px;letter-spacing:.04em;box-shadow:0 4px 16px var(--glow)}
+.post-title{font-size:clamp(36px,5.5vw,56px);font-weight:800;letter-spacing:-.045em;line-height:1.05;color:var(--text);margin-bottom:20px;background:linear-gradient(135deg,var(--text) 0%,var(--primary) 60%,var(--accent) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.post-subtitle{font-size:19px;font-weight:300;color:var(--text2);line-height:1.55;max-width:720px}
+
+.post-content{font-size:16px;font-weight:300;color:var(--text2);line-height:1.8;letter-spacing:-.005em}
+.post-content h2{font-size:clamp(26px,3.8vw,34px);font-weight:700;color:var(--text);margin:64px 0 24px;letter-spacing:-.035em;line-height:1.2;position:relative;padding-left:20px}
+.post-content h2::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:4px;background:linear-gradient(180deg,var(--primary),var(--accent));border-radius:2px}
+.post-content h2:first-child{margin-top:0}
+.post-content h3{font-size:22px;font-weight:600;color:var(--text);margin:44px 0 16px;letter-spacing:-.025em}
+.post-content h4{font-size:18px;font-weight:600;color:var(--text);margin:32px 0 12px}
+.post-content p{margin-bottom:20px;line-height:1.8}
+.post-content p strong{color:var(--text);font-weight:600}
+.post-content ul,.post-content ol{margin:24px 0;padding-left:28px}
+.post-content li{margin-bottom:12px;line-height:1.7}
+.post-content li strong{color:var(--text);font-weight:600}
+.post-content code{font-family:var(--mono);font-size:14px;background:var(--bg2);border:1px solid var(--border);padding:2px 8px;border-radius:4px;color:var(--primary);font-weight:500}
+.post-content a{color:var(--primary);text-decoration:underline;font-weight:500;transition:opacity .15s}
+.post-content a:hover{color:var(--accent)}
+
+.code-wrap{margin:24px 0;border-radius:var(--r);overflow:hidden;border:1px solid #1e293b;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.code-bar{display:flex;align-items:center;justify-content:space-between;background:#0a0e1a;padding:10px 16px;border-bottom:1px solid #1e293b;position:relative}
+.code-bar::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--primary),var(--accent),var(--cyan))}
+.code-label{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--primary);letter-spacing:.04em}
+.copy-btn{font-family:var(--mono);font-size:11px;font-weight:600;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);color:#cbd5e1;padding:5px 12px;border-radius:4px;cursor:pointer;transition:.15s;display:inline-flex;align-items:center;gap:6px}
+.copy-btn:hover{background:rgba(59,130,246,.2);border-color:rgba(59,130,246,.5);color:#fff}
+.copy-btn.copied{background:rgba(34,197,94,.15);border-color:rgba(34,197,94,.4);color:#86efac}
+.code-wrap pre{background:#0a0e1a;border:none;margin:0;border-radius:0;padding:20px 24px;max-height:600px;overflow:auto;box-shadow:none}
+.code-wrap pre::before{display:none}
+.code-wrap pre code{background:none;border:none;padding:0;color:#e2e8f0;font-size:13px;line-height:1.7;font-weight:400;font-family:var(--mono)}
+
+.story-box{background:linear-gradient(135deg,rgba(59,130,246,.04),rgba(139,92,246,.04));border:1px solid var(--border);border-left:4px solid var(--primary);border-radius:var(--rs);padding:28px 32px;margin:32px 0;position:relative}
+.story-box::before{content:'❝';position:absolute;top:-10px;left:20px;font-size:48px;color:var(--primary);font-family:Georgia,serif;line-height:1;opacity:.4}
+.story-box p{margin-bottom:16px;font-style:italic;font-size:17px;line-height:1.7}
+.story-box p:last-child{margin-bottom:0}
+.story-box strong{color:var(--primary);font-weight:600;font-style:normal}
+
+.problem-box{background:rgba(239,68,68,.04);border:1px solid rgba(239,68,68,.2);border-left:4px solid #ef4444;border-radius:var(--rs);padding:24px;margin:32px 0}
+.problem-box strong{color:#dc2626;font-weight:700}
+
+.solution-box{background:linear-gradient(135deg,rgba(59,130,246,.05),rgba(139,92,246,.05));border:1px solid rgba(59,130,246,.2);border-left:4px solid var(--primary);border-radius:var(--rs);padding:24px;margin:32px 0}
+.solution-box strong{color:var(--primary);font-weight:700}
+
+.warning-box{background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.2);border-left:4px solid #f59e0b;border-radius:var(--rs);padding:24px;margin:32px 0}
+.warning-box strong{color:#d97706;font-weight:700}
+
+.applies-box{background:linear-gradient(135deg,rgba(6,182,212,.04),rgba(59,130,246,.04));border:1px solid rgba(6,182,212,.2);border-left:4px solid var(--cyan);border-radius:var(--rs);padding:24px;margin:32px 0}
+.applies-box h4{margin:0 0 12px 0;color:var(--cyan);font-size:15px;text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+.applies-box ul{margin:0;padding-left:20px}
+.applies-box li{font-size:14px;color:var(--text2);margin-bottom:8px;line-height:1.6}
+.applies-box li strong{color:var(--text);font-weight:600}
+
+/* Role table */
+.role-table{
+  display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr;gap:0;
+  margin:24px 0;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;
+  font-size:13px;background:var(--surface);
+}
+.role-table > div{padding:11px 14px;border-bottom:1px solid var(--border);border-right:1px solid var(--border)}
+.role-table > div:nth-child(4n){border-right:none}
+.role-table .head{font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.06em;background:linear-gradient(135deg,rgba(59,130,246,.08),rgba(139,92,246,.08));color:var(--text)}
+.role-table .perm{font-family:var(--mono);font-size:12px;color:var(--text2);font-weight:500}
+.role-table .yes{color:#16a34a;font-weight:700;text-align:center}
+.role-table .no{color:#dc2626;font-weight:700;text-align:center}
+@media(max-width:700px){.role-table{font-size:11px;grid-template-columns:1.2fr .8fr .8fr .8fr}}
+
+/* Session flow visualization */
+.session-flow{
+  background:#0a0e1a;border:1px solid #1e293b;
+  border-radius:var(--r);padding:24px;margin:28px 0;
+  font-family:var(--mono);font-size:13px;line-height:1.85;
+  box-shadow:0 8px 32px rgba(0,0,0,.3);position:relative;overflow-x:auto;
+}
+.session-flow::before{content:'SESSION LOGIC';position:absolute;top:12px;right:16px;font-size:10px;font-weight:700;letter-spacing:.2em;color:var(--primary);opacity:.7}
+.session-flow .case{color:#94a3b8}
+.session-flow .same{color:#86efac;font-weight:600}
+.session-flow .diff{color:#fca5a5;font-weight:600}
+.session-flow .action{color:#cbd5e1}
+
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin:32px 0}
+.stat-card{background:linear-gradient(135deg,var(--surface),var(--bg2));border:1px solid var(--border);border-radius:var(--rs);padding:22px 18px;text-align:center;position:relative;overflow:hidden;transition:.2s}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--primary),var(--accent))}
+.stat-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px var(--glow)}
+.stat-number{font-size:28px;font-weight:800;background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px;line-height:1}
+.stat-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+
+.series-nav{background:linear-gradient(135deg,rgba(59,130,246,.04),rgba(139,92,246,.04));border:1px solid var(--border);border-radius:var(--r);padding:24px;margin:48px 0 32px}
+.series-nav h3{margin-top:0!important;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:16px;padding-left:0}
+.series-nav h3::before{display:none}
+.series-list{list-style:none;padding:0;margin:0}
+.series-list li{padding:10px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;font-size:14px;color:var(--text2)}
+.series-list li:last-child{border-bottom:none}
+.series-list li.current{color:var(--primary);font-weight:600}
+.series-list li .num{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--surface);border:1px solid var(--border);font-size:11px;font-weight:700;color:var(--text3);flex-shrink:0}
+.series-list li.current .num{background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;border-color:transparent}
+
+.pull-quote{font-size:24px;font-weight:300;font-style:italic;color:var(--text);text-align:center;margin:48px 0;padding:32px 24px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);line-height:1.4}
+.pull-quote span{background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;font-weight:600}
+
+.post-footer{margin-top:80px;padding-top:40px;border-top:1px solid var(--border)}
+.post-tags{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:32px}
+.post-tags .tag{font-size:11px;font-weight:600;padding:6px 14px;border-radius:var(--rp);border:1px solid var(--border);background:var(--surface);color:var(--text3);font-family:var(--mono)}
+.post-nav{display:flex;justify-content:space-between;align-items:center;margin-top:32px;gap:16px;flex-wrap:wrap}
+.post-nav-link{font-size:14px;font-weight:600;color:var(--primary);text-decoration:none;display:inline-flex;align-items:center;gap:6px;transition:opacity .15s}
+.post-nav-link:hover{color:var(--accent)}
+
+@media(max-width:768px){
+  .blog-post{padding:48px 0 80px}
+  .post-header{margin-bottom:40px;padding:32px 0}
+  .post-content h2{margin:48px 0 20px;padding-left:16px}
+  .post-content h3{margin:36px 0 14px}
+  .code-wrap pre{max-height:400px;padding:14px 16px}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .pull-quote{font-size:18px;padding:24px 16px}
+}
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <div class="container nav-inner">
+    <a href="index.html" class="nav-logo"><span class="nav-logo-dot"></span>Nitish <em>Som</em></a>
+    <div class="nav-links">
+      <a href="index.html#about">About</a>
+      <a href="index.html#experience">Experience</a>
+      <a href="projects.html">Projects</a>
+      <a href="blog/index.html">Blog</a>
+      <a href="certifications/index.html">Certs</a>
+    </div>
+    <div class="nav-right">
+      <button class="cmdk-btn"><span>Search</span><kbd>⌘K</kbd></button>
+    </div>
+  </div>
+</nav>
+
+<article class="blog-post">
+  <div class="container narrow">
+
+    <header class="post-header">
+      <div class="post-meta">
+        <span class="post-cat">Backend API</span>
+        <span class="post-date">June 8, 2026</span>
+        <span class="post-read">Part 4 — 26 min read</span>
+      </div>
+      <div class="part-badge">📙 PART 4 / 6 — The Backend API</div>
+      <h1 class="post-title">The Backend That Makes the Database a Product</h1>
+      <p class="post-subtitle">A FastAPI service that wraps the data layer, handles login, enforces permissions, syncs status to Jira, and pushes notifications. About 1,300 lines of Python. The goal: every action an analyst takes should go through one well-tested code path — never directly to the database.</p>
+    </header>
+
+    <div class="post-content">
+
+      <h2>Where We Left Off</h2>
+
+      <p>End of Part 3: the database is solid. IDs are atomic. The audit log captures every state change. But the only way to interact with it is to <code>docker exec -it</code> into the Postgres container and write SQL by hand. That's fine for me at 2 AM debugging an outage. It's unusable for everyone else on the team.</p>
+
+      <p>Part 4 builds the layer that turns the database into a product. A REST API serving the dashboard, with proper login, sessions, permission checks, and integrations to the systems that already exist around it — primarily Jira.</p>
+
+      <h2>Why FastAPI</h2>
+
+      <p>I considered three options: Flask (familiar, mature), Django REST (too heavy for ~30 endpoints), and FastAPI. FastAPI won on four specific things:</p>
+
+      <ul>
+        <li><strong>Pydantic-style request validation built in.</strong> No serializer boilerplate. The function signature <em>is</em> the schema.</li>
+        <li><strong>Dependency injection.</strong> The <code>Depends()</code> pattern is exactly the shape of "extract the current user from the session token, fail if invalid, otherwise pass it to the endpoint." More on this below.</li>
+        <li><strong>Automatic OpenAPI docs.</strong> Visit <code>/docs</code> and you get an interactive API browser. Saved me writing a Postman collection.</li>
+        <li><strong>Native async support.</strong> Useful when I needed background threads polling Redis without blocking the request loop.</li>
+      </ul>
+
+      <p>Performance was a tie-breaker, not a decider. At our request volume (~5 RPS peak), Flask would work fine. The reason was developer ergonomics — the code reads cleanly, and that matters when I'm debugging an endpoint at midnight.</p>
+
+      <h2>The File That Holds Everything</h2>
+
+      <p>I chose to keep the entire backend in a single <code>api.py</code> file. About 1,300 lines. Some people would split this into <code>routes/</code>, <code>services/</code>, <code>models/</code>, <code>auth/</code>. I didn't, and I'd make the same choice again:</p>
+
+      <ul>
+        <li>For a single-developer project, the cognitive overhead of jumping between 12 files outweighs the "clean architecture" benefit.</li>
+        <li>Ctrl-F across one file is fast. Searching across folders is slow.</li>
+        <li>When this codebase needs to be handed off, "open api.py, read top to bottom" is a friendlier instruction than "here's the project structure diagram."</li>
+      </ul>
+
+      <p>The file is laid out top-down: imports → config → DB helpers → auth → permissions → endpoints → background threads → app startup. You can read it linearly and it tells you the whole story.</p>
+
+      <h2>Running It</h2>
+
+      <p>The FastAPI app runs as a systemd-managed Python process on the host, not in a container. It needs to talk to Postgres and Redis (both in containers), Jira (over the public internet), and the file system (for the dashboard HTML).</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">📄 /etc/systemd/system/dashboard.service</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>[Unit]
+Description=SOC Platform Dashboard API
+After=docker.service
+Wants=docker.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/security-automation/dashboard
+ExecStart=/usr/bin/python3 -m uvicorn api:app \
+    --host 0.0.0.0 --port 3333 \
+    --ssl-keyfile /opt/security-automation/certs/key.pem \
+    --ssl-certfile /opt/security-automation/certs/cert.pem
+Restart=always
+RestartSec=5
+StandardOutput=append:/opt/security-automation/dashboard/api.log
+StandardError=append:/opt/security-automation/dashboard/api.log
+
+[Install]
+WantedBy=multi-user.target</code></pre>
+      </div>
+
+      <p>HTTPS on port 3333 with the same self-signed cert we used in Part 2 for N8N. The same uvicorn process serves both the JSON API and the static HTML files for the dashboard (we'll cover the frontend in Part 5).</p>
+
+      <h2>The Users and Sessions Tables</h2>
+
+      <p>Two more tables earn their place in Postgres for the backend to work. We didn't need them in Part 3 because the workflow itself didn't care about humans. The API does.</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">▸ apply via docker exec</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>docker exec -i n8nq-postgres psql -U n8n_queue -d n8n_queue &lt;&lt;'EOF'
+
+CREATE TABLE IF NOT EXISTS users (
+  id                    SERIAL PRIMARY KEY,
+  username              TEXT NOT NULL UNIQUE,
+  full_name             TEXT NOT NULL,
+  email                 TEXT NOT NULL,
+  password_hash         TEXT NOT NULL,
+  role                  TEXT NOT NULL DEFAULT 'analyst'
+                        CHECK (role IN ('admin','analyst','readonly')),
+  active                BOOLEAN NOT NULL DEFAULT TRUE,
+  last_login            TIMESTAMPTZ,
+  created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  session_hours         INTEGER DEFAULT NULL,
+  permissions           JSONB NOT NULL DEFAULT '{}'::jsonb
+);
+CREATE UNIQUE INDEX IF NOT EXISTS users_email_unique ON users(email);
+
+CREATE TABLE IF NOT EXISTS sessions (
+  id         SERIAL PRIMARY KEY,
+  token      TEXT NOT NULL UNIQUE,
+  user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  expires_at TIMESTAMPTZ NOT NULL,
+  user_agent TEXT DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
+
+EOF</code></pre>
+      </div>
+
+      <p>A few details worth pointing out:</p>
+
+      <ul>
+        <li><strong><code>role</code> has a <code>CHECK</code> constraint.</strong> Database-level enforcement means you can't insert a typo like <code>'admin '</code> with a trailing space, or invent a phantom role like <code>'superadmin'</code>. The constraint catches it before the row is written.</li>
+        <li><strong><code>permissions JSONB</code></strong> — holds per-user overrides. We'll come back to this when we cover the permission model.</li>
+        <li><strong><code>session_hours</code> is nullable</strong> — when NULL the system uses the global default (1 hour). For specific accounts (a TV-monitor account that lives on a wall display) we set it to 8 or 12 hours so it doesn't log out every hour.</li>
+        <li><strong><code>sessions.user_agent</code></strong> — the User-Agent header captured at login. This is what powers the single-session logic we'll see in a moment.</li>
+      </ul>
+
+      <h2>Login: bcrypt and a Session Token</h2>
+
+      <p>Standard pattern. Receive username + password. Look up the user. Compare the password to the stored bcrypt hash. If it matches, create a session and return a token. The interesting part isn't the bcrypt — it's what happens with the session.</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">📄 api.py — login endpoint (core logic)</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>from fastapi import FastAPI, HTTPException, Depends, Request
+from datetime import datetime, timedelta, timezone
+import bcrypt, secrets, json
+
+app = FastAPI()
+SESSION_HOURS_DEFAULT = 1
+
+@app.post("/api/login")
+def login(payload: dict, request: Request):
+    username = (payload.get("username") or "").strip().lower()
+    password = payload.get("password") or ""
+    if not username or not password:
+        raise HTTPException(400, "Username and password required")
+
+    user = query(
+        "SELECT id, password_hash, role, active, session_hours, full_name "
+        "FROM users WHERE LOWER(username)=%s",
+        [username], fetch="one"
+    )
+    if not user or not user["active"]:
+        raise HTTPException(401, "Invalid credentials")
+
+    if not bcrypt.checkpw(password.encode(), user["password_hash"].encode()):
+        raise HTTPException(401, "Invalid credentials")
+
+    user_id   = user["id"]
+    hours     = user["session_hours"] or SESSION_HOURS_DEFAULT
+    ua        = (request.headers.get("user-agent") or "")[:500]
+    expires   = datetime.now(timezone.utc) + timedelta(hours=hours)
+
+    token = handle_session(user_id, ua, expires)
+    update("UPDATE users SET last_login=NOW() WHERE id=%s", [user_id])
+
+    return {
+        "token":     token,
+        "user_id":   user_id,
+        "name":      user["full_name"],
+        "role":      user["role"],
+        "expires":   expires.isoformat(),
+    }</code></pre>
+      </div>
+
+      <p>Standard up to the call to <code>handle_session()</code>. That function is where the interesting behavior lives.</p>
+
+      <h2>Single Session, Same Browser Refresh</h2>
+
+      <p>Most apps have one of two session models:</p>
+
+      <ul>
+        <li><strong>Multiple sessions allowed.</strong> Simple to implement. If someone steals a token, they use it concurrently with the legitimate user, and nobody notices.</li>
+        <li><strong>One session per user, ever.</strong> Better security. But: every browser tab refresh on a fresh login kicks the previous tab out. Annoying.</li>
+      </ul>
+
+      <p>I wanted a middle ground: <strong>one session per user, but logging in again from the same browser refreshes the existing session instead of replacing it</strong>. This is what enterprise SSO products do. About 30 lines of Python.</p>
+
+      <div class="session-flow">
+<span class="case">When the user logs in:</span>
+
+  <span class="action">Look for any existing session for this user</span>
+
+  <span class="case">Case 1:</span>  <span class="same">user_agent matches existing session</span>
+            <span class="action">→ extend expires_at, keep the existing token</span>
+            <span class="action">→ user stays logged in across tabs/refreshes</span>
+
+  <span class="case">Case 2:</span>  <span class="diff">user_agent differs (or no existing session)</span>
+            <span class="action">→ delete any existing session for this user</span>
+            <span class="action">→ create a new session with a fresh token</span>
+            <span class="action">→ the old tab gets booted on its next API call</span>
+      </div>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">📄 api.py — handle_session()</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>def handle_session(user_id: int, user_agent: str, expires) -&gt; str:
+    """One session per user. Same browser = refresh existing. Different = replace."""
+    existing = query(
+        "SELECT token, user_agent FROM sessions WHERE user_id=%s",
+        [user_id], fetch="one"
+    )
+
+    if existing and existing["user_agent"] == user_agent:
+        # Same browser — extend the existing session
+        update(
+            "UPDATE sessions SET expires_at=%s WHERE user_id=%s",
+            [expires, user_id]
+        )
+        return existing["token"]
+
+    # Different browser (or no existing session) — replace it
+    if existing:
+        update("DELETE FROM sessions WHERE user_id=%s", [user_id])
+
+    token = secrets.token_urlsafe(32)
+    update(
+        "INSERT INTO sessions (token, user_id, expires_at, user_agent) "
+        "VALUES (%s, %s, %s, %s)",
+        [token, user_id, expires, user_agent]
+    )
+    return token</code></pre>
+      </div>
+
+      <p>The user-agent string isn't a security boundary — anyone who can steal a token can also spoof a User-Agent header. What it <em>is</em>: a usability boundary that makes the single-session rule survive normal browser behavior (refreshes, tab duplicates, idle-then-reactivate). Tokens are still rotated when the credentials are reused from a different machine.</p>
+
+      <h2>The Dependency That Validates Every Request</h2>
+
+      <p>This is where FastAPI's dependency injection earns its keep. I want every protected endpoint to start with: "extract the bearer token, find the session, verify it hasn't expired, return the user." Without DI, that's five lines copied into every endpoint. With DI, it's <code>user=Depends(get_current_user)</code> in the function signature, and everything else is automatic.</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">📄 api.py — get_current_user dependency</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>from fastapi import Header
+
+def get_current_user(authorization: str = Header(None)) -&gt; dict:
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(401, "Missing or invalid Authorization header")
+
+    token = authorization[7:].strip()
+    row = query(
+        "SELECT s.user_id, s.expires_at, u.username, u.full_name, "
+        "       u.role, u.active "
+        "FROM sessions s "
+        "JOIN users u ON u.id = s.user_id "
+        "WHERE s.token=%s",
+        [token], fetch="one"
+    )
+    if not row:
+        raise HTTPException(401, "Invalid session")
+
+    if not row["active"]:
+        raise HTTPException(403, "Account deactivated")
+
+    if row["expires_at"] &lt; datetime.now(timezone.utc):
+        update("DELETE FROM sessions WHERE token=%s", [token])
+        raise HTTPException(401, "Session expired")
+
+    return {
+        "id":        row["user_id"],
+        "username":  row["username"],
+        "full_name": row["full_name"],
+        "role":      row["role"],
+    }</code></pre>
+      </div>
+
+      <p>Now every endpoint that needs an authenticated user looks like:</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">▸ how it's used in an endpoint</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>@app.get("/api/me")
+def me(user: dict = Depends(get_current_user)):
+    return user</code></pre>
+      </div>
+
+      <p>One word — <code>Depends(get_current_user)</code> — and the entire auth pipeline runs before the endpoint body. If anything fails, the endpoint never executes. The body becomes the business logic, not the plumbing.</p>
+
+      <h2>The Permission Model</h2>
+
+      <p>Now we're at the part of the system that has the most security responsibility. Sessions get you "is this a real user?" Permissions answer "is this user allowed to do this action?"</p>
+
+      <p>I built a three-role model with per-user overrides that <em>can only restrict, never elevate</em>. The defaults live in the application code (they change occasionally), the overrides live in the <code>users.permissions</code> JSONB column.</p>
+
+      <h3>The role defaults</h3>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">📄 api.py — ROLE_DEFAULTS</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>ROLE_DEFAULTS = {
+    "admin": {
+        "view_incidents":  True,
+        "add_comment":     True,
+        "close_ticket":    True,
+        "assign_analyst":  True,
+        "create_manual":   True,
+        "export_csv":      True,
+        "flush_queue":     True,
+        "view_admin":      True,
+    },
+    "analyst": {
+        "view_incidents":  True,
+        "add_comment":     True,
+        "close_ticket":    True,
+        "assign_analyst":  True,
+        "create_manual":   True,
+        "export_csv":      True,
+        "flush_queue":     False,
+        "view_admin":      False,
+    },
+    "readonly": {
+        "view_incidents":  True,
+        "add_comment":     False,
+        "close_ticket":    False,
+        "assign_analyst":  False,
+        "create_manual":   False,
+        "export_csv":      True,
+        "flush_queue":     False,
+        "view_admin":      False,
+    },
+}</code></pre>
+      </div>
+
+      <div class="role-table">
+        <div class="head">Permission</div>
+        <div class="head">Admin</div>
+        <div class="head">Analyst</div>
+        <div class="head">Read-only</div>
+
+        <div class="perm">view_incidents</div>
+        <div class="yes">✓</div><div class="yes">✓</div><div class="yes">✓</div>
+
+        <div class="perm">add_comment</div>
+        <div class="yes">✓</div><div class="yes">✓</div><div class="no">✗</div>
+
+        <div class="perm">close_ticket</div>
+        <div class="yes">✓</div><div class="yes">✓</div><div class="no">✗</div>
+
+        <div class="perm">assign_analyst</div>
+        <div class="yes">✓</div><div class="yes">✓</div><div class="no">✗</div>
+
+        <div class="perm">create_manual</div>
+        <div class="yes">✓</div><div class="yes">✓</div><div class="no">✗</div>
+
+        <div class="perm">export_csv</div>
+        <div class="yes">✓</div><div class="yes">✓</div><div class="yes">✓</div>
+
+        <div class="perm">flush_queue</div>
+        <div class="yes">✓</div><div class="no">✗</div><div class="no">✗</div>
+
+        <div class="perm">view_admin</div>
+        <div class="yes">✓</div><div class="no">✗</div><div class="no">✗</div>
+      </div>
+
+      <p>Why <code>export_csv</code> is true for read-only: that role exists for the TV-monitor account on the SOC wall display, plus an audit/compliance account that pulls quarterly reports. CSV export is the safest operation in the system — it can't mutate anything. So we leave it on.</p>
+
+      <h3>The "deny-only" override pattern</h3>
+
+      <p>This is the bit that makes the model safe against misconfiguration. The function that resolves a user's effective permissions:</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">📄 api.py — get_user_permissions()</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>def get_user_permissions(user_id: int, role: str) -&gt; dict:
+    """Effective permissions = role defaults, with overrides applied.
+    Overrides can only RESTRICT (set to False), never elevate."""
+    defaults = ROLE_DEFAULTS.get(role, ROLE_DEFAULTS["readonly"]).copy()
+
+    row = query(
+        "SELECT permissions FROM users WHERE id=%s",
+        [user_id], fetch="one"
+    )
+    if not row or not row.get("permissions"):
+        return defaults
+
+    overrides = row["permissions"]
+    if isinstance(overrides, str):       # in case psycopg2 returned it as JSON text
+        overrides = json.loads(overrides)
+
+    for key, value in overrides.items():
+        if key in defaults and not value:
+            defaults[key] = False          # the only valid override is False
+    return defaults</code></pre>
+      </div>
+
+      <p>Read the loop carefully:</p>
+
+      <pre style="background:#0a0e1a;border:1px solid #1e293b;border-radius:6px;padding:14px 18px;color:#e2e8f0;font-size:13px;font-family:var(--mono);overflow-x:auto;">for key, value in overrides.items():
+    if key in defaults and not value:
+        defaults[key] = False</pre>
+
+      <ul>
+        <li><strong><code>if key in defaults</code></strong> — Ignore any override key that isn't already in the role defaults. You can't invent a new permission by writing it into the JSONB column.</li>
+        <li><strong><code>and not value</code></strong> — Apply the override only when it's <code>False</code>. <code>True</code> overrides are silently dropped.</li>
+      </ul>
+
+      <div class="solution-box">
+        <p><strong>Why this matters:</strong> if a bug in the admin UI ever let someone write <code>{"flush_queue": true}</code> onto an analyst account, that analyst <em>still cannot flush the queue</em>. The role default is False, and the <code>not value</code> check rejects the True override. The worst a tampered <code>permissions</code> column can do is take permissions <em>away</em> — which is recoverable by removing the override. Privilege escalation through misconfiguration is structurally impossible.</p>
+      </div>
+
+      <h3>Real use case: restricting a new analyst</h3>
+
+      <p>We hired a junior analyst. I wanted them to have full analyst access but <em>not</em> the ability to close tickets until they finished onboarding.</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">▸ apply the restriction</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>docker exec n8nq-postgres psql -U n8n_queue -d n8n_queue -c "
+  UPDATE users
+  SET permissions = '{\"close_ticket\": false}'::jsonb
+  WHERE username = 'new_analyst';
+"</code></pre>
+      </div>
+
+      <p>The "Close" button disappears from their UI. They can do everything else. Two weeks later, we removed the override:</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">▸ remove the restriction</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>docker exec n8nq-postgres psql -U n8n_queue -d n8n_queue -c "
+  UPDATE users
+  SET permissions = '{}'::jsonb
+  WHERE username = 'new_analyst';
+"</code></pre>
+      </div>
+
+      <p>No role change, no migration, no ticket. One database row, reversible.</p>
+
+      <h2>Enforcing Permissions on Endpoints</h2>
+
+      <p>Each protected endpoint needs to check whether the current user has a specific permission. Rather than calling <code>get_user_permissions()</code> inside every handler, I built a small dependency factory:</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">📄 api.py — require_permission factory</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>def require_permission(perm: str):
+    """Returns a dependency that enforces the named permission."""
+    def _checker(user: dict = Depends(get_current_user)) -&gt; dict:
+        perms = get_user_permissions(user["id"], user["role"])
+        if not perms.get(perm, False):
+            raise HTTPException(403, f"Missing permission: {perm}")
+        return user
+    return _checker</code></pre>
+      </div>
+
+      <p>Now any endpoint adds permission enforcement with one decorator-like declaration:</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">▸ usage</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>@app.post("/api/incidents/{seq}/close")
+def close_incident(
+    seq: int,
+    user: dict = Depends(require_permission("close_ticket"))
+):
+    # If we get here, the user is authenticated AND has 'close_ticket'.
+    ...</code></pre>
+      </div>
+
+      <p>The auth check, the permission check, and the user object — all set up before the function body runs. Inside the body, I never have to worry about whether the user is allowed. That's enforced at the door.</p>
+
+      <h2>A Real Endpoint: Adding a Comment</h2>
+
+      <p>To show how all the pieces fit, here's a complete endpoint. Adds a comment to an incident, writes to the audit log, pushes a notification to whoever is assigned.</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">📄 api.py — add comment endpoint</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>@app.post("/api/incidents/{seq}/comments")
+def add_comment(
+    seq: int,
+    payload: dict,
+    user: dict = Depends(require_permission("add_comment"))
+):
+    body = (payload.get("body") or "").strip()
+    if not body:
+        raise HTTPException(400, "Comment body required")
+
+    # Verify the incident exists and grab its assigned analyst + incident_id
+    incident = query(
+        "SELECT incident_id, assigned_to FROM incidents WHERE seq=%s",
+        [seq], fetch="one"
+    )
+    if not incident:
+        raise HTTPException(404, "Incident not found")
+
+    # Write the comment
+    update(
+        "INSERT INTO incident_comments (incident_seq, author, body) "
+        "VALUES (%s, %s, %s)",
+        [seq, user["full_name"], body]
+    )
+
+    # Audit log
+    audit(seq, "comment_added", user["full_name"], "", body[:200])
+
+    # Notify the assignee, if they're a registered user and not the author
+    if incident["assigned_to"] and incident["assigned_to"] != user["full_name"]:
+        push_notif(
+            assignee_username=incident["assigned_to"],
+            title=f"New comment on {incident['incident_id']}",
+            message=f"{user['full_name']}: {body[:120]}",
+            incident_seq=seq,
+        )
+
+    return {"ok": True}</code></pre>
+      </div>
+
+      <p>Twenty lines. One endpoint. Five things it does: validates input, looks up the incident, writes the comment, audit-logs the action, notifies the assignee. Auth and permission are handled by the dependency — they don't show up in the body at all.</p>
+
+      <h2>The Jira Sync</h2>
+
+      <p>When an analyst closes a ticket in our dashboard, the corresponding Jira issue (the one created in the original automation flow from Part 1) needs to follow. Same for status changes, assignee changes, and added comments.</p>
+
+      <p>I considered three patterns:</p>
+
+      <ol>
+        <li><strong>Synchronous Jira calls inside the endpoint.</strong> Simple, but a slow Jira API response would block the user.</li>
+        <li><strong>A background queue that picks up sync jobs.</strong> Most robust, but overkill for ~50 syncs/day.</li>
+        <li><strong>Fire-and-forget via Python's threading.</strong> The endpoint returns immediately; sync happens in the background. If Jira fails, we log it and an admin investigates.</li>
+      </ol>
+
+      <p>I chose option 3. Here's the sync function and how it's called:</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">📄 api.py — Jira sync</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>import httpx, threading
+
+JIRA_BASE = os.environ.get("JIRA_BASE")           # https://acme.atlassian.net
+JIRA_AUTH = (os.environ.get("JIRA_EMAIL"),
+             os.environ.get("JIRA_API_TOKEN"))
+
+# Map our internal status -&gt; Jira transition ID (configured per project)
+JIRA_TRANSITIONS = {"resolved": "31", "closed": "41", "reopened": "11"}
+
+def jira_sync_status(jira_key: str, new_status: str, actor: str, note: str = ""):
+    """Push a status change to Jira. Runs in a background thread."""
+    if not jira_key:
+        return
+    transition_id = JIRA_TRANSITIONS.get(new_status)
+    if not transition_id:
+        return
+
+    try:
+        with httpx.Client(auth=JIRA_AUTH, timeout=15.0) as c:
+            # 1. Transition the issue
+            r = c.post(
+                f"{JIRA_BASE}/rest/api/3/issue/{jira_key}/transitions",
+                json={"transition": {"id": transition_id}}
+            )
+            r.raise_for_status()
+
+            # 2. Add a comment recording who did it on our side
+            if note or actor:
+                c.post(
+                    f"{JIRA_BASE}/rest/api/3/issue/{jira_key}/comment",
+                    json={"body": {
+                        "type": "doc", "version": 1,
+                        "content": [{"type": "paragraph", "content": [
+                            {"type": "text",
+                             "text": f"[Dashboard] {actor} -&gt; {new_status}. {note}"}
+                        ]}]
+                    }}
+                )
+    except Exception as e:
+        log_error(f"jira_sync_status failed for {jira_key}: {e}")
+
+def jira_sync_status_bg(jira_key, new_status, actor, note=""):
+    """Fire-and-forget wrapper. Always use this from endpoints."""
+    t = threading.Thread(
+        target=jira_sync_status,
+        args=(jira_key, new_status, actor, note),
+        daemon=True,
+    )
+    t.start()</code></pre>
+      </div>
+
+      <p>And from the close-incident endpoint:</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">▸ kick off the sync after closing locally</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>@app.post("/api/incidents/{seq}/close")
+def close_incident(
+    seq: int,
+    payload: dict,
+    user: dict = Depends(require_permission("close_ticket"))
+):
+    note = (payload.get("note") or "").strip()
+    incident = query("SELECT jira_key FROM incidents WHERE seq=%s", [seq], fetch="one")
+    if not incident:
+        raise HTTPException(404, "Incident not found")
+
+    # Local close + audit
+    update("UPDATE incidents SET status='resolved', resolved_at=NOW() WHERE seq=%s", [seq])
+    audit(seq, "status_change", user["full_name"], "open", "resolved")
+
+    # Sync to Jira in the background — response returns immediately
+    jira_sync_status_bg(incident["jira_key"], "resolved", user["full_name"], note)
+
+    return {"ok": True}</code></pre>
+      </div>
+
+      <p>The endpoint returns in ~50 ms. The Jira call happens in the background. If Jira is slow, the analyst doesn't feel it.</p>
+
+      <h3>What about Jira failures?</h3>
+
+      <p>If the Jira API call fails (network blip, auth issue, Atlassian outage), we log the error and the local state and Jira state are now <em>out of sync</em>. That's a real risk. The mitigation:</p>
+
+      <ul>
+        <li><strong>Every action is logged to <code>audit_log</code></strong> before the Jira call. We have a complete record locally.</li>
+        <li><strong>A reconciliation script runs nightly</strong>, finds incidents where the local status doesn't match Jira, and either retries the sync or flags them in the admin UI for manual review.</li>
+        <li><strong>The audit log captures who made the change locally</strong>, so even if Jira is out of date for a few hours, we know what should be there.</li>
+      </ul>
+
+      <p>I've had two Jira outages since launch. Both times, the reconciliation script caught up on its own once Atlassian was back. No data lost, no analyst manually fixing things.</p>
+
+      <h2>The Notifications Table and Helper</h2>
+
+      <p>In-app notifications power the bell icon in the dashboard. When something happens that a specific user (or all users) should know about, we write a row.</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">▸ notifications table</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>docker exec -i n8nq-postgres psql -U n8n_queue -d n8n_queue &lt;&lt;'EOF'
+CREATE TABLE IF NOT EXISTS notifications (
+  id           SERIAL PRIMARY KEY,
+  user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  type         TEXT NOT NULL DEFAULT 'system',
+  incident_seq INTEGER,
+  incident_id  TEXT DEFAULT '',
+  title        TEXT NOT NULL,
+  message      TEXT NOT NULL DEFAULT '',
+  from_user    TEXT DEFAULT '',
+  read         BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_notifs_user_unread
+  ON notifications(user_id) WHERE read = FALSE;
+EOF</code></pre>
+      </div>
+
+      <p>The partial index on the unread predicate is a small but meaningful optimization. The most common notification query is <code>SELECT COUNT(*) FROM notifications WHERE user_id=? AND read=FALSE</code>, polled every 10 seconds per logged-in user. The partial index keeps only the unread rows — typically a few per user — so the count is constant-time.</p>
+
+      <p>The helper that writes notifications:</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">📄 api.py — push_notif()</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>def push_notif(*, assignee_username: str = None, title: str, message: str,
+               incident_seq: int = None, ntype: str = "assignment",
+               from_user: str = ""):
+    """Send a notification to one specific user (by username)."""
+    if not assignee_username:
+        return
+    target = query(
+        "SELECT id FROM users WHERE LOWER(full_name)=LOWER(%s) OR username=%s",
+        [assignee_username, assignee_username], fetch="one"
+    )
+    if not target:
+        return
+    update(
+        "INSERT INTO notifications (user_id, type, incident_seq, title, message, from_user) "
+        "VALUES (%s, %s, %s, %s, %s, %s)",
+        [target["id"], ntype, incident_seq, title, message[:500], from_user]
+    )
+
+def broadcast_notif(*, title: str, message: str, ntype: str = "system"):
+    """Send to every active user. Used for worker-health alerts."""
+    update(
+        "INSERT INTO notifications (user_id, type, title, message) "
+        "SELECT id, %s, %s, %s FROM users WHERE active=TRUE",
+        [ntype, title, message[:500]]
+    )</code></pre>
+      </div>
+
+      <p>The dashboard polls <code>GET /api/notifications/unread_count</code> every 10 seconds. When the number is non-zero, the bell icon turns red. Click the bell, the user sees a dropdown list of unread notifications. Click one, it marks read.</p>
+
+      <p>I considered WebSockets for "real" real-time push. I didn't go that route — polling is simpler, the dashboard already polls for queue metrics every 5 seconds anyway, and a 10-second delay on "you have a new notification" is invisible to the user. Operational simplicity won.</p>
+
+      <h2>Background Threads</h2>
+
+      <p>Two background tasks run inside the FastAPI process — not as separate cron jobs, not as Celery workers, just <code>threading.Thread(daemon=True)</code> started on app boot.</p>
+
+      <h3>Worker health watcher</h3>
+
+      <p>Every 30 seconds, count how many N8N worker containers are running. If the count hits zero for more than 5 minutes, broadcast a notification to every active user. When workers come back, broadcast a recovery notification.</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">📄 api.py — worker_health_watcher</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>import subprocess
+
+def count_running_workers() -&gt; int:
+    try:
+        out = subprocess.check_output(
+            ["docker", "compose", "-f", COMPOSE_FILE, "ps", "--format", "json"],
+            text=True, timeout=10,
+        )
+        return out.count('"Service":"n8nq-worker"')
+    except Exception:
+        return -1   # unknown
+
+def worker_health_watcher():
+    """Background thread. Notifies on full outage (5+ min at 0 workers)."""
+    last_state = "healthy"
+    zero_since = None
+
+    while True:
+        try:
+            n = count_running_workers()
+            now = datetime.now(timezone.utc)
+
+            if n == 0 and zero_since is None:
+                zero_since = now
+            elif n &gt; 0:
+                zero_since = None
+                if last_state == "down":
+                    broadcast_notif(
+                        title="Workers recovered",
+                        message=f"{n} N8N worker(s) back online.",
+                        ntype="worker_recovery",
+                    )
+                    last_state = "healthy"
+
+            if zero_since and (now - zero_since).total_seconds() &gt; 300:
+                if last_state != "down":
+                    broadcast_notif(
+                        title="Workers DOWN",
+                        message="No N8N workers have been running for 5 minutes. "
+                                "Alerts are not being processed.",
+                        ntype="worker_down",
+                    )
+                    last_state = "down"
+        except Exception as e:
+            log_error(f"worker_health_watcher tick: {e}")
+
+        time.sleep(30)
+
+@app.on_event("startup")
+def start_background_threads():
+    threading.Thread(target=worker_health_watcher, daemon=True).start()
+    threading.Thread(target=queue_snapshot_writer,  daemon=True).start()</code></pre>
+      </div>
+
+      <h3>Queue snapshot writer</h3>
+
+      <p>Same pattern. Every 30 seconds, ask Redis how deep the queue is, write a row to a <code>queue_snapshots</code> table. This becomes the historical chart in Part 5's dashboard — "here's the queue depth over the last 24 hours."</p>
+
+      <p>I'll defer the snapshot table and the chart logic to Part 5, where they show up in context.</p>
+
+      <h2>What This Layer Earns Us</h2>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-number">~1,300</div>
+          <div class="stat-label">Lines in api.py</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">~30</div>
+          <div class="stat-label">REST endpoints</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">50ms</div>
+          <div class="stat-label">Median API latency</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">8</div>
+          <div class="stat-label">Distinct permissions</div>
+        </div>
+      </div>
+
+      <p>The dashboard now has a real backend behind it. Every action goes through one well-tested code path. Auth, permissions, audit logging, Jira sync, notifications — all centralized.</p>
+
+      <h2>Beyond the SOC: Where This Pattern Applies</h2>
+
+      <div class="applies-box">
+        <h4>Same backend shape — different domain</h4>
+        <ul>
+          <li><strong>Internal tools at small companies.</strong> Five to fifty users, custom workflows, no budget for off-the-shelf SaaS. Single-file FastAPI + Postgres + bcrypt is enough.</li>
+          <li><strong>Customer admin portals for B2B products.</strong> The "deny-only override" permission pattern is a good fit when you have customer-tier roles plus optional restrictions on individual customer users.</li>
+          <li><strong>SaaS dashboards layered over an existing database.</strong> When the data already lives somewhere, an API that wraps it with auth + audit + integrations is often what's actually needed.</li>
+          <li><strong>Operations dashboards for infra/ML teams.</strong> Background-thread health watchers and queue snapshot writers are the exact pattern for "alert when the GPU cluster goes down" or "chart the inference queue depth."</li>
+          <li><strong>Any system that needs to sync state to a third-party tool.</strong> The fire-and-forget threading + reconciliation script pattern works for Slack, Linear, Notion, GitHub — anywhere you can't afford to block on slow external calls.</li>
+        </ul>
+      </div>
+
+      <p class="pull-quote">The backend's job isn't to be clever. It's to be the <span>single, well-tested path</span> between humans and data.</p>
+
+      <h2>What's Next</h2>
+
+      <p>The API serves JSON. Beautiful, well-typed, permission-enforced JSON. But analysts don't drink JSON. They need a screen — open tickets visible at a glance, queue depth charted over time, notifications popping up, a worker-down alert flashing red across the top of the screen when things break.</p>
+
+      <p>Part 5 builds that screen. Vanilla JavaScript, no framework, no build step. Just HTML + CSS + fetch() calls to the API we just built. The frontend that turned this from "platform" into "tool the team actually uses."</p>
+
+      <div class="series-nav">
+        <h3>📚 The Complete 6-Part Series</h3>
+        <ul class="series-list">
+          <li>
+            <span class="num">1</span>
+            <span><strong>The Use Case</strong> — Why this platform exists</span>
+          </li>
+          <li>
+            <span class="num">2</span>
+            <span><strong>The Workflow Engine</strong> — Queue mode + auto-scaling</span>
+          </li>
+          <li>
+            <span class="num">3</span>
+            <span><strong>The Data Layer</strong> — Atomic incident IDs</span>
+          </li>
+          <li class="current">
+            <span class="num">4</span>
+            <span><strong>The Backend API</strong> — FastAPI, sessions, integrations <em>(you are here)</em></span>
+          </li>
+          <li>
+            <span class="num">5</span>
+            <span><strong>The Dashboard</strong> — Real-time UI, queue monitoring</span>
+          </li>
+          <li>
+            <span class="num">6</span>
+            <span><strong>Operations</strong> — Monitoring, troubleshooting, postmortems</span>
+          </li>
+        </ul>
+      </div>
+
+    </div>
+
+    <footer class="post-footer">
+      <div class="post-tags">
+        <span class="tag">FastAPI</span>
+        <span class="tag">Python</span>
+        <span class="tag">REST API</span>
+        <span class="tag">Sessions</span>
+        <span class="tag">bcrypt</span>
+        <span class="tag">RBAC</span>
+        <span class="tag">Permissions</span>
+        <span class="tag">Jira Integration</span>
+        <span class="tag">Background Threads</span>
+        <span class="tag">Notifications</span>
+      </div>
+
+      <div class="post-nav">
+        <a href="soc-platform-part-3.html" class="post-nav-link">← Part 3: The Data Layer</a>
+        <a href="soc-platform-part-5.html" class="post-nav-link">Part 5: The Dashboard →</a>
+      </div>
+    </footer>
+
+  </div>
+</article>
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <div class="footer-left">
+      <div class="footer-logo">Nitish <em>Som</em></div>
+      <div class="footer-copy">© 2026 · Built with focus on detection engineering</div>
+    </div>
+    <div class="footer-links">
+      <a href="topics/index.html">Topics</a>
+      <a href="roadmap.html">Roadmap</a>
+      <a href="sitemap.html">Sitemap</a>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/data.js"></script>
+<script>
+if(typeof P !== 'undefined' && P.showAvailBadgeOnBlog){
+  const badge = document.getElementById('avail-badge');
+  if(badge) badge.style.display='flex';
+}
+
+document.querySelectorAll('.copy-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const wrap = btn.closest('.code-wrap');
+    if(!wrap) return;
+    const codeEl = wrap.querySelector('pre code');
+    if(!codeEl) return;
+    try {
+      await navigator.clipboard.writeText(codeEl.textContent);
+      const old = btn.textContent;
+      btn.textContent = '✓ Copied';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = old;
+        btn.classList.remove('copied');
+      }, 1500);
+    } catch(e) {
+      btn.textContent = 'Failed';
+      setTimeout(() => btn.textContent = 'Copy', 1500);
+    }
+  });
+});
+</script>
+
+</body>
+</html>
