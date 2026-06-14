@@ -883,66 +883,79 @@ const P = {
       readMins: 12,
       tags: ['Digital Forensics', 'Incident Response', 'Linux', 'Data Acquisition', 'DFIR', 'Memory Forensics']
     },
-    {
-      id: 'n8n-auto-scaling-queue-mode',
-      title: 'Building Auto-Scaling N8N with Queue Mode',
-      summary: 'Complete guide to deploying N8N in queue mode with Redis, PostgreSQL, and dynamic worker auto-scaling for production SOC automation',
-      cat: 'SOAR Automation',
-      catColor: 'green',
-      date: '2025-05-18',
-      readMins: 18,
-      tags: ['SOAR', 'N8N', 'Automation', 'Redis', 'PostgreSQL', 'Docker', 'Auto-Scaling', 'Queue Mode']
-    },
+    // {
+    //   id: 'n8n-auto-scaling-queue-mode',
+    //   title: 'Building Auto-Scaling N8N with Queue Mode',
+    //   summary: 'Complete guide to deploying N8N in queue mode with Redis, PostgreSQL, and dynamic worker auto-scaling for production SOC automation',
+    //   cat: 'SOAR Automation',
+    //   catColor: 'green',
+    //   date: '2025-05-18',
+    //   readMins: 18,
+    //   tags: ['SOAR', 'N8N', 'Automation', 'Redis', 'PostgreSQL', 'Docker', 'Auto-Scaling', 'Queue Mode']
+    // },
     
     // ADD THESE TO YOUR data.js posts ARRAY:
 
+{
+  id: 'soc-platform-part-1',
+  title: 'Why I Built a SOC Automation Platform — The Use Case (Part 1)',
+  summary: 'Most engineering write-ups open with the architecture. This one opens with the work — what a SOC analyst does all day, the part of that day I wanted to disappear, and the workflow I set out to build.',
+  cat: 'Production SOAR',
+  catColor: 'blue',
+  date: '2026-06-08',
+  readMins: 14,
+  topics: ['security-automation', 'soar'],
+  tags: ['SOC', 'SOAR', 'N8N', 'Wazuh', 'Incident Response', 'Workflow Automation', 'Jira', 'SIEM', 'Use Case', 'Production Build'],
+  skills: ['security-automation', 'soar', 'incident-response'],
+  featured: true,
+},
 // Part 1: Problem & Architecture
-    {
-  id: 'n8n-queue-mode-part-1',
-  title: 'From Single-Threaded Bottlenecks to Multi-Worker Production SOAR (Part 1)',
-  summary: 'Real SOC automation bottlenecks solved with N8N queue mode. Architecture overview, 60 incidents processed, zero data loss, 4x speedup. Multi-worker coordination explained.',
-  cat: 'SOAR Architecture',
-  catColor: 'green',
-  date: '2026-05-29',
-  readMins: 22,
-  tags: ['SOAR', 'N8N', 'Queue Mode', 'Architecture', 'Redis', 'PostgreSQL', 'Multi-Worker', 'Incident Response', 'Wazuh', 'SentinelOne']
-    },
+//     {
+//   id: 'n8n-queue-mode-part-1',
+//   title: 'From Single-Threaded Bottlenecks to Multi-Worker Production SOAR (Part 1)',
+//   summary: 'Real SOC automation bottlenecks solved with N8N queue mode. Architecture overview, 60 incidents processed, zero data loss, 4x speedup. Multi-worker coordination explained.',
+//   cat: 'SOAR Architecture',
+//   catColor: 'green',
+//   date: '2026-05-29',
+//   readMins: 22,
+//   tags: ['SOAR', 'N8N', 'Queue Mode', 'Architecture', 'Redis', 'PostgreSQL', 'Multi-Worker', 'Incident Response', 'Wazuh', 'SentinelOne']
+//     },
 
-// Part 2: Workflows
-{
-  id: 'n8n-queue-mode-part-2',
-  title: 'The Actual Workflows: Routing & Multi-Worker Execution (Part 2)',
-  summary: 'Parent router workflow + JournalD processor with complete JSON exports. Multi-worker parallel execution timeline. Atomic Postgres incident ID generation. Copy-paste ready workflows.',
-  cat: 'SOAR Workflows',
-  catColor: 'green',
-  date: '2026-05-29',
-  readMins: 28,
-  tags: ['N8N', 'Workflows', 'Router', 'Sub-Workflows', 'Parallel Execution', 'Postgres', 'JSON Exports', 'Incident Processing', 'Jira Integration']
-},
+// // Part 2: Workflows
+// {
+//   id: 'n8n-queue-mode-part-2',
+//   title: 'The Actual Workflows: Routing & Multi-Worker Execution (Part 2)',
+//   summary: 'Parent router workflow + JournalD processor with complete JSON exports. Multi-worker parallel execution timeline. Atomic Postgres incident ID generation. Copy-paste ready workflows.',
+//   cat: 'SOAR Workflows',
+//   catColor: 'green',
+//   date: '2026-05-29',
+//   readMins: 28,
+//   tags: ['N8N', 'Workflows', 'Router', 'Sub-Workflows', 'Parallel Execution', 'Postgres', 'JSON Exports', 'Incident Processing', 'Jira Integration']
+// },
 
-// Part 3: Load Testing & Auto-Scaling
-{
-  id: 'n8n-queue-mode-part-3',
-  title: 'Load Testing & Dynamic Auto-Scaling (Part 3)',
-  summary: 'Python load testing script for 500 concurrent alerts. Regression testing for data consistency. Systemd auto-scaler (2→6 workers). Real test results with metrics.',
-  cat: 'Testing & Monitoring',
-  catColor: 'green',
-  date: '2026-05-29',
-  readMins: 26,
-  tags: ['Load Testing', 'Regression Testing', 'Auto-Scaling', 'Python Scripts', 'Monitoring', 'Redis Queue', 'Performance Validation', 'Systemd']
-},
+// // Part 3: Load Testing & Auto-Scaling
+// {
+//   id: 'n8n-queue-mode-part-3',
+//   title: 'Load Testing & Dynamic Auto-Scaling (Part 3)',
+//   summary: 'Python load testing script for 500 concurrent alerts. Regression testing for data consistency. Systemd auto-scaler (2→6 workers). Real test results with metrics.',
+//   cat: 'Testing & Monitoring',
+//   catColor: 'green',
+//   date: '2026-05-29',
+//   readMins: 26,
+//   tags: ['Load Testing', 'Regression Testing', 'Auto-Scaling', 'Python Scripts', 'Monitoring', 'Redis Queue', 'Performance Validation', 'Systemd']
+// },
 
-// Part 4: Operations & DR
-{
-  id: 'n8n-queue-mode-part-4',
-  title: 'Production Operations & Disaster Recovery (Part 4)',
-  summary: 'Daily operations checklist. Backup and disaster recovery procedures. Troubleshooting 4+ common issues. Security hardening. Performance tuning. Production migration playbook.',
-  cat: 'Operations',
-  catColor: 'green',
-  date: '2026-05-29',
-  readMins: 24,
-  tags: ['Operations', 'Disaster Recovery', 'Troubleshooting', 'Security', 'Backup Strategy', 'Performance Tuning', 'Production Readiness', 'Migration']
-},
+// // Part 4: Operations & DR
+// {
+//   id: 'n8n-queue-mode-part-4',
+//   title: 'Production Operations & Disaster Recovery (Part 4)',
+//   summary: 'Daily operations checklist. Backup and disaster recovery procedures. Troubleshooting 4+ common issues. Security hardening. Performance tuning. Production migration playbook.',
+//   cat: 'Operations',
+//   catColor: 'green',
+//   date: '2026-05-29',
+//   readMins: 24,
+//   tags: ['Operations', 'Disaster Recovery', 'Troubleshooting', 'Security', 'Backup Strategy', 'Performance Tuning', 'Production Readiness', 'Migration']
+// },
  
   ],
 
