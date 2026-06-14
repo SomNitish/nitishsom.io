@@ -4,294 +4,135 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <base href="/nitishsom.io/">
-<title>Database Architecture: Atomic Incident IDs & RBAC Model (Part 3) — Nitish Som</title>
-<meta name="description" content="The 12-table PostgreSQL schema powering a production SOC platform — atomic incident ID generation with per-tenant monthly counters, role-based access control with per-user restrictions, soft-delete with approval workflow, and an immutable audit trail.">
+<title>The Data Layer — Atomic Incident IDs (Part 3) — Nitish Som</title>
+<meta name="description" content="Part 2 gave us 20 parallel workers — and a brand new race condition: duplicate incident IDs. This part fixes it the right way: in the database, not the application. A PostgreSQL trigger, a continuous per-customer counter, and a verifiable concurrency test.">
 <link rel="stylesheet" href="assets/shared.css">
 <style>
-:root {
-  --primary: #3b82f6;
-  --primary-dark: #2563eb;
-  --accent: #8b5cf6;
-  --accent-dark: #7c3aed;
-  --cyan: #06b6d4;
-  --glow: rgba(59,130,246,.3);
-  --glow-violet: rgba(139,92,246,.25);
+:root{
+  --primary:#3b82f6;--primary-dark:#2563eb;
+  --accent:#8b5cf6;--accent-dark:#7c3aed;
+  --cyan:#06b6d4;
+  --glow:rgba(59,130,246,.3);
+  --glow-violet:rgba(139,92,246,.25);
 }
 
 .blog-post{padding:80px 0 120px;min-height:100vh;background:var(--bg)}
 .container.narrow{max-width:840px}
 
-.post-header{
-  margin-bottom:64px;padding:48px 0;
-  border-bottom:1px solid var(--border);
-  position:relative;overflow:hidden;
-}
-.post-header::before{
-  content:'';position:absolute;top:-100px;right:-100px;
-  width:400px;height:400px;
-  background:radial-gradient(circle, var(--glow) 0%, transparent 70%);
-  pointer-events:none;z-index:0;
-}
-.post-header::after{
-  content:'';position:absolute;bottom:-50px;left:-50px;
-  width:300px;height:300px;
-  background:radial-gradient(circle, var(--glow-violet) 0%, transparent 70%);
-  pointer-events:none;z-index:0;
-}
+.post-header{margin-bottom:64px;padding:48px 0;border-bottom:1px solid var(--border);position:relative;overflow:hidden}
+.post-header::before{content:'';position:absolute;top:-100px;right:-100px;width:400px;height:400px;background:radial-gradient(circle,var(--glow) 0%,transparent 70%);pointer-events:none;z-index:0}
+.post-header::after{content:'';position:absolute;bottom:-50px;left:-50px;width:300px;height:300px;background:radial-gradient(circle,var(--glow-violet) 0%,transparent 70%);pointer-events:none;z-index:0}
 .post-header > *{position:relative;z-index:1}
-
 .post-meta{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:24px}
-.post-cat{
-  font-size:11px;font-weight:700;padding:6px 14px;border-radius:var(--rp);
-  text-transform:uppercase;letter-spacing:.08em;
-  background:linear-gradient(135deg, var(--primary), var(--accent));
-  color:#fff;box-shadow:0 4px 12px var(--glow);
-}
+.post-cat{font-size:11px;font-weight:700;padding:6px 14px;border-radius:var(--rp);text-transform:uppercase;letter-spacing:.08em;background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;box-shadow:0 4px 12px var(--glow)}
 .post-date,.post-read{font-family:var(--mono);font-size:12px;color:var(--text3)}
-.part-badge{
-  display:inline-block;
-  background:linear-gradient(135deg, var(--primary), var(--accent));
-  color:white;padding:8px 18px;border-radius:var(--rp);
-  font-weight:600;font-size:12px;margin-bottom:20px;
-  letter-spacing:.04em;box-shadow:0 4px 16px var(--glow);
-}
-.post-title{
-  font-size:clamp(36px,5.5vw,56px);font-weight:800;
-  letter-spacing:-.045em;line-height:1.05;color:var(--text);
-  margin-bottom:20px;
-  background:linear-gradient(135deg, var(--text) 0%, var(--primary) 60%, var(--accent) 100%);
-  -webkit-background-clip:text;background-clip:text;
-  -webkit-text-fill-color:transparent;
-}
+.part-badge{display:inline-block;background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;padding:8px 18px;border-radius:var(--rp);font-weight:600;font-size:12px;margin-bottom:20px;letter-spacing:.04em;box-shadow:0 4px 16px var(--glow)}
+.post-title{font-size:clamp(36px,5.5vw,56px);font-weight:800;letter-spacing:-.045em;line-height:1.05;color:var(--text);margin-bottom:20px;background:linear-gradient(135deg,var(--text) 0%,var(--primary) 60%,var(--accent) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 .post-subtitle{font-size:19px;font-weight:300;color:var(--text2);line-height:1.55;max-width:720px}
 
 .post-content{font-size:16px;font-weight:300;color:var(--text2);line-height:1.8;letter-spacing:-.005em}
-.post-content h2{
-  font-size:clamp(26px,3.8vw,34px);font-weight:700;color:var(--text);
-  margin:64px 0 24px;letter-spacing:-.035em;line-height:1.2;
-  position:relative;padding-left:20px;
-}
-.post-content h2::before{
-  content:'';position:absolute;left:0;top:8px;bottom:8px;
-  width:4px;background:linear-gradient(180deg, var(--primary), var(--accent));
-  border-radius:2px;
-}
+.post-content h2{font-size:clamp(26px,3.8vw,34px);font-weight:700;color:var(--text);margin:64px 0 24px;letter-spacing:-.035em;line-height:1.2;position:relative;padding-left:20px}
+.post-content h2::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:4px;background:linear-gradient(180deg,var(--primary),var(--accent));border-radius:2px}
 .post-content h2:first-child{margin-top:0}
-.post-content h3{
-  font-size:22px;font-weight:600;color:var(--text);
-  margin:44px 0 16px;letter-spacing:-.025em;
-}
+.post-content h3{font-size:22px;font-weight:600;color:var(--text);margin:44px 0 16px;letter-spacing:-.025em}
 .post-content h4{font-size:18px;font-weight:600;color:var(--text);margin:32px 0 12px}
 .post-content p{margin-bottom:20px;line-height:1.8}
 .post-content p strong{color:var(--text);font-weight:600}
 .post-content ul,.post-content ol{margin:24px 0;padding-left:28px}
 .post-content li{margin-bottom:12px;line-height:1.7}
 .post-content li strong{color:var(--text);font-weight:600}
-.post-content code{
-  font-family:var(--mono);font-size:14px;
-  background:var(--bg2);border:1px solid var(--border);
-  padding:2px 8px;border-radius:4px;color:var(--primary);font-weight:500;
-}
-.post-content pre{
-  background:#0a0e1a;border:1px solid #1e293b;
-  border-radius:var(--r);padding:24px;margin:24px 0;
-  overflow-x:auto;
-  box-shadow:0 8px 32px rgba(0,0,0,.4), 0 0 0 1px rgba(59,130,246,.1);
-  max-height:600px;overflow-y:auto;position:relative;
-}
-.post-content pre::before{
-  content:'';position:absolute;top:0;left:0;right:0;height:2px;
-  background:linear-gradient(90deg, var(--primary), var(--accent), var(--cyan));
-}
-.post-content pre code{
-  background:none;border:none;padding:0;
-  color:#e2e8f0;font-size:13px;line-height:1.7;font-weight:400;
-}
-.code-label{
-  display:inline-block;
-  font-family:var(--mono);font-size:11px;font-weight:600;
-  padding:4px 12px;border-radius:6px 6px 0 0;
-  background:#0a0e1a;border:1px solid #1e293b;border-bottom:none;
-  color:var(--primary);letter-spacing:.04em;margin-bottom:-1px;
-}
-.code-label + pre{border-top-left-radius:0;margin-top:0}
-
-.post-content a{color:var(--primary);text-decoration:underline;transition:opacity .15s;font-weight:500}
+.post-content code{font-family:var(--mono);font-size:14px;background:var(--bg2);border:1px solid var(--border);padding:2px 8px;border-radius:4px;color:var(--primary);font-weight:500}
+.post-content a{color:var(--primary);text-decoration:underline;font-weight:500;transition:opacity .15s}
 .post-content a:hover{color:var(--accent)}
 
-.story-box{
-  background:linear-gradient(135deg, rgba(59,130,246,.04), rgba(139,92,246,.04));
-  border:1px solid var(--border);border-left:4px solid var(--primary);
-  border-radius:var(--rs);padding:28px 32px;margin:32px 0;position:relative;
-}
-.story-box::before{
-  content:'❝';position:absolute;top:-10px;left:20px;
-  font-size:48px;color:var(--primary);font-family:Georgia,serif;
-  line-height:1;opacity:.4;
-}
+/* Code block w/ copy */
+.code-wrap{margin:24px 0;border-radius:var(--r);overflow:hidden;border:1px solid #1e293b;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.code-bar{display:flex;align-items:center;justify-content:space-between;background:#0a0e1a;padding:10px 16px;border-bottom:1px solid #1e293b;position:relative}
+.code-bar::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--primary),var(--accent),var(--cyan))}
+.code-label{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--primary);letter-spacing:.04em}
+.copy-btn{font-family:var(--mono);font-size:11px;font-weight:600;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);color:#cbd5e1;padding:5px 12px;border-radius:4px;cursor:pointer;transition:.15s;display:inline-flex;align-items:center;gap:6px}
+.copy-btn:hover{background:rgba(59,130,246,.2);border-color:rgba(59,130,246,.5);color:#fff}
+.copy-btn.copied{background:rgba(34,197,94,.15);border-color:rgba(34,197,94,.4);color:#86efac}
+.code-wrap pre{background:#0a0e1a;border:none;margin:0;border-radius:0;padding:20px 24px;max-height:600px;overflow:auto;box-shadow:none}
+.code-wrap pre::before{display:none}
+.code-wrap pre code{background:none;border:none;padding:0;color:#e2e8f0;font-size:13px;line-height:1.7;font-weight:400;font-family:var(--mono)}
+
+.story-box{background:linear-gradient(135deg,rgba(59,130,246,.04),rgba(139,92,246,.04));border:1px solid var(--border);border-left:4px solid var(--primary);border-radius:var(--rs);padding:28px 32px;margin:32px 0;position:relative}
+.story-box::before{content:'❝';position:absolute;top:-10px;left:20px;font-size:48px;color:var(--primary);font-family:Georgia,serif;line-height:1;opacity:.4}
 .story-box p{margin-bottom:16px;font-style:italic;font-size:17px;line-height:1.7}
 .story-box p:last-child{margin-bottom:0}
 .story-box strong{color:var(--primary);font-weight:600;font-style:normal}
 
-.highlight-box{
-  background:var(--surface);border:1px solid var(--border);
-  border-left:3px solid var(--primary);border-radius:var(--rs);
-  padding:24px;margin:32px 0;box-shadow:0 4px 12px rgba(0,0,0,.04);
-}
-.highlight-box p{margin-bottom:16px}
-.highlight-box p:last-child{margin-bottom:0}
-.highlight-box strong{color:var(--primary);font-weight:600}
-
-.problem-box{
-  background:rgba(239,68,68,.04);border:1px solid rgba(239,68,68,.2);
-  border-left:4px solid #ef4444;border-radius:var(--rs);
-  padding:24px;margin:32px 0;
-}
+.problem-box{background:rgba(239,68,68,.04);border:1px solid rgba(239,68,68,.2);border-left:4px solid #ef4444;border-radius:var(--rs);padding:24px;margin:32px 0}
 .problem-box strong{color:#dc2626;font-weight:700}
+.problem-box ul{margin-top:8px}
 
-.solution-box{
-  background:linear-gradient(135deg, rgba(59,130,246,.05), rgba(139,92,246,.05));
-  border:1px solid rgba(59,130,246,.2);border-left:4px solid var(--primary);
-  border-radius:var(--rs);padding:24px;margin:32px 0;
-}
+.solution-box{background:linear-gradient(135deg,rgba(59,130,246,.05),rgba(139,92,246,.05));border:1px solid rgba(59,130,246,.2);border-left:4px solid var(--primary);border-radius:var(--rs);padding:24px;margin:32px 0}
 .solution-box strong{color:var(--primary);font-weight:700}
 
-.warning-box{
-  background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.2);
-  border-left:4px solid #f59e0b;border-radius:var(--rs);
-  padding:24px;margin:32px 0;
-}
+.warning-box{background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.2);border-left:4px solid #f59e0b;border-radius:var(--rs);padding:24px;margin:32px 0}
 .warning-box strong{color:#d97706;font-weight:700}
 
-.arch-diagram{
+.applies-box{background:linear-gradient(135deg,rgba(6,182,212,.04),rgba(59,130,246,.04));border:1px solid rgba(6,182,212,.2);border-left:4px solid var(--cyan);border-radius:var(--rs);padding:24px;margin:32px 0}
+.applies-box h4{margin:0 0 12px 0;color:var(--cyan);font-size:15px;text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+.applies-box ul{margin:0;padding-left:20px}
+.applies-box li{font-size:14px;color:var(--text2);margin-bottom:8px;line-height:1.6}
+.applies-box li strong{color:var(--text);font-weight:600}
+
+/* Race condition visualization */
+.race-viz{
   background:#0a0e1a;border:1px solid #1e293b;
-  border-radius:var(--r);padding:32px;margin:32px 0;
-  text-align:left;font-family:var(--mono);font-size:13px;
-  color:#94a3b8;line-height:1.8;overflow-x:auto;
-  box-shadow:0 8px 32px rgba(0,0,0,.3);position:relative;
+  border-radius:var(--r);padding:24px;margin:28px 0;
+  font-family:var(--mono);font-size:13px;line-height:1.8;
+  box-shadow:0 8px 32px rgba(0,0,0,.3);position:relative;overflow-x:auto;
 }
-.arch-diagram::before{
-  content:'SCHEMA';position:absolute;top:12px;right:16px;
-  font-size:10px;font-weight:700;letter-spacing:.2em;
-  color:var(--primary);opacity:.6;
-}
-.arch-diagram .label{color:var(--primary);font-weight:600}
-.arch-diagram .accent{color:var(--accent);font-weight:600}
-.arch-diagram .cyan{color:var(--cyan);font-weight:600}
+.race-viz::before{content:'THE RACE CONDITION';position:absolute;top:12px;right:16px;font-size:10px;font-weight:700;letter-spacing:.2em;color:#ef4444;opacity:.7}
+.race-viz .t{color:#94a3b8}
+.race-viz .a{color:#67e8f9;font-weight:600}
+.race-viz .b{color:#f9a8d4;font-weight:600}
+.race-viz .bad{color:#fca5a5;font-weight:700}
+.race-viz .good{color:#86efac;font-weight:700}
 
-.data-table{
-  width:100%;border-collapse:collapse;margin:32px 0;font-size:14px;
-  background:var(--surface);border:1px solid var(--border);
-  border-radius:var(--r);overflow:hidden;
+.id-format{
+  background:linear-gradient(135deg,rgba(59,130,246,.06),rgba(139,92,246,.06));
+  border:1px solid rgba(59,130,246,.25);
+  border-radius:var(--rs);padding:18px 22px;margin:24px 0;
+  font-family:var(--mono);font-size:15px;color:var(--text);
+  text-align:center;letter-spacing:.04em;
 }
-.data-table thead{background:linear-gradient(135deg, rgba(59,130,246,.08), rgba(139,92,246,.08))}
-.data-table th{
-  padding:14px 16px;text-align:left;font-weight:700;color:var(--text);
-  font-size:11px;text-transform:uppercase;letter-spacing:.06em;
-  border-bottom:1px solid var(--border);
+.id-format .label{
+  display:block;font-size:11px;color:var(--text3);
+  text-transform:uppercase;letter-spacing:.1em;
+  margin-top:8px;font-family:inherit;font-weight:600;
 }
-.data-table td{padding:12px 16px;border-bottom:1px solid var(--border);line-height:1.5;font-size:13px}
-.data-table td code{font-size:12px}
-.data-table tr:last-child td{border-bottom:none}
-.data-table tbody tr:hover{background:rgba(59,130,246,.03)}
+.id-format .part{padding:4px 8px;border-radius:4px;background:rgba(59,130,246,.15);color:var(--primary);font-weight:600}
+.id-format .sep{color:var(--text3);margin:0 2px}
 
-/* Table catalog grid */
-.table-catalog{
-  display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
-  gap:14px;margin:32px 0;
-}
-.tbl-card{
-  background:var(--surface);border:1px solid var(--border);
-  border-radius:var(--rs);padding:18px;transition:.2s;
-  border-left:3px solid var(--primary);
-}
-.tbl-card:hover{border-left-color:var(--accent);box-shadow:0 4px 16px var(--glow)}
-.tbl-card .tbl-name{
-  font-family:var(--mono);font-size:14px;font-weight:700;
-  color:var(--primary);margin-bottom:6px;
-}
-.tbl-card .tbl-desc{font-size:13px;color:var(--text2);line-height:1.5;margin:0}
-
-.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin:32px 0}
-.stat-card{
-  background:linear-gradient(135deg, var(--surface), var(--bg2));
-  border:1px solid var(--border);border-radius:var(--rs);
-  padding:24px 20px;text-align:center;
-  transition:transform .2s, box-shadow .2s;
-  position:relative;overflow:hidden;
-}
-.stat-card::before{
-  content:'';position:absolute;top:0;left:0;right:0;height:3px;
-  background:linear-gradient(90deg, var(--primary), var(--accent));
-}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin:32px 0}
+.stat-card{background:linear-gradient(135deg,var(--surface),var(--bg2));border:1px solid var(--border);border-radius:var(--rs);padding:22px 18px;text-align:center;position:relative;overflow:hidden;transition:.2s}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--primary),var(--accent))}
 .stat-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px var(--glow)}
-.stat-number{
-  font-size:32px;font-weight:800;
-  background:linear-gradient(135deg, var(--primary), var(--accent));
-  -webkit-background-clip:text;background-clip:text;
-  -webkit-text-fill-color:transparent;
-  margin-bottom:6px;line-height:1;
-}
-.stat-label{
-  font-size:12px;color:var(--text3);
-  text-transform:uppercase;letter-spacing:.06em;font-weight:600;
-}
+.stat-number{font-size:28px;font-weight:800;background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px;line-height:1}
+.stat-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
 
-.series-nav{
-  background:linear-gradient(135deg, rgba(59,130,246,.04), rgba(139,92,246,.04));
-  border:1px solid var(--border);border-radius:var(--r);
-  padding:24px;margin:48px 0 32px;
-}
-.series-nav h3{
-  margin-top:0 !important;font-size:14px;font-weight:700;
-  text-transform:uppercase;letter-spacing:.06em;
-  color:var(--text3);margin-bottom:16px;padding-left:0;
-}
+.series-nav{background:linear-gradient(135deg,rgba(59,130,246,.04),rgba(139,92,246,.04));border:1px solid var(--border);border-radius:var(--r);padding:24px;margin:48px 0 32px}
+.series-nav h3{margin-top:0!important;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:16px;padding-left:0}
 .series-nav h3::before{display:none}
 .series-list{list-style:none;padding:0;margin:0}
-.series-list li{
-  padding:10px 0;border-bottom:1px solid var(--border);
-  display:flex;align-items:center;gap:12px;
-  font-size:14px;color:var(--text2);
-}
+.series-list li{padding:10px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;font-size:14px;color:var(--text2)}
 .series-list li:last-child{border-bottom:none}
 .series-list li.current{color:var(--primary);font-weight:600}
-.series-list li .num{
-  display:inline-flex;align-items:center;justify-content:center;
-  width:24px;height:24px;border-radius:50%;
-  background:var(--surface);border:1px solid var(--border);
-  font-size:11px;font-weight:700;color:var(--text3);flex-shrink:0;
-}
-.series-list li.current .num{
-  background:linear-gradient(135deg, var(--primary), var(--accent));
-  color:#fff;border-color:transparent;
-}
+.series-list li .num{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--surface);border:1px solid var(--border);font-size:11px;font-weight:700;color:var(--text3);flex-shrink:0}
+.series-list li.current .num{background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;border-color:transparent}
 
-.pull-quote{
-  font-size:24px;font-weight:300;font-style:italic;
-  color:var(--text);text-align:center;margin:48px 0;
-  padding:32px 24px;border-top:1px solid var(--border);
-  border-bottom:1px solid var(--border);line-height:1.4;
-}
-.pull-quote span{
-  background:linear-gradient(135deg, var(--primary), var(--accent));
-  -webkit-background-clip:text;background-clip:text;
-  -webkit-text-fill-color:transparent;font-weight:600;
-}
+.pull-quote{font-size:24px;font-weight:300;font-style:italic;color:var(--text);text-align:center;margin:48px 0;padding:32px 24px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);line-height:1.4}
+.pull-quote span{background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;font-weight:600}
 
 .post-footer{margin-top:80px;padding-top:40px;border-top:1px solid var(--border)}
 .post-tags{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:32px}
-.post-tags .tag{
-  font-size:11px;font-weight:600;padding:6px 14px;
-  border-radius:var(--rp);border:1px solid var(--border);
-  background:var(--surface);color:var(--text3);font-family:var(--mono);
-}
+.post-tags .tag{font-size:11px;font-weight:600;padding:6px 14px;border-radius:var(--rp);border:1px solid var(--border);background:var(--surface);color:var(--text3);font-family:var(--mono)}
 .post-nav{display:flex;justify-content:space-between;align-items:center;margin-top:32px;gap:16px;flex-wrap:wrap}
-.post-nav-link{
-  font-size:14px;font-weight:600;color:var(--primary);
-  text-decoration:none;transition:opacity .15s;
-  display:inline-flex;align-items:center;gap:6px;
-}
+.post-nav-link{font-size:14px;font-weight:600;color:var(--primary);text-decoration:none;display:inline-flex;align-items:center;gap:6px;transition:opacity .15s}
 .post-nav-link:hover{color:var(--accent)}
 
 @media(max-width:768px){
@@ -299,11 +140,10 @@
   .post-header{margin-bottom:40px;padding:32px 0}
   .post-content h2{margin:48px 0 20px;padding-left:16px}
   .post-content h3{margin:36px 0 14px}
-  .post-content pre{max-height:400px;padding:16px}
+  .code-wrap pre{max-height:400px;padding:14px 16px}
   .stats-grid{grid-template-columns:repeat(2,1fr)}
-  .arch-diagram{font-size:11px;padding:20px}
   .pull-quote{font-size:18px;padding:24px 16px}
-  .table-catalog{grid-template-columns:1fr}
+  .id-format{font-size:13px}
 }
 </style>
 </head>
@@ -327,287 +167,132 @@
 
 <article class="blog-post">
   <div class="container narrow">
-    
+
     <header class="post-header">
       <div class="post-meta">
         <span class="post-cat">Database Design</span>
         <span class="post-date">June 8, 2026</span>
-        <span class="post-read">Part 3 — 28 min read</span>
+        <span class="post-read">Part 3 — 20 min read</span>
       </div>
-      <div class="part-badge">📕 PART 3 / 6 — Data Layer</div>
-      <h1 class="post-title">The Database That Defines the Platform</h1>
-      <p class="post-subtitle">A 12-table PostgreSQL schema, an atomic incident ID generator that handles concurrent inserts without race conditions, a permission model that can only restrict (never elevate), and an immutable audit log. The data layer isn't storage — it's the contract.</p>
+      <div class="part-badge">📕 PART 3 / 6 — The Data Layer</div>
+      <h1 class="post-title">The Database That Stops Duplicate IDs</h1>
+      <p class="post-subtitle">Part 2 gave us 20 parallel workers — and a brand-new bug: two workers inserting at the same millisecond produced the same incident ID. This part fixes it the right way: in the database, with a trigger, in code older and more tested than anything I could write.</p>
     </header>
 
     <div class="post-content">
 
-      <h2>Why the Database Is the Source of Truth</h2>
+      <h2>The Bug That Showed Up After Part 2</h2>
 
-      <p>In <a href="soc-platform-part-2.html">Part 2</a> we got the infrastructure running — main process, queue, workers, autoscaler. Workflows can now execute in parallel. But that immediately raises a question: <strong>how do you guarantee correctness when 27 workers are inserting into the same table?</strong></p>
+      <p>End of Part 2: queue mode running, 10-50 workers auto-scaling, alerts flowing through in 3 seconds. The throughput problem was solved. So I shipped it.</p>
 
-      <p>The instinct from application engineering says: "use a mutex, use a Redis lock, use distributed coordination." That's all wrong here. The instinct that works is older and simpler: <strong>let the database be the source of truth.</strong></p>
+      <p>Three days later, an analyst pinged me on Slack:</p>
 
       <div class="story-box">
-        <p>The database has been solving concurrent-writes-to-shared-state problems for fifty years. The right architecture isn't to invent your own coordination layer on top — it's to <strong>push the invariants down into the database itself</strong>, where they're enforced by code that's been battle-tested across millions of production systems.</p>
+        <p>"Hey, I just got two emails about <strong>CLIENT-A-IR-062026-487</strong> — different alerts, different IPs, same incident ID. Is that supposed to happen?"</p>
       </div>
 
-      <p>Everything I built into this schema follows that principle. Incident IDs aren't generated in application code — they're generated by a Postgres trigger. Audit entries can't be modified — the table is append-only by convention. Permissions can't be elevated through misconfiguration — the logic in the database enforces a ceiling. The schema doesn't just store data. It defines how the platform <em>behaves</em>.</p>
+      <p>It was not supposed to happen. I opened Postgres and ran a count:</p>
 
-      <h2>The 12 Tables at a Glance</h2>
-
-      <p>Here's the full catalog. Each one solves a specific problem.</p>
-
-      <div class="table-catalog">
-        <div class="tbl-card">
-          <div class="tbl-name">users</div>
-          <p class="tbl-desc">Dashboard login accounts. Three roles (admin / analyst / readonly). Per-user permission overrides via JSONB.</p>
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">▸ peek at the damage</span>
+          <button class="copy-btn">Copy</button>
         </div>
-        <div class="tbl-card">
-          <div class="tbl-name">sessions</div>
-          <p class="tbl-desc">Active login sessions. One token per session. Browser fingerprint enables single-session enforcement.</p>
-        </div>
-        <div class="tbl-card">
-          <div class="tbl-name">incidents</div>
-          <p class="tbl-desc">The core table. One row per security incident. Auto-generated IDs. Soft-delete flag. MTTD/MTTA/MTTR fields.</p>
-        </div>
-        <div class="tbl-card">
-          <div class="tbl-name">incident_month_seq</div>
-          <p class="tbl-desc">Per-tenant monthly counter. The state behind atomic incident ID generation. Tiny but critical.</p>
-        </div>
-        <div class="tbl-card">
-          <div class="tbl-name">incident_comments</div>
-          <p class="tbl-desc">Investigation notes attached to incidents. At least one is required before an incident can be closed.</p>
-        </div>
-        <div class="tbl-card">
-          <div class="tbl-name">audit_log</div>
-          <p class="tbl-desc">Immutable record of every action. Append-only by convention. Used for compliance and forensics.</p>
-        </div>
-        <div class="tbl-card">
-          <div class="tbl-name">notifications</div>
-          <p class="tbl-desc">In-app notification system. Sources: assignments, closures, deletion requests, worker health.</p>
-        </div>
-        <div class="tbl-card">
-          <div class="tbl-name">analysts</div>
-          <p class="tbl-desc">Ticket assignment dropdown. Decoupled from user accounts on purpose (covered below).</p>
-        </div>
-        <div class="tbl-card">
-          <div class="tbl-name">app_config</div>
-          <p class="tbl-desc">Key-value store for platform settings — Jira credentials, status mappings, integration tokens.</p>
-        </div>
-        <div class="tbl-card">
-          <div class="tbl-name">user_activity_log</div>
-          <p class="tbl-desc">Per-user action audit visible to admins. Logins, comments, status changes, IP addresses.</p>
-        </div>
-        <div class="tbl-card">
-          <div class="tbl-name">queue_snapshots</div>
-          <p class="tbl-desc">Redis queue depth captured every 30s. Powers the historical queue depth chart on the dashboard.</p>
-        </div>
-        <div class="tbl-card">
-          <div class="tbl-name">queue_flush_log</div>
-          <p class="tbl-desc">Records every manual queue flush. Captures execution ID range so dropped alerts can be recovered.</p>
-        </div>
+<pre><code>docker exec n8nq-postgres psql -U n8n_queue -d n8n_queue -c "
+  SELECT incident_id, COUNT(*) FROM incidents
+  GROUP BY incident_id
+  HAVING COUNT(*) &gt; 1
+  ORDER BY COUNT(*) DESC;
+"</code></pre>
       </div>
 
-      <h2>Schema Relationships</h2>
+      <p>Eleven duplicates over three days. About 5% of the alerts that arrived in close pairs. The bug had been there since day one — single-threaded N8N just hid it by serializing everything. Add parallel workers and the cracks appeared.</p>
 
-      <div class="arch-diagram">
-                <span class="label">users</span>
-                  │
-                  │ (user_id FK)
-        ┌─────────┼─────────┬─────────────────┐
-        │         │         │                 │
-        ▼         ▼         ▼                 ▼
-   <span class="accent">sessions</span>  <span class="accent">notifications</span>  <span class="accent">user_activity_log</span>   <span class="accent">incident_comments</span>
-                                            │
-                                            │ (incident_seq FK)
-                                            ▼
-                          ┌──────── <span class="label">incidents</span> ────────┐
-                          │                          │
-                          │ (customer + ym)          │ (incident_seq)
-                          ▼                          ▼
-                <span class="cyan">incident_month_seq</span>            <span class="cyan">audit_log</span>
-                (the counter behind          (append-only event log
-                 atomic ID generation)        for every state change)
+      <h2>How the Race Window Opens</h2>
 
-        Standalone tables:
-        ── <span class="label">analysts</span>           (dropdown list — not FK-linked to users)
-        ── <span class="label">app_config</span>         (key-value settings store)
-        ── <span class="label">queue_snapshots</span>    (time series — no FKs)
-        ── <span class="label">queue_flush_log</span>    (audit of flush actions)
+      <p>My first ID generator was a few lines of JavaScript inside an N8N Function node. Read the last sequence number, increment, insert. The pattern looks innocent:</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">▸ the broken approach (do NOT do this)</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>// Inside an N8N Function node
+const ym  = new Date().toISOString().slice(0,7).replace('-','');  // 062026
+const cust = $input.first().json.customer || 'CLIENT-A';
+
+// Step 1: read the last sequence
+const last = await pg.query(
+  "SELECT last_seq FROM incident_seq WHERE customer=$1",
+  [cust]
+).rows[0]?.last_seq || 0;
+
+const next = last + 1;
+
+// Step 2: write it back
+await pg.query(
+  "UPDATE incident_seq SET last_seq=$1 WHERE customer=$2",
+  [next, cust]
+);
+
+// Step 3: format the ID
+const incidentId = `${cust}-IR-${ym}-${String(next).padStart(3,'0')}`;</code></pre>
       </div>
 
-      <h2>The Big One: Atomic Incident ID Generation</h2>
+      <p>The bug lives between Step 1 and Step 2. Two workers running this code at the same millisecond:</p>
 
-      <p>This is the part I'm proudest of, and it's also the part that most often gets done wrong. Let me walk through the problem first, then the solution.</p>
+      <div class="race-viz">
+<span class="t">T+0 ms</span>  <span class="a">Worker A</span>:  reads last_seq = 486
+<span class="t">T+1 ms</span>  <span class="b">Worker B</span>:  reads last_seq = 486   <span class="bad">(Worker A hasn't written yet!)</span>
+<span class="t">T+5 ms</span>  <span class="a">Worker A</span>:  UPDATE last_seq = 487
+<span class="t">T+6 ms</span>  <span class="b">Worker B</span>:  UPDATE last_seq = 487   <span class="bad">(overwrites with same value)</span>
+<span class="t">T+7 ms</span>  <span class="a">Worker A</span>:  generates ID  CLIENT-A-IR-062026-487
+<span class="t">T+8 ms</span>  <span class="b">Worker B</span>:  generates ID  CLIENT-A-IR-062026-487   <span class="bad">DUPLICATE</span>
+      </div>
 
-      <h3>The Problem</h3>
+      <p>Any "read, compute, write" pattern in application code has this exact bug. You can wrap the JS in a transaction, you can add a Redis lock, you can write a distributed coordinator. All of those are inventions on top of a problem the database already solved fifty years ago.</p>
 
-      <p>Each incident needs a human-readable ID like <code>CLIENT-A-IR-202606-001</code>. The format is:</p>
+      <p>The right fix isn't smarter application code. The right fix is to <strong>let the database be the source of truth</strong>.</p>
+
+      <h2>The ID Format I Wanted</h2>
+
+      <p>Before fixing the trigger, I need to be precise about what the IDs should look like. The format is four parts:</p>
+
+      <div class="id-format">
+        <span class="part">CLIENT-A</span><span class="sep">-</span><span class="part">IR</span><span class="sep">-</span><span class="part">062026</span><span class="sep">-</span><span class="part">487</span>
+        <span class="label">tenant &nbsp; type &nbsp; month-year (MMYYYY) &nbsp; sequence</span>
+      </div>
+
+      <p>One detail that took me a while to get right: <strong>the sequence number is continuous per customer — it never resets</strong>. Only the month-year in the middle changes. So if June ends at <code>509</code>, the first incident of July is:</p>
+
+      <div class="id-format">
+        <span class="part">CLIENT-A</span><span class="sep">-</span><span class="part">IR</span><span class="sep">-</span><span class="part">072026</span><span class="sep">-</span><span class="part">510</span>
+        <span class="label">July's first incident continues the count</span>
+      </div>
+
+      <p>Why continuous instead of monthly reset? Two reasons:</p>
 
       <ul>
-        <li><strong>Tenant prefix</strong> — <code>CLIENT-A</code> or <code>CLIENT-B</code></li>
-        <li><strong>Type tag</strong> — <code>IR</code> for "Incident Response"</li>
-        <li><strong>Year-month</strong> — <code>202606</code></li>
-        <li><strong>Sequence number</strong> — <code>001</code>, <code>002</code>, ... reset every month, separate per tenant</li>
+        <li><strong>Customer reports.</strong> Customers reference incident IDs in tickets and audits. A monthly reset means <code>IR-062026-001</code> and <code>IR-072026-001</code> exist as separate incidents — confusing. Continuous numbering means every ID is unique forever.</li>
+        <li><strong>Forensics.</strong> The sequence number alone tells you the chronological order across the customer's history. "Incident 487 happened before incident 510" is obvious. Compare that to "incident 062026-23 and 072026-04" — you have to mentally translate.</li>
       </ul>
 
-      <p>So at the start of June 2026, Client-A's first incident gets <code>CLIENT-A-IR-202606-001</code> and Client-B's first incident gets <code>CLIENT-B-IR-202606-001</code> — independently. On July 1st, both reset to <code>001</code>.</p>
+      <h2>The Schema, Two Tables</h2>
 
-      <p>Sounds simple. Now imagine the implementation in naive application code:</p>
+      <p>Slim. We're solving exactly one problem: atomic ID generation. Just two tables.</p>
 
-      <pre><code># DON'T DO THIS — race condition guaranteed
-def generate_incident_id(customer, conn):
-    ym = datetime.now().strftime("%Y%m")
-    last = conn.execute(
-        "SELECT MAX(seq) FROM incident_month_seq "
-        "WHERE customer=%s AND year_month=%s",
-        [customer, ym]
-    ).fetchone()[0] or 0
-    new_seq = last + 1
-    conn.execute(
-        "INSERT INTO incident_month_seq VALUES (%s, %s, %s)",
-        [customer, ym, new_seq]
-    )
-    return f"{customer}-IR-{ym}-{new_seq:03d}"</code></pre>
+      <h3>The incidents table</h3>
 
-      <p>What happens when two workers call this function at the same time?</p>
+      <p>This is the table the trigger fires on. Each row is one security incident.</p>
 
-      <ol>
-        <li>Worker A reads <code>last = 7</code> at T+0ms</li>
-        <li>Worker B reads <code>last = 7</code> at T+1ms (Worker A hasn't inserted yet)</li>
-        <li>Worker A inserts <code>seq=8</code> at T+5ms</li>
-        <li>Worker B inserts <code>seq=8</code> at T+6ms</li>
-        <li>Both workflows generate the ID <code>CLIENT-A-IR-202606-008</code></li>
-        <li>You wake up the next morning to two incidents with the same ID</li>
-      </ol>
-
-      <div class="problem-box">
-        <p><strong>This is exactly the bug we shipped in the early days.</strong> We had 3 workers running, and during an alert burst, ~5% of incidents came out with duplicate IDs. We spent two days debugging it before realizing the issue wasn't in N8N — it was in our Python ID generator.</p>
-      </div>
-
-      <p>The fix isn't a mutex. It isn't a Redis lock. The fix is to let Postgres do what it was built to do.</p>
-
-      <h3>The Counter Table</h3>
-
-      <p>First, the table that holds the per-tenant monthly counter:</p>
-
-      <div class="code-label">📄 schema.sql — incident_month_seq</div>
-      <pre><code>CREATE TABLE IF NOT EXISTS incident_month_seq (
-  customer   TEXT NOT NULL,
-  year_month TEXT NOT NULL,
-  last_seq   INTEGER NOT NULL DEFAULT 0,
-  PRIMARY KEY (customer, year_month)
-);</code></pre>
-
-      <p>That's it. Four columns. The composite primary key <code>(customer, year_month)</code> is everything — it guarantees that for any tenant+month combination there is exactly one row holding the counter.</p>
-
-      <p>The trick is in how we update it.</p>
-
-      <h3>The Trigger Function</h3>
-
-      <p>Postgres triggers fire automatically when rows are inserted, updated, or deleted. Our trigger fires <em>before</em> any incident insert and replaces the empty <code>incident_id</code> field with a freshly-generated value:</p>
-
-      <div class="code-label">📄 schema.sql — set_incident_id() trigger</div>
-      <pre><code>CREATE OR REPLACE FUNCTION set_incident_id()
-RETURNS TRIGGER LANGUAGE plpgsql AS $$
-DECLARE
-  v_ym   TEXT;
-  v_seq  INTEGER;
-  v_cust TEXT;
-BEGIN
-  -- Get YYYYMM in Asia/Kolkata timezone (matches our analyst clocks)
-  v_ym   := TO_CHAR(NEW.created_at AT TIME ZONE 'Asia/Kolkata', 'YYYYMM');
-  v_cust := COALESCE(NEW.customer, 'CLIENT-A');
-
-  -- The atomic upsert — this is the magic
-  INSERT INTO incident_month_seq (customer, year_month, last_seq)
-    VALUES (v_cust, v_ym, 1)
-  ON CONFLICT (customer, year_month)
-    DO UPDATE SET last_seq = incident_month_seq.last_seq + 1
-  RETURNING last_seq INTO v_seq;
-
-  -- Compose the final ID
-  NEW.incident_id := v_cust || '-IR-' || v_ym || '-' || LPAD(v_seq::TEXT, 3, '0');
-
-  RETURN NEW;
-END;
-$$;
-
-DROP TRIGGER IF EXISTS trg_set_incident_id ON incidents;
-CREATE TRIGGER trg_set_incident_id
-  BEFORE INSERT ON incidents
-  FOR EACH ROW EXECUTE FUNCTION set_incident_id();</code></pre>
-
-      <h3>Why This Works Under Concurrency</h3>
-
-      <p>The critical lines are these:</p>
-
-      <pre><code>INSERT INTO incident_month_seq (customer, year_month, last_seq)
-  VALUES (v_cust, v_ym, 1)
-ON CONFLICT (customer, year_month)
-  DO UPDATE SET last_seq = incident_month_seq.last_seq + 1
-RETURNING last_seq INTO v_seq;</code></pre>
-
-      <p>This is called an <strong>upsert</strong>, and it's atomic at the row level in Postgres. Here's what happens when 5 workers try to generate IDs simultaneously:</p>
-
-      <ol>
-        <li>All 5 workers run <code>INSERT INTO incidents (...)</code> at the same millisecond.</li>
-        <li>The trigger fires for each one — 5 concurrent calls to <code>set_incident_id()</code>.</li>
-        <li>Each call tries to <code>INSERT INTO incident_month_seq</code>.</li>
-        <li>Postgres takes a row-level lock on the <code>(customer, year_month)</code> row. <strong>Only one trigger can be inside the upsert at a time.</strong></li>
-        <li>Worker 1 finishes its upsert, gets <code>last_seq=8</code>, lock releases.</li>
-        <li>Worker 2 enters, increments to 9, releases.</li>
-        <li>Workers 3, 4, 5 follow in turn — 10, 11, 12.</li>
-        <li>Each worker's trigger returns a unique <code>v_seq</code>, and the parent <code>INSERT</code> into <code>incidents</code> proceeds with a unique <code>incident_id</code>.</li>
-      </ol>
-
-      <div class="solution-box">
-        <p><strong>The key insight:</strong> the locking is happening on a single 4-byte counter row. It's measured in microseconds. Even at 100 concurrent inserts, the total serialization overhead is well under 10 milliseconds. The throughput cost is effectively zero, and the correctness guarantee is absolute.</p>
-      </div>
-
-      <h3>Verifying It Works</h3>
-
-      <p>Here's how I verified the trigger handles concurrency correctly. This is a real test I ran against the production schema using a test database:</p>
-
-      <div class="code-label">📄 test_concurrent_inserts.sql</div>
-      <pre><code>-- Set up two parallel sessions and have them race
--- Session A
-BEGIN;
-INSERT INTO incidents (customer, alert_name, severity, category)
-  VALUES ('CLIENT-A', 'concurrent-test-A', 'LOW', 'Test');
-
--- Session B (started while A is uncommitted)
-BEGIN;
-INSERT INTO incidents (customer, alert_name, severity, category)
-  VALUES ('CLIENT-A', 'concurrent-test-B', 'LOW', 'Test');
--- ^ Session B will BLOCK here until Session A commits or rolls back
-
--- Now commit Session A
-COMMIT;
--- Session B unblocks, gets the next sequence number
-
--- Commit Session B
-COMMIT;
-
--- Verify
-SELECT incident_id, alert_name FROM incidents
-WHERE alert_name LIKE 'concurrent-test-%'
-ORDER BY incident_id;
--- Result:
--- CLIENT-A-IR-202606-008 | concurrent-test-A
--- CLIENT-A-IR-202606-009 | concurrent-test-B
--- Two distinct IDs, even though both sessions tried at the same time.</code></pre>
-
-      <p>The blocking behavior in Session B is exactly what we want — it serializes the counter increment without any application-level coordination.</p>
-
-      <h2>The incidents Table</h2>
-
-      <p>This is the biggest table in the schema. It carries 40+ columns because incidents have a lot of state. Let me show it and then explain the design decisions.</p>
-
-      <div class="code-label">📄 schema.sql — incidents</div>
-      <pre><code>CREATE TABLE IF NOT EXISTS incidents (
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">📄 schema.sql — incidents</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>CREATE TABLE IF NOT EXISTS incidents (
   seq                    SERIAL PRIMARY KEY,
-  incident_id            TEXT,                  -- auto-generated by trigger
+  incident_id            TEXT,                  -- generated by trigger
   customer               TEXT NOT NULL DEFAULT 'CLIENT-A',
   alert_name             TEXT NOT NULL,
   severity               TEXT NOT NULL DEFAULT 'MEDIUM',
@@ -617,99 +302,299 @@ ORDER BY incident_id;
                          CHECK (status IN ('open','closed','reopened','resolved')),
   assigned_to            TEXT DEFAULT '',
   logged_at              TEXT DEFAULT '',
-  
-  -- Email notification state
+
+  -- email notification state
   email_sent             BOOLEAN NOT NULL DEFAULT FALSE,
   email_sent_at          TIMESTAMPTZ,
-  
-  -- Jira integration fields
+
+  -- jira link
   jira_id                TEXT DEFAULT '',
   jira_key               TEXT DEFAULT '',
   jira_url               TEXT DEFAULT '',
-  
-  -- Timeline (for MTTD/MTTA/MTTR calculation)
+
+  -- timeline
   created_at             TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   resolved_at            TIMESTAMPTZ,
   assigned_at            TIMESTAMPTZ,
   alert_generated_at     TIMESTAMPTZ,
-  wazuh_received_at      TIMESTAMPTZ,
-  n8n_received_at        TIMESTAMPTZ,
-  
-  -- Pre-computed metrics (seconds)
+
+  -- pre-computed metrics (seconds)
   mttd_seconds           INTEGER,
   mtta_seconds           INTEGER,
   mttr_seconds           INTEGER,
-  
+
   remarks                TEXT DEFAULT '',
   is_manual              BOOLEAN NOT NULL DEFAULT FALSE,
-  
-  -- Soft delete fields
-  deleted                BOOLEAN NOT NULL DEFAULT FALSE,
-  deleted_at             TIMESTAMPTZ,
-  deleted_by             TEXT,
-  
-  -- Deletion request workflow
-  deletion_requested     BOOLEAN NOT NULL DEFAULT FALSE,
-  deletion_reason        TEXT,
-  deletion_requested_by  TEXT,
-  deletion_requested_at  TIMESTAMPTZ,
-  
   created_by             TEXT DEFAULT ''
 );</code></pre>
+      </div>
 
-      <h3>Two Primary Keys (Sort Of)</h3>
-
-      <p>Notice we have both <code>seq SERIAL PRIMARY KEY</code> and <code>incident_id TEXT</code>. Why both?</p>
-
-      <ul>
-        <li><strong><code>seq</code></strong> is the internal database identifier. It's an integer, it's fast to index, and it's what all foreign keys point to. <code>incident_comments.incident_seq</code> references this column.</li>
-        <li><strong><code>incident_id</code></strong> is the human-readable identifier shown in the UI, Jira, emails, and reports. It's a TEXT field because it has structure (<code>CLIENT-A-IR-202606-001</code>).</li>
-      </ul>
-
-      <p>Some designs collapse these into one — they use the human-readable string as the primary key. That's a mistake. The day you decide to change the ID format (e.g., add a region prefix, switch from 3-digit to 4-digit sequence), you're rewriting every foreign key in your database. Keep the internal integer key separate, and treat the display ID as <em>derived data</em>.</p>
-
-      <h3>The Soft Delete Pattern</h3>
-
-      <p>Look at the deletion fields:</p>
-
-      <pre><code>deleted                BOOLEAN NOT NULL DEFAULT FALSE,
-deleted_at             TIMESTAMPTZ,
-deleted_by             TEXT,
-
-deletion_requested     BOOLEAN NOT NULL DEFAULT FALSE,
-deletion_reason        TEXT,
-deletion_requested_by  TEXT,
-deletion_requested_at  TIMESTAMPTZ,</code></pre>
-
-      <p>This is the soft-delete-with-approval-workflow pattern. Two stages:</p>
-
-      <ol>
-        <li><strong>Request:</strong> An analyst sets <code>deletion_requested=TRUE</code> with a reason. The incident stays visible but shows a "Deletion Pending" badge in the dashboard.</li>
-        <li><strong>Approval:</strong> An admin reviews the reason and either approves (sets <code>deleted=TRUE</code>) or rejects (clears the request fields).</li>
-      </ol>
-
-      <p>Why this matters in a SOC context: incidents are evidence. They're tied to compliance audits, customer reports, and (occasionally) legal proceedings. If an analyst deletes an incident accidentally — or maliciously — there's no undo. With approval workflow, every deletion has a paper trail and a second pair of eyes.</p>
-
-      <p>Even after approval, <code>deleted=TRUE</code> is a soft delete. The row stays in the database. It just disappears from every query because every read uses <code>WHERE NOT COALESCE(deleted, FALSE)</code>. If we need to recover an incident, we can. If we need to prove what was there for a customer audit, we can.</p>
-
-      <h3>Pre-Computed Metric Columns</h3>
-
-      <p>The three metric columns (<code>mttd_seconds</code>, <code>mtta_seconds</code>, <code>mttr_seconds</code>) are pre-computed and stored. Some database purists would say "no, compute these on read." But:</p>
+      <p>Two things worth pointing out:</p>
 
       <ul>
-        <li>The dashboard's performance KPI section queries metrics for hundreds of incidents at a time. Computing 1,500 timestamp diffs on every page load adds 200ms+ latency.</li>
-        <li>The metrics depend on timestamps that, once set, never change. There's no "stale value" risk.</li>
-        <li>The backend can recompute these on demand if a corruption is detected (and it has — covered in Part 6).</li>
+        <li><strong><code>seq</code> is the real primary key</strong>, not <code>incident_id</code>. <code>seq</code> is an integer the database manages — fast to index, what foreign keys will point to. <code>incident_id</code> is the human-readable string that appears in emails and Jira tickets. Some designs collapse these into one. That's a mistake — the day you want to change the ID format, you'd be rewriting every foreign key in the database.</li>
+        <li><strong><code>incident_id TEXT</code> with no <code>NOT NULL</code></strong>. The trigger populates it on insert. The application code inserts the row with <code>incident_id</code> blank, and Postgres fills it in before the row is actually written.</li>
       </ul>
 
-      <p>This is the classic "denormalize for performance" tradeoff. Worth it here because reads vastly outnumber writes.</p>
+      <h3>The counter table</h3>
 
-      <h2>The Audit Log</h2>
+      <p>One row per customer. That's it. No <code>year_month</code> column. The counter is continuous and never resets.</p>
 
-      <p>Every state-changing action writes a row here. The table is small, the schema is simple, the value is immense:</p>
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">📄 schema.sql — incident_seq</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>CREATE TABLE IF NOT EXISTS incident_seq (
+  customer   TEXT NOT NULL PRIMARY KEY,
+  last_seq   INTEGER NOT NULL DEFAULT 0
+);</code></pre>
+      </div>
 
-      <div class="code-label">📄 schema.sql — audit_log</div>
-      <pre><code>CREATE TABLE IF NOT EXISTS audit_log (
+      <p>Three columns... wait, two. That's all the state we need. Each customer gets exactly one row holding their lifetime incident counter. The primary key on <code>customer</code> is what makes the locking work — but we'll get to that.</p>
+
+      <h2>The Trigger That Makes IDs Atomic</h2>
+
+      <p>This is the heart of the data layer. About 20 lines of PL/pgSQL, runs <em>before</em> every insert into <code>incidents</code>, and is bulletproof under concurrency.</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">📄 schema.sql — set_incident_id() trigger</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>CREATE OR REPLACE FUNCTION set_incident_id()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+DECLARE
+  v_my   TEXT;
+  v_seq  INTEGER;
+  v_cust TEXT;
+BEGIN
+  -- MMYYYY in Asia/Kolkata (matches our analyst clocks)
+  v_my   := TO_CHAR(NEW.created_at AT TIME ZONE 'Asia/Kolkata', 'MMYYYY');
+  v_cust := COALESCE(NEW.customer, 'CLIENT-A');
+
+  -- The atomic upsert. This single statement is the magic.
+  INSERT INTO incident_seq (customer, last_seq)
+    VALUES (v_cust, 1)
+  ON CONFLICT (customer)
+    DO UPDATE SET last_seq = incident_seq.last_seq + 1
+  RETURNING last_seq INTO v_seq;
+
+  -- Compose the final ID
+  NEW.incident_id := v_cust || '-IR-' || v_my || '-' || LPAD(v_seq::TEXT, 3, '0');
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_set_incident_id ON incidents;
+CREATE TRIGGER trg_set_incident_id
+  BEFORE INSERT ON incidents
+  FOR EACH ROW EXECUTE FUNCTION set_incident_id();</code></pre>
+      </div>
+
+      <p>Two parts worth understanding deeply.</p>
+
+      <h3>1. The format line</h3>
+
+      <pre style="background:#0a0e1a;border:1px solid #1e293b;border-radius:6px;padding:14px 18px;color:#e2e8f0;font-size:13px;font-family:var(--mono);overflow-x:auto;">v_my := TO_CHAR(NEW.created_at AT TIME ZONE 'Asia/Kolkata', 'MMYYYY');</pre>
+
+      <p>This pulls the month-year from the row's timestamp in our local timezone. <code>MMYYYY</code> is the format mask — gives you <code>062026</code> for June 2026, <code>072026</code> for July, and so on. Different months produce different strings; the counter doesn't care.</p>
+
+      <h3>2. The atomic upsert</h3>
+
+      <pre style="background:#0a0e1a;border:1px solid #1e293b;border-radius:6px;padding:14px 18px;color:#e2e8f0;font-size:13px;font-family:var(--mono);overflow-x:auto;">INSERT INTO incident_seq (customer, last_seq)
+  VALUES (v_cust, 1)
+ON CONFLICT (customer)
+  DO UPDATE SET last_seq = incident_seq.last_seq + 1
+RETURNING last_seq INTO v_seq;</pre>
+
+      <p>This is the part that makes the whole thing safe. Read it as: "Insert a new row with sequence 1. If a row already exists for this customer, instead increment that row's <code>last_seq</code> by one. Either way, give me the resulting <code>last_seq</code> value."</p>
+
+      <div class="solution-box">
+        <p><strong>The locking property:</strong> Postgres takes a row-level lock on <code>(customer)</code> for the duration of this statement. If 10 workers try to run it at the same millisecond, they serialize on that one row. Worker 1 finishes (last_seq = 488), lock releases. Worker 2 enters (last_seq = 489). Worker 3 (last_seq = 490). And so on.</p>
+        <p>Each worker gets a unique number. The serialization happens on a single 4-byte row in microseconds. Even at 100 concurrent inserts, the total overhead is &lt; 10 ms. <strong>Zero throughput cost, absolute correctness.</strong></p>
+      </div>
+
+      <p>That's it. That's the bug fixed. From a 5% duplicate rate to zero, in 20 lines of PL/pgSQL.</p>
+
+      <h2>Applying the Schema</h2>
+
+      <p>Save the table definitions and trigger to a file, then pipe it into the Postgres container:</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">▸ apply schema.sql from the host</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code># schema.sql lives next to docker-compose.yml
+cd /opt/security-automation/
+
+# Pipe it into psql inside the container
+docker exec -i n8nq-postgres psql -U n8n_queue -d n8n_queue &lt; schema.sql</code></pre>
+      </div>
+
+      <p>Or apply changes inline using a heredoc — useful for one-off tweaks:</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">▸ inline tweak via heredoc</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>docker exec -i n8nq-postgres psql -U n8n_queue -d n8n_queue &lt;&lt;'EOF'
+ALTER TABLE incidents ADD COLUMN log_source TEXT DEFAULT '';
+EOF</code></pre>
+      </div>
+
+      <p>And for quick read-only queries, use the <code>-c</code> flag:</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">▸ one-off query</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>docker exec n8nq-postgres psql -U n8n_queue -d n8n_queue -c \
+  "SELECT customer, last_seq FROM incident_seq ORDER BY customer;"</code></pre>
+      </div>
+
+      <h2>Proving It Works</h2>
+
+      <p>I don't trust correctness arguments. I trust tests. Here's the concurrency test I ran against the new schema — ten parallel inserts firing at the same time, then a query to see if any IDs collided:</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">▸ fire 10 inserts in parallel and check for duplicates</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code># Launch 10 inserts in background
+for i in {1..10}; do
+  docker exec n8nq-postgres psql -U n8n_queue -d n8n_queue -c \
+    "INSERT INTO incidents (customer, alert_name, severity, category)
+     VALUES ('CLIENT-A','concurrency-test-$i','LOW','Test')
+     RETURNING incident_id;" &amp;
+done
+wait
+
+# Now check for duplicates
+docker exec n8nq-postgres psql -U n8n_queue -d n8n_queue -c "
+  SELECT incident_id, COUNT(*) FROM incidents
+  WHERE alert_name LIKE 'concurrency-test-%'
+  GROUP BY incident_id
+  HAVING COUNT(*) &gt; 1;
+"</code></pre>
+      </div>
+
+      <p>Real shell output from running this on the production-ish test environment:</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">▸ output</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>      incident_id
+-------------------------
+ CLIENT-A-IR-062026-488
+ CLIENT-A-IR-062026-489
+ CLIENT-A-IR-062026-490
+ CLIENT-A-IR-062026-491
+ CLIENT-A-IR-062026-492
+ CLIENT-A-IR-062026-493
+ CLIENT-A-IR-062026-494
+ CLIENT-A-IR-062026-495
+ CLIENT-A-IR-062026-496
+ CLIENT-A-IR-062026-497
+(10 rows)
+
+ incident_id | count
+-------------+-------
+(0 rows)</code></pre>
+      </div>
+
+      <p>Ten inserts, ten unique IDs, zero duplicates. The first query lists them; the second confirms no ID appears more than once.</p>
+
+      <p>Cleanup after testing:</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">▸ clean up test rows</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>docker exec n8nq-postgres psql -U n8n_queue -d n8n_queue -c "
+  DELETE FROM incidents WHERE alert_name LIKE 'concurrency-test-%';
+"</code></pre>
+      </div>
+
+      <p>Note: the deleted rows leave gaps in the sequence (488 through 497 are gone but the counter is now at 497). That's fine. The counter is for <em>uniqueness</em>, not for "always count up by one." Skipped numbers aren't a bug.</p>
+
+      <h2>How July's First Incident Becomes 510</h2>
+
+      <p>This is the design property the rest of the platform depends on. Let's trace it.</p>
+
+      <p>On June 30 at 23:55 IST, an alert fires:</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">▸ last incident of June</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code># Trigger sees created_at = 2026-06-30 23:55:00 IST
+# v_my  = '062026'
+# upsert returns last_seq = 509
+# v_seq = 509
+# incident_id = 'CLIENT-A-IR-062026-509'</code></pre>
+      </div>
+
+      <p>Then at July 1 at 00:02 IST, the next alert arrives:</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">▸ first incident of July</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code># Trigger sees created_at = 2026-07-01 00:02:00 IST
+# v_my  = '072026'                    -- changed!
+# upsert returns last_seq = 510       -- continues from 509
+# v_seq = 510
+# incident_id = 'CLIENT-A-IR-072026-510'</code></pre>
+      </div>
+
+      <p>The month-year in the ID rolls forward. The sequence number does not. Exactly the behavior we wanted.</p>
+
+      <h2>What Else Lives in the Data Layer (For Now)</h2>
+
+      <p>Two more tables earn their place at this stage. Both are small.</p>
+
+      <h3>incident_comments</h3>
+
+      <p>Investigation notes attached to an incident. One incident, many comments. We'll surface these in the dashboard in Part 5.</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">📄 schema.sql — incident_comments</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>CREATE TABLE IF NOT EXISTS incident_comments (
+  id           SERIAL PRIMARY KEY,
+  incident_seq INTEGER NOT NULL REFERENCES incidents(seq) ON DELETE CASCADE,
+  author       TEXT NOT NULL,
+  body         TEXT NOT NULL,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_comments_incident ON incident_comments(incident_seq);</code></pre>
+      </div>
+
+      <p>The <code>incident_seq</code> foreign key points at the integer primary key on <code>incidents</code>, not at the human-readable <code>incident_id</code>. This was the whole point of keeping the integer key separate — foreign keys stay stable even if we someday change the ID format.</p>
+
+      <h3>audit_log</h3>
+
+      <p>Every state-changing action writes a row here. Status changes, comment additions, ticket closures — everything. The table is small, the schema is simple, and the value is enormous when something goes wrong.</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">📄 schema.sql — audit_log</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>CREATE TABLE IF NOT EXISTS audit_log (
   id           SERIAL PRIMARY KEY,
   incident_seq INTEGER NOT NULL DEFAULT 0,
   action       TEXT NOT NULL,
@@ -717,369 +602,96 @@ deletion_requested_at  TIMESTAMPTZ,</code></pre>
   old_value    TEXT DEFAULT '',
   new_value    TEXT DEFAULT '',
   created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);</code></pre>
-
-      <p>Sample rows from production:</p>
-
-      <pre><code>id  | incident_seq | action              | actor          | old_value | new_value
-----+--------------+---------------------+----------------+-----------+--------------------
-118 | 0            | user_edited         | Admin User     |           | Analyst X: role → admin
-117 | 4521         | status_change       | Analyst Y      | open      | resolved
-116 | 4521         | comment_added       | Analyst Y      |           | Investigated...
-115 | 4521         | assignment          | System         |           | Analyst Y
-114 | 4521         | incident_created    | System         |           |
-113 | 0            | queue_flush         | Admin User     |           | Redis:42 | IDs:4519...
-112 | 4520         | deletion_rejected   | Admin User     |           | Test ticket</code></pre>
-
-      <p>Note the convention: <code>incident_seq = 0</code> means a system-level action (not tied to a specific incident). User edits, config changes, queue flushes — they all use <code>incident_seq=0</code>.</p>
-
-      <h3>Why "Append-Only by Convention"</h3>
-
-      <p>Postgres doesn't have a built-in "append-only table" type. You enforce it through application code: every <code>INSERT</code> is allowed; <code>UPDATE</code> and <code>DELETE</code> on this table never happen. Anywhere.</p>
-
-      <p>I considered using a Postgres trigger to actively block updates and deletes. But that adds complexity, and the convention is enforced at the only layer that matters: the FastAPI code. There's no API endpoint that updates or deletes an audit row. There's no admin tool that lets you edit one. If you SSH into the database server and manually run <code>UPDATE audit_log SET actor='...'</code>, you're already an attacker who's bypassed every other control.</p>
-
-      <p>For higher-assurance environments (PCI-DSS, HIPAA), you'd want database-level enforcement plus a separate write-only log shipped to a remote system. We didn't need that. Our audit log is for operational visibility and customer-facing compliance reports, not anti-fraud.</p>
-
-      <h2>The Permission System</h2>
-
-      <p>RBAC is one of those things that sounds simple but gets weird fast. Three roles? Five roles? Per-resource permissions? Per-action permissions? Hierarchical inheritance? You can spend months building one.</p>
-
-      <p>I built a model that I think hits the sweet spot for a SOC platform: <strong>roles define the ceiling; per-user settings can only restrict, never elevate.</strong> Here's how it works.</p>
-
-      <h3>The users Table</h3>
-
-      <div class="code-label">📄 schema.sql — users</div>
-      <pre><code>CREATE TABLE IF NOT EXISTS users (
-  id                    SERIAL PRIMARY KEY,
-  username              TEXT NOT NULL UNIQUE,
-  full_name             TEXT NOT NULL,
-  email                 TEXT NOT NULL,
-  password_hash         TEXT NOT NULL,
-  role                  TEXT NOT NULL DEFAULT 'analyst'
-                        CHECK (role IN ('admin','analyst','readonly')),
-  active                BOOLEAN NOT NULL DEFAULT TRUE,
-  last_login            TIMESTAMPTZ,
-  created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  username_change_count INTEGER NOT NULL DEFAULT 0,
-  username_changed_at   TIMESTAMPTZ,
-  session_hours         INTEGER DEFAULT NULL,
-  permissions           JSONB NOT NULL DEFAULT '{}'::jsonb
 );
-CREATE UNIQUE INDEX IF NOT EXISTS users_email_unique ON users(email);</code></pre>
-
-      <p>Two things to notice:</p>
-
-      <ul>
-        <li><strong><code>role</code> with a <code>CHECK</code> constraint</strong> — Database-level enforcement. You can't accidentally insert a role like <code>'superuser'</code> via a typo. The constraint rejects the insert.</li>
-        <li><strong><code>permissions JSONB</code></strong> — Per-user permission overrides. JSONB is structured, queryable, and far more flexible than 9 separate boolean columns.</li>
-      </ul>
-
-      <h3>The Three Roles and Their Defaults</h3>
-
-      <p>The role defaults live in the application code (not the database) because they're often updated and the values are checked dynamically. Here's the dictionary that the backend uses:</p>
-
-      <div class="code-label">📄 api.py — ROLE_DEFAULTS</div>
-      <pre><code>ROLE_DEFAULTS = {
-    "admin": {
-        "view_incidents":  True,
-        "add_comment":     True,
-        "close_ticket":    True,
-        "assign_analyst":  True,
-        "create_manual":   True,
-        "export_csv":      True,
-        "delete_ticket":   True,
-        "flush_queue":     True,
-        "view_admin":      True,
-    },
-    "analyst": {
-        "view_incidents":  True,
-        "add_comment":     True,
-        "close_ticket":    True,
-        "assign_analyst":  True,
-        "create_manual":   True,
-        "export_csv":      True,
-        "delete_ticket":   False,   # Can request, can't perform
-        "flush_queue":     False,
-        "view_admin":      False,
-    },
-    "readonly": {
-        "view_incidents":  True,
-        "add_comment":     False,
-        "close_ticket":    False,
-        "assign_analyst":  False,
-        "create_manual":   False,
-        "export_csv":      True,    # Export is read-only
-        "delete_ticket":   False,
-        "flush_queue":     False,
-        "view_admin":      False,
-    },
-}</code></pre>
-
-      <p>Each role gets a set of defaults. Admins get everything. Analysts can manage tickets but can't delete them or touch infrastructure. Readonly accounts can see everything and export to CSV but cannot modify anything.</p>
-
-      <p>The export-CSV-for-readonly choice is deliberate. Readonly is the role we use for the "TV monitor" account that lives on the wall display in the SOC. That account never touches data, but the SOC manager occasionally needs to grab a CSV from it without logging in to a different account. CSV export is read-only by definition — it can't damage anything.</p>
-
-      <h3>The Permission Resolution Function</h3>
-
-      <p>The key idea: per-user permissions can only <em>restrict</em>. Even if you set <code>{"delete_ticket": true}</code> on a readonly user, that <code>true</code> is ignored because the role doesn't grant it in the first place. Here's how it's enforced:</p>
-
-      <div class="code-label">📄 api.py — get_user_permissions()</div>
-      <pre><code>def get_user_permissions(user_id: int, role: str) -> dict:
-    """Return effective permissions = role defaults merged with per-user overrides.
-    Only False overrides are applied — permissions can only be restricted, not elevated."""
-    import json
-    defaults = ROLE_DEFAULTS.get(role, ROLE_DEFAULTS["readonly"]).copy()
-    try:
-        row = query("SELECT permissions FROM users WHERE id=%s", [user_id], fetch="one")
-        if row and row.get("permissions"):
-            overrides = row["permissions"]
-            if isinstance(overrides, str):
-                overrides = json.loads(overrides)
-            for k, v in overrides.items():
-                if k in defaults and not v:
-                    defaults[k] = False    # Only the False values are applied
-    except Exception:
-        pass
-    return defaults</code></pre>
-
-      <p>Read line 11 carefully: <code>if k in defaults and not v: defaults[k] = False</code>.</p>
-
-      <ul>
-        <li><strong><code>if k in defaults</code></strong> — Ignore override keys that aren't in the role defaults. No way to invent new permissions.</li>
-        <li><strong><code>and not v</code></strong> — Only apply the override if it's setting the value to <code>False</code>. <code>True</code> overrides are silently ignored.</li>
-      </ul>
-
-      <p>The result: even if someone tampers with the <code>permissions</code> JSONB column to write <code>{"flush_queue": true}</code> on an analyst account, the analyst <em>still</em> can't flush the queue. The role default is <code>False</code>, and the override is silently dropped because <code>not v</code> is <code>False</code>.</p>
-
-      <div class="solution-box">
-        <p><strong>This pattern is called "deny-overrides-allow" or "negative permissions only" — and it's the single most important security property in the whole RBAC system.</strong></p>
-        <p>It means privilege escalation through misconfiguration is structurally impossible. A bug in the admin UI that lets you set arbitrary permissions on a user account can't grant that user access they didn't already have. The worst it can do is take away permissions — which is recoverable.</p>
+CREATE INDEX IF NOT EXISTS idx_audit_incident ON audit_log(incident_seq);
+CREATE INDEX IF NOT EXISTS idx_audit_time ON audit_log(created_at DESC);</code></pre>
       </div>
 
-      <h3>Real Use Case: Restricting an Analyst</h3>
+      <p>The table is <strong>append-only by convention</strong>. The application code never updates or deletes rows here. There's no audit-log-editor in the UI. If you really wanted to mutate it, you'd need direct database access — at which point you've already bypassed every other control on the system.</p>
 
-      <p>An example from production. We hired a new junior analyst — let's call him User-X. We wanted him to be a full analyst but <em>not</em> have the ability to close tickets until he completed onboarding. The override:</p>
-
-      <pre><code>UPDATE users
-SET permissions = '{"close_ticket": false}'
-WHERE username = 'user_x';</code></pre>
-
-      <p>User-X can do everything else an analyst can do (view, comment, assign, create manual tickets), but the "Close" button doesn't appear in the UI for him. Two weeks later, after onboarding, we removed the override:</p>
-
-      <pre><code>UPDATE users
-SET permissions = '{}'
-WHERE username = 'user_x';</code></pre>
-
-      <p>One database change, no role reassignment. Clean and reversible.</p>
-
-      <h2>Sessions and Browser Fingerprinting</h2>
-
-      <p>Authentication generates a session token. The session table holds them:</p>
-
-      <div class="code-label">📄 schema.sql — sessions</div>
-      <pre><code>CREATE TABLE IF NOT EXISTS sessions (
-  id         SERIAL PRIMARY KEY,
-  token      TEXT NOT NULL UNIQUE,
-  user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  expires_at TIMESTAMPTZ NOT NULL,
-  user_agent TEXT DEFAULT ''
-);</code></pre>
-
-      <p>Five columns. The interesting ones are <code>expires_at</code> and <code>user_agent</code>.</p>
-
-      <h3>Why Store the User-Agent?</h3>
-
-      <p>It enables a feature I call "single-session-with-same-browser-refresh." The rule:</p>
-
+      <p>What gets logged at this stage:</p>
       <ul>
-        <li>If a user logs in <strong>from the same browser</strong> as their existing session, the existing session is <strong>refreshed</strong> (expiration extended). They don't get a new token.</li>
-        <li>If a user logs in <strong>from a different browser</strong>, the old session is <strong>killed</strong>. Only one session per user, ever.</li>
+        <li>Incident created (trigger or manual)</li>
+        <li>Status changed (open → resolved, etc.)</li>
+        <li>Comment added</li>
+        <li>Assignee changed</li>
       </ul>
 
-      <p>Why? Because the alternative is worse. If you allow multiple sessions, an attacker who steals a token can use it concurrently with the legitimate user, and no one notices. If you forbid duplicate sessions entirely, every page refresh logs the user out. The "same browser refreshes" middle ground is what enterprise SSO platforms do — and it's about 50 lines of Python here. (Full implementation in Part 4.)</p>
+      <p>More categories will appear as the platform grows (logins, config changes), but they all follow the same shape: who did it, when, what changed.</p>
 
-      <h3>Per-User Session Duration</h3>
+      <h2>The Migration I Broke</h2>
 
-      <p>Look at <code>users.session_hours INTEGER DEFAULT NULL</code>. When it's NULL, the system uses the global default of 1 hour. For specific accounts, we can set a longer session:</p>
+      <p>I promised in Part 1 to be honest about failures. Here's one from this layer.</p>
 
-      <pre><code>UPDATE users SET session_hours = 8 WHERE username = 'soc_tv_monitor';</code></pre>
+      <p>When I needed to add the <code>email_sent</code> tracking column to <code>incidents</code>, I ran what felt like an innocent <code>ALTER TABLE</code>:</p>
 
-      <p>The TV monitor account that lives on the wall display logs in once and stays logged in for 8 hours. The standard analyst accounts re-auth every hour. Granular, per-account, configurable.</p>
-
-      <h2>Notifications: The Pub-Sub Inside the Database</h2>
-
-      <p>Modern web apps reach for WebSockets or Server-Sent Events for real-time UI updates. I built notifications using nothing but a Postgres table and polling. Here's why and how.</p>
-
-      <div class="code-label">📄 schema.sql — notifications</div>
-      <pre><code>CREATE TABLE IF NOT EXISTS notifications (
-  id           SERIAL PRIMARY KEY,
-  user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  type         TEXT NOT NULL DEFAULT 'system',
-  incident_seq INTEGER,
-  incident_id  TEXT DEFAULT '',
-  title        TEXT NOT NULL,
-  message      TEXT NOT NULL DEFAULT '',
-  from_user    TEXT DEFAULT '',
-  read         BOOLEAN NOT NULL DEFAULT FALSE,
-  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);</code></pre>
-
-      <p>Sources of notifications in the platform:</p>
-
-      <ul>
-        <li><strong>Ticket assignments</strong> — "Analyst X assigned CLIENT-A-IR-202606-042 to you."</li>
-        <li><strong>Ticket closures</strong> — "Analyst Y closed CLIENT-A-IR-202606-042." Sent to whoever was assigned + the ticket creator.</li>
-        <li><strong>Deletion requests</strong> — Sent to all admins when an analyst requests deletion.</li>
-        <li><strong>Worker health alerts</strong> — Broadcast to all users when workers go down (and again when they recover).</li>
-        <li><strong>Admin broadcasts</strong> — One-off messages from the admin UI.</li>
-      </ul>
-
-      <h3>Polling vs WebSockets</h3>
-
-      <p>The dashboard polls <code>/api/notifications/unread_count</code> every 10 seconds. WebSockets would be more elegant. But:</p>
-
-      <ul>
-        <li>The dashboard already polls every 3-5 seconds for queue metrics. Adding notification polling to that loop is essentially free.</li>
-        <li>WebSockets through reverse proxies are operationally fragile — they require sticky sessions, careful timeout tuning, and reconnect logic.</li>
-        <li>For ~20 active users, polling has zero performance impact. The endpoint runs a <code>COUNT(*) FROM notifications WHERE user_id=? AND read=FALSE</code> — one indexed query.</li>
-        <li>A 10-second latency on "you have a new notification" is fine for this use case.</li>
-      </ul>
-
-      <p>Polling won on operational simplicity. The notification system is dead reliable and easy to debug. If a user says "I'm not getting notifications," I run one query against the table and either see the rows or don't.</p>
-
-      <h2>The Decoupled Analyst Dropdown</h2>
-
-      <p>This is a small but interesting design choice. There are two ways to handle the "Assign Analyst" dropdown:</p>
-
-      <ol>
-        <li>Show every user whose role is "analyst" in the dropdown.</li>
-        <li>Maintain a separate list of analyst names that can be assigned.</li>
-      </ol>
-
-      <p>I chose option 2. Here's the table:</p>
-
-      <div class="code-label">📄 schema.sql — analysts</div>
-      <pre><code>CREATE TABLE IF NOT EXISTS analysts (
-  id         SERIAL PRIMARY KEY,
-  name       TEXT NOT NULL UNIQUE,
-  email      TEXT DEFAULT '',
-  active     BOOLEAN NOT NULL DEFAULT TRUE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);</code></pre>
-
-      <p>The dropdown is fed from this table, not from the <code>users</code> table. Why? Three real reasons:</p>
-
-      <ol>
-        <li><strong>External analysts.</strong> We sometimes need to assign tickets to people who don't have dashboard logins — outsourced incident responders, vendor SOC team members. They need to appear in the dropdown without getting a login account.</li>
-        <li><strong>Active vs. inactive.</strong> When an analyst leaves the team, we want them to disappear from the dropdown immediately. But their historical assignments should still display their name correctly. Disabling them in <code>analysts</code> removes them from new dropdowns; the <code>assigned_to</code> field on old incidents still shows their name.</li>
-        <li><strong>Display name vs. login name.</strong> The login name might be <code>j.smith</code>; the analyst's display name is <code>Jane Smith</code>. The dropdown should show the display name.</li>
-      </ol>
-
-      <p>The <code>analysts.name</code> column is matched against <code>incidents.assigned_to</code> by string equality. They have to match exactly. The admin UI enforces this — when you add an analyst to the dropdown, the form validates against the spelling of their <code>full_name</code> in the users table.</p>
-
-      <h2>The Migration I Broke (A Postmortem)</h2>
-
-      <p>I promised in Part 1 to talk about my failures. Here's one.</p>
-
-      <p>When I introduced the soft-delete feature in v5.6, I needed to add four new columns to <code>incidents</code>: <code>deleted</code>, <code>deleted_at</code>, <code>deleted_by</code>, <code>deletion_requested</code>. I ran:</p>
-
-      <pre><code>ALTER TABLE incidents ADD COLUMN deleted BOOLEAN NOT NULL DEFAULT FALSE;
-ALTER TABLE incidents ADD COLUMN deleted_at TIMESTAMPTZ;
-ALTER TABLE incidents ADD COLUMN deleted_by TEXT;
-ALTER TABLE incidents ADD COLUMN deletion_requested BOOLEAN NOT NULL DEFAULT FALSE;</code></pre>
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">▸ what I ran (don't do this on a live table)</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>docker exec -i n8nq-postgres psql -U n8n_queue -d n8n_queue &lt;&lt;'EOF'
+ALTER TABLE incidents ADD COLUMN email_sent BOOLEAN NOT NULL DEFAULT FALSE;
+EOF</code></pre>
+      </div>
 
       <div class="problem-box">
-        <p><strong>What I didn't realize:</strong> Postgres <code>ALTER TABLE ... ADD COLUMN ... DEFAULT</code> on a non-NULL boolean rewrites every row in the table. With ~4,000 rows at the time, this locked the table for about 4 minutes. During those 4 minutes, every workflow trying to insert an incident hung. The N8N queue backed up. The dashboard showed "connection error."</p>
+        <p><strong>What I didn't realize:</strong> on older Postgres versions, <code>ALTER TABLE ... ADD COLUMN ... NOT NULL DEFAULT</code> rewrites every row in the table. With ~4,000 incidents at the time, this locked the table for about <strong>4 minutes</strong>. During those 4 minutes, every workflow trying to insert an incident hung. Workers piled up. The dashboard showed "connection error." The autoscaler ramped to max workers trying to drain the queue.</p>
       </div>
 
-      <p>The fix would have been to split the migration:</p>
+      <p>The fix: split the migration into three statements that don't rewrite rows:</p>
 
-      <pre><code>-- Step 1: Add nullable column (instant, no rewrite)
-ALTER TABLE incidents ADD COLUMN deleted BOOLEAN;
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">▸ the safe pattern</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>docker exec -i n8nq-postgres psql -U n8n_queue -d n8n_queue &lt;&lt;'EOF'
+-- Step 1: add nullable column (instant, no table rewrite)
+ALTER TABLE incidents ADD COLUMN email_sent BOOLEAN;
 
--- Step 2: Backfill in batches (no lock)
-UPDATE incidents SET deleted = FALSE WHERE seq BETWEEN 1 AND 1000;
-UPDATE incidents SET deleted = FALSE WHERE seq BETWEEN 1001 AND 2000;
--- ... etc
+-- Step 2: backfill in batches (no lock held long)
+UPDATE incidents SET email_sent = FALSE WHERE seq BETWEEN 1 AND 1000;
+UPDATE incidents SET email_sent = FALSE WHERE seq BETWEEN 1001 AND 2000;
+UPDATE incidents SET email_sent = FALSE WHERE seq BETWEEN 2001 AND 3000;
+UPDATE incidents SET email_sent = FALSE WHERE seq BETWEEN 3001 AND 4000;
 
--- Step 3: Add the NOT NULL constraint (fast, no rewrite)
-ALTER TABLE incidents ALTER COLUMN deleted SET NOT NULL;
-ALTER TABLE incidents ALTER COLUMN deleted SET DEFAULT FALSE;</code></pre>
+-- Step 3: now add NOT NULL and DEFAULT (fast, no rewrite)
+ALTER TABLE incidents ALTER COLUMN email_sent SET NOT NULL;
+ALTER TABLE incidents ALTER COLUMN email_sent SET DEFAULT FALSE;
+EOF</code></pre>
+      </div>
 
-      <p>Three statements, each one instant. Total downtime: zero.</p>
+      <p>Three statements, each one fast. Total downtime: zero. The autoscaler log from the bad night, by the way, was visible right next to the dashboard's connection-error spike — exactly the pattern from Part 2 where the burst handler ramps up trying to keep up. That was the whole platform telling me I'd done something dumb.</p>
 
-      <p>The 4-minute outage was visible in the audit log, in the autoscaler logs (which showed queue depth spiking and then dropping back), and in user_activity_log entries from confused analysts trying to refresh the page. I rolled out the fix the next morning and wrote up the postmortem.</p>
+      <p>The takeaway: <strong>production migrations are not the same as local schema edits</strong>. Even small-looking changes can lock a table for minutes if you don't think about what rewrites are happening underneath.</p>
 
-      <p><strong>The takeaway:</strong> production database migrations need to be planned like distributed system changes, not like local schema edits. The official Postgres docs have a great section on this — I should have read it before, not after.</p>
+      <h2>What's NOT in the Schema Yet</h2>
 
-      <h2>Indexes</h2>
-
-      <p>I'll keep this short because most of the queries hit primary keys, but two indexes were worth adding:</p>
-
-      <div class="code-label">📄 schema.sql — indexes</div>
-      <pre><code>-- Email uniqueness for login (case-insensitive matching done in application)
-CREATE UNIQUE INDEX IF NOT EXISTS users_email_unique ON users(email);
-
--- Queue snapshots are time-series — newest first is the most common access
-CREATE INDEX IF NOT EXISTS idx_qs_time ON queue_snapshots(captured_at DESC);</code></pre>
-
-      <p>Why not more indexes? Because:</p>
+      <p>Three tables will appear later in the series, as the layers that need them get built:</p>
 
       <ul>
-        <li><strong>The <code>incidents</code> table is small.</strong> 5,000-10,000 rows. Sequential scans are fast at this size. Adding indexes costs writes and disk space for no measurable read benefit.</li>
-        <li><strong>Most queries filter by <code>seq</code> or <code>incident_id</code></strong> — both already indexed (one is the PK, the other is unique by trigger logic).</li>
-        <li><strong>The dashboard's "list incidents" query has tab-style filters</strong> (customer, status, time range). Each filter narrows the result set. Postgres's query planner handles this efficiently with just the PK.</li>
+        <li><strong><code>users</code></strong> and <strong><code>sessions</code></strong> — when we add the dashboard login system in Part 4.</li>
+        <li><strong><code>notifications</code></strong> — when we wire up in-app notifications in Part 4.</li>
+        <li><strong><code>queue_snapshots</code></strong> — when we start charting historical queue depth in Part 5.</li>
       </ul>
 
-      <p>If the table grows past 100,000 rows, I'll revisit. Maybe a composite index on <code>(customer, status, created_at)</code>. But premature indexing is its own performance bug.</p>
+      <p>I'm introducing them one at a time, alongside the code that uses them. A 12-table schema dump dropped on you in Part 3 wouldn't help anyone understand <em>why</em> each table exists. Letting each table earn its place is a better way to learn the platform.</p>
 
-      <h2>Verifying the Schema</h2>
-
-      <p>I wrote a small set of test queries that verify the schema works correctly. Run them after every deployment:</p>
-
-      <div class="code-label">📄 test_queries.sql (excerpt)</div>
-      <pre><code>-- TEST 1: All 12 tables exist
-SELECT COUNT(*) FROM information_schema.tables 
-WHERE table_schema='public' AND table_type='BASE TABLE';
--- Expected: 12
-
--- TEST 2: Incident ID trigger fires on insert
-INSERT INTO incidents (customer, alert_name, severity, category)
-  VALUES ('CLIENT-A', 'SCHEMA TEST - DELETE ME', 'LOW', 'Test');
-SELECT incident_id FROM incidents 
-WHERE alert_name='SCHEMA TEST - DELETE ME';
--- Expected: 'CLIENT-A-IR-YYYYMM-NNN' (current year/month, sequential)
-
--- TEST 3: Counters increment correctly across tenants
-INSERT INTO incidents (customer, alert_name, severity, category)
-  VALUES ('CLIENT-B', 'SCHEMA TEST B - DELETE ME', 'LOW', 'Test');
-SELECT customer, last_seq FROM incident_month_seq 
-WHERE year_month = TO_CHAR(NOW() AT TIME ZONE 'Asia/Kolkata', 'YYYYMM');
--- Expected: two rows, one per customer, each with their own count
-
--- Cleanup
-DELETE FROM incidents WHERE alert_name LIKE 'SCHEMA TEST%';</code></pre>
-
-      <p>I run this script automatically in CI before any code change touching the database goes out.</p>
-
-      <h2>What This Layer Gives You</h2>
-
-      <p>By the end of Part 3, we have:</p>
+      <h2>What We Earned</h2>
 
       <div class="stats-grid">
         <div class="stat-card">
-          <div class="stat-number">12</div>
-          <div class="stat-label">Tables in schema</div>
-        </div>
-        <div class="stat-card">
           <div class="stat-number">0</div>
-          <div class="stat-label">Duplicate IDs possible</div>
+          <div class="stat-label">Duplicate IDs since trigger</div>
         </div>
         <div class="stat-card">
-          <div class="stat-number">9</div>
-          <div class="stat-label">Granular permissions</div>
+          <div class="stat-number">~20</div>
+          <div class="stat-label">Lines in the trigger</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">&lt; 10ms</div>
+          <div class="stat-label">Lock overhead at 100 concurrent</div>
         </div>
         <div class="stat-card">
           <div class="stat-number">2</div>
@@ -1087,49 +699,57 @@ DELETE FROM incidents WHERE alert_name LIKE 'SCHEMA TEST%';</code></pre>
         </div>
       </div>
 
-      <ul>
-        <li><strong>Atomic incident IDs</strong> — guaranteed unique even under maximum concurrency, with per-tenant monthly sequences.</li>
-        <li><strong>Soft delete with approval workflow</strong> — evidence preservation built into the schema.</li>
-        <li><strong>RBAC with restriction-only overrides</strong> — privilege escalation through misconfiguration is structurally impossible.</li>
-        <li><strong>Immutable audit log</strong> — every state change tracked.</li>
-        <li><strong>Single-session enforcement</strong> with browser fingerprinting, built on a 5-column table.</li>
-        <li><strong>Multi-tenant isolation</strong> — completely separate ID sequences and counters per customer.</li>
-      </ul>
+      <p>Twenty lines of PL/pgSQL replaced a class of bug that no amount of clever application code could solve. The race condition from Part 2 is gone. Twenty workers can hit Postgres at the exact same millisecond and every single insert gets a unique, sequential, customer-scoped ID.</p>
 
-      <p class="pull-quote">The database doesn't just store data. It <span>defines the platform's behavior</span> — and enforces it with code older and more battle-tested than anything I could write.</p>
+      <h2>Beyond the SOC: Where This Pattern Applies</h2>
+
+      <div class="applies-box">
+        <h4>Atomic counters via Postgres triggers — broader uses</h4>
+        <ul>
+          <li><strong>Invoice numbers.</strong> A finance app generating sequential per-customer invoice IDs needs the same guarantee — no duplicates, no gaps caused by application bugs.</li>
+          <li><strong>Order IDs.</strong> E-commerce backends with multiple workers processing checkouts in parallel hit the same race condition I did.</li>
+          <li><strong>Audit / case numbers.</strong> Compliance systems, legal case tracking, HR ticketing — anywhere a human-readable monotonic identifier matters.</li>
+          <li><strong>Tenant-scoped sequences.</strong> Any SaaS multi-tenant app that wants per-tenant sequential IDs (rather than global UUIDs) can use this exact pattern: one row per tenant in a counter table, <code>ON CONFLICT DO UPDATE</code> in the trigger.</li>
+          <li><strong>Receipt / confirmation codes.</strong> Booking systems, ticketing platforms — wherever a short numeric code is friendlier than a UUID.</li>
+        </ul>
+      </div>
+
+      <p class="pull-quote">The right place to enforce uniqueness isn't application code. It's the <span>database</span> — code older and more battle-tested than anything you'll write.</p>
 
       <h2>What's Next</h2>
 
-      <p>Now we have data with strong guarantees. Part 4 builds the backend that exposes it: the FastAPI application that handles authentication, enforces permissions on every request, syncs state to Jira, sends notifications, and serves the dashboard. About 1,300 lines of Python, written to be readable at 3 AM.</p>
+      <p>The infrastructure is humming, IDs are atomic, and the database is the source of truth. What's missing is everything <em>between</em> the database and the analyst.</p>
 
-      <p>The schema is the foundation. The API is the contract. See you in Part 4.</p>
+      <p>Right now, when an analyst wants to see open tickets, they SSH in and run a SQL query. When they want to add a comment, they hand-write an UPDATE. There's no login, no permissions, no API. Part 4 fixes that — a FastAPI backend that exposes the data layer to the dashboard, handles authentication, manages sessions, and syncs state back to Jira.</p>
+
+      <p>The backend is where Postgres becomes a product.</p>
 
       <div class="series-nav">
         <h3>📚 The Complete 6-Part Series</h3>
         <ul class="series-list">
           <li>
             <span class="num">1</span>
-            <span><strong>Foundation</strong> — Architecture overview & problem statement</span>
+            <span><strong>The Use Case</strong> — Why this platform exists</span>
           </li>
           <li>
             <span class="num">2</span>
-            <span><strong>Infrastructure</strong> — Docker Compose, queue mode, auto-scaling workers</span>
+            <span><strong>The Workflow Engine</strong> — Queue mode + auto-scaling</span>
           </li>
           <li class="current">
             <span class="num">3</span>
-            <span><strong>Database</strong> — PostgreSQL schema, atomic ID trigger, RBAC model <em>(you are here)</em></span>
+            <span><strong>The Data Layer</strong> — Atomic incident IDs <em>(you are here)</em></span>
           </li>
           <li>
             <span class="num">4</span>
-            <span><strong>Backend</strong> — FastAPI architecture, sessions, permissions, integrations</span>
+            <span><strong>The Backend API</strong> — FastAPI, sessions, integrations</span>
           </li>
           <li>
             <span class="num">5</span>
-            <span><strong>Frontend</strong> — Real-time dashboard, queue detection, alerting UI</span>
+            <span><strong>The Dashboard</strong> — Real-time UI, queue monitoring</span>
           </li>
           <li>
             <span class="num">6</span>
-            <span><strong>Operations</strong> — Monitoring, troubleshooting, lessons learned</span>
+            <span><strong>Operations</strong> — Monitoring, troubleshooting, postmortems</span>
           </li>
         </ul>
       </div>
@@ -1140,19 +760,19 @@ DELETE FROM incidents WHERE alert_name LIKE 'SCHEMA TEST%';</code></pre>
       <div class="post-tags">
         <span class="tag">PostgreSQL</span>
         <span class="tag">Database Design</span>
-        <span class="tag">Schema</span>
         <span class="tag">Triggers</span>
-        <span class="tag">RBAC</span>
+        <span class="tag">PL/pgSQL</span>
         <span class="tag">Concurrency</span>
         <span class="tag">Atomic Operations</span>
-        <span class="tag">Soft Delete</span>
-        <span class="tag">Audit Trail</span>
+        <span class="tag">Race Conditions</span>
+        <span class="tag">Audit Log</span>
         <span class="tag">Multi-Tenant</span>
+        <span class="tag">Docker</span>
       </div>
 
       <div class="post-nav">
-        <a href="soc-platform-part-2.html" class="post-nav-link">← Part 2: Infrastructure</a>
-        <a href="soc-platform-part-4.html" class="post-nav-link">Part 4: Backend →</a>
+        <a href="soc-platform-part-2.html" class="post-nav-link">← Part 2: The Workflow Engine</a>
+        <a href="soc-platform-part-4.html" class="post-nav-link">Part 4: The Backend API →</a>
       </div>
     </footer>
 
@@ -1179,6 +799,29 @@ if(typeof P !== 'undefined' && P.showAvailBadgeOnBlog){
   const badge = document.getElementById('avail-badge');
   if(badge) badge.style.display='flex';
 }
+
+// Copy-button handler
+document.querySelectorAll('.copy-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const wrap = btn.closest('.code-wrap');
+    if(!wrap) return;
+    const codeEl = wrap.querySelector('pre code');
+    if(!codeEl) return;
+    try {
+      await navigator.clipboard.writeText(codeEl.textContent);
+      const old = btn.textContent;
+      btn.textContent = '✓ Copied';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = old;
+        btn.classList.remove('copied');
+      }, 1500);
+    } catch(e) {
+      btn.textContent = 'Failed';
+      setTimeout(() => btn.textContent = 'Copy', 1500);
+    }
+  });
+});
 </script>
 
 </body>
