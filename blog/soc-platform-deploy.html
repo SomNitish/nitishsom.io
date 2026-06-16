@@ -885,12 +885,156 @@ EOF</code></pre>
         </div>
       </div>
 
+      <div class="step">
+        <div class="step-head">
+          <div class="step-num">9</div>
+          <h3 class="step-title">(Optional) Set up the auto-scaler</h3>
+        </div>
+        <p>The platform works fine with the two default worker replicas in <code>docker-compose.yml</code>. But if you expect alert bursts — a misconfigured firewall rule, a vulnerability scanner kicking off, anything that fires hundreds of alerts in a few minutes — you'll want workers to scale up automatically and scale back down when things are quiet.</p>
+
+        <p>This is a small bash daemon that polls Redis queue depth every 5 seconds and adjusts the worker count between <code>MIN_WORKERS</code> and <code>MAX_WORKERS</code>. Managed by systemd so it survives reboots.</p>
+
+        <p>Save this as <code>/opt/security-automation/autoscale.sh</code>:</p>
+
+        <div class="code-wrap">
+          <div class="code-bar">
+            <span class="code-label">📄 /opt/security-automation/autoscale.sh</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+<pre><code>#!/bin/bash
+# -----------------------------------------------------------
+# N8N Worker Auto-Scaler
+# Polls Redis queue depth and scales workers between MIN/MAX.
+# -----------------------------------------------------------
+
+MIN_WORKERS=10
+MAX_WORKERS=50
+SCALE_UP_THRESHOLD=1        # queued jobs &gt;= this -&gt; scale up
+SCALE_DOWN_THRESHOLD=2      # queued jobs &lt;= this -&gt; scale down
+COOLDOWN=10                 # seconds between scale actions
+COMPOSE_DIR="/opt/security-automation"
+
+REDIS_PASS=$(grep ^REDIS_PASSWORD "$COMPOSE_DIR/.env" | cut -d= -f2)
+LAST_SCALE=0
+
+get_queue_depth() {
+    local wait active
+    wait=$(docker exec n8nq-redis redis-cli -a "$REDIS_PASS" \
+        --no-auth-warning LLEN bull:jobs:wait 2&gt;/dev/null | tr -cd '0-9')
+    active=$(docker exec n8nq-redis redis-cli -a "$REDIS_PASS" \
+        --no-auth-warning LLEN bull:jobs:active 2&gt;/dev/null | tr -cd '0-9')
+    echo $(( ${wait:-0} + ${active:-0} ))
+}
+
+get_current_workers() {
+    local count
+    count=$(docker compose -f "$COMPOSE_DIR/docker-compose.yml" \
+        ps --format json 2&gt;/dev/null | grep -c "n8nq-worker" || echo 2)
+    echo "${count:-2}"
+}
+
+scale_workers() {
+    local target=$1
+    local now current elapsed
+    now=$(date +%s)
+    elapsed=$((now - LAST_SCALE))
+
+    [ "$elapsed" -lt "$COOLDOWN" ] &amp;&amp; return     # still cooling down
+
+    current=$(get_current_workers)
+    [ "$current" -eq "$target" ] &amp;&amp; return       # already at target
+
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Scaling workers: $current -&gt; $target"
+    cd "$COMPOSE_DIR"
+    docker compose up -d --scale n8nq-worker="$target" --no-recreate 2&gt;/dev/null
+    LAST_SCALE=$now
+}
+
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Auto-scaler started | Min=$MIN_WORKERS Max=$MAX_WORKERS"
+
+while true; do
+    QUEUE=$(get_queue_depth)
+    CURRENT=$(get_current_workers)
+    echo "[$(date '+%H:%M:%S')] Queue: $QUEUE | Workers: $CURRENT"
+
+    if [ "$QUEUE" -ge "$SCALE_UP_THRESHOLD" ] &amp;&amp; [ "$CURRENT" -lt "$MAX_WORKERS" ]; then
+        NEW=$((CURRENT + 1))
+        [ "$NEW" -gt "$MAX_WORKERS" ] &amp;&amp; NEW=$MAX_WORKERS
+        scale_workers "$NEW"
+    elif [ "$QUEUE" -le "$SCALE_DOWN_THRESHOLD" ] &amp;&amp; [ "$CURRENT" -gt "$MIN_WORKERS" ]; then
+        NEW=$((CURRENT - 1))
+        [ "$NEW" -lt "$MIN_WORKERS" ] &amp;&amp; NEW=$MIN_WORKERS
+        scale_workers "$NEW"
+    fi
+
+    sleep 5
+done</code></pre>
+        </div>
+
+        <p>Make it executable:</p>
+
+        <div class="code-wrap">
+          <div class="code-bar">
+            <span class="code-label">▸ make executable</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+<pre><code>sudo chmod +x /opt/security-automation/autoscale.sh</code></pre>
+        </div>
+
+        <p>Now create the systemd unit. Save this as <code>/etc/systemd/system/n8n-autoscale.service</code>:</p>
+
+        <div class="code-wrap">
+          <div class="code-bar">
+            <span class="code-label">📄 /etc/systemd/system/n8n-autoscale.service</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+<pre><code>[Unit]
+Description=N8N Worker Auto-Scaler
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/security-automation
+ExecStart=/bin/bash /opt/security-automation/autoscale.sh
+Restart=always
+RestartSec=5
+StandardOutput=append:/opt/security-automation/autoscale.log
+StandardError=append:/opt/security-automation/autoscale.log
+User=root
+LimitNOFILE=4096
+
+[Install]
+WantedBy=multi-user.target</code></pre>
+        </div>
+
+        <p>Reload systemd, enable the service, and start it:</p>
+
+        <div class="code-wrap">
+          <div class="code-bar">
+            <span class="code-label">▸ enable + start</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+<pre><code>sudo systemctl daemon-reload
+sudo systemctl enable n8n-autoscale.service
+sudo systemctl start n8n-autoscale.service
+
+# Watch it work
+tail -f /opt/security-automation/autoscale.log</code></pre>
+        </div>
+
+        <p>You should see a line every 5 seconds reporting the current queue depth and worker count. When the queue piles up, the script scales workers up; when things go quiet, it scales them back down to <code>MIN_WORKERS</code>.</p>
+
+        <div class="solution-box">
+          <p><strong>Tuning for your environment:</strong> The defaults (<code>MIN=10</code>, <code>MAX=50</code>) are sized for a busy SOC. For lower-volume setups, drop <code>MIN_WORKERS</code> to <code>2</code> and <code>MAX_WORKERS</code> to <code>10</code>. Edit the variables at the top of the script and restart the service: <code>sudo systemctl restart n8n-autoscale</code>.</p>
+        </div>
+      </div>
+
       <h2>What's Not Covered Here</h2>
 
-      <p>This page is the load-bearing core. Three things from the full series build on top of it but aren't required to get the platform running:</p>
+      <p>This page is the load-bearing core plus the optional autoscaler. Two more components from the full series build on top of it but aren't required to get the platform running:</p>
 
       <ul>
-        <li><strong>The autoscaler</strong> (Part 2) — bash daemon + systemd unit that scales workers between 10 and 50 based on Redis queue depth. Optional but strongly recommended for production.</li>
         <li><strong>The FastAPI dashboard backend</strong> (Part 4) — wraps the database in REST endpoints with auth, sessions, permissions, and Jira sync. Required if you want a UI; not required if you're driving the platform through N8N's editor only.</li>
         <li><strong>The vanilla-JS dashboard</strong> (Part 5) — the screen analysts use. Sits on top of the FastAPI backend.</li>
       </ul>
