@@ -1,12 +1,31 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
+<!--
+  === LINK FIXES APPLIED 2025-06-25 ===
+  Root cause: <base href="/nitishsom.io/"> was present in <head>, making EVERY
+  relative URL resolve as /nitishsom.io/<path> instead of the correct path.
+
+  Changes made:
+  1. REMOVED: <base href="/nitishsom.io/"> — root cause of all broken links.
+  2. CSS:  assets/shared.css  →  ../assets/shared.css
+  3. Nav logo:       href="index.html"              →  href="../index.html"
+  4. Nav About:      href="index.html#about"        →  href="../index.html#about"
+  5. Nav Experience: href="index.html#experience"   →  href="../index.html#experience"
+  6. Nav Projects:   href="projects.html"           →  href="../projects.html"
+  7. Nav Blog:       href="blog/index.html"         →  href="index.html"
+  8. Nav Certs:      href="certifications/index.html" → href="../certifications/index.html"
+  9. Footer Topics:  href="topics/index.html"       →  href="../topics/index.html"
+ 10. Footer Roadmap: href="roadmap.html"            →  href="../roadmap.html"
+ 11. Footer Sitemap: href="sitemap.html"            →  href="../sitemap.html"
+ 12. JS:  assets/data.js  →  ../assets/data.js
+-->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<base href="/nitishsom.io/">
 <title>The Dashboard — Vanilla JS, Queue Monitoring, Alerting (Part 5) — Nitish Som</title>
 <meta name="description" content="The backend serves JSON. Analysts don't drink JSON. Part 5 builds the screen — vanilla JavaScript, no framework, no build step. A polling refresh loop, a queue-stuck overlay that drafts an emergency email for you, real-time notifications, and Chart.js for the queue history.">
-<link rel="stylesheet" href="assets/shared.css">
+<!-- FIXED: path was "assets/shared.css" → "../assets/shared.css" (file is in /blog/, assets/ is at root level) -->
+<link rel="stylesheet" href="../assets/shared.css">
 <style>
 :root{
   --primary:#3b82f6;--primary-dark:#2563eb;
@@ -210,15 +229,16 @@
 </head>
 <body>
 
+<!-- FIXED: All nav links below had their paths corrected — see header comment block for full change list -->
 <nav class="site-nav">
   <div class="container nav-inner">
-    <a href="index.html" class="nav-logo"><span class="nav-logo-dot"></span>Nitish <em>Som</em></a>
+    <a href="../index.html" class="nav-logo"><span class="nav-logo-dot"></span>Nitish <em>Som</em></a>
     <div class="nav-links">
-      <a href="index.html#about">About</a>
-      <a href="index.html#experience">Experience</a>
-      <a href="projects.html">Projects</a>
-      <a href="blog/index.html">Blog</a>
-      <a href="certifications/index.html">Certs</a>
+      <a href="../index.html#about">About</a>
+      <a href="../index.html#experience">Experience</a>
+      <a href="../projects.html">Projects</a>
+      <a href="index.html">Blog</a>
+      <a href="../certifications/index.html">Certs</a>
     </div>
     <div class="nav-right">
       <button class="cmdk-btn"><span>Search</span><kbd>⌘K</kbd></button>
@@ -808,6 +828,7 @@ setInterval(loadQueueHistory, 30000);   // refresh every 30s
   </div>
 </article>
 
+<!-- FIXED: All footer links below updated to use ../ prefix to reach root-level pages from /blog/ -->
 <footer class="site-footer">
   <div class="container footer-inner">
     <div class="footer-left">
@@ -815,14 +836,15 @@ setInterval(loadQueueHistory, 30000);   // refresh every 30s
       <div class="footer-copy">© 2026 · Built with focus on detection engineering</div>
     </div>
     <div class="footer-links">
-      <a href="topics/index.html">Topics</a>
-      <a href="roadmap.html">Roadmap</a>
-      <a href="sitemap.html">Sitemap</a>
+      <a href="../topics/index.html">Topics</a>
+      <a href="../roadmap.html">Roadmap</a>
+      <a href="../sitemap.html">Sitemap</a>
     </div>
   </div>
 </footer>
 
-<script src="assets/data.js"></script>
+<!-- FIXED: script path was "assets/data.js" → "../assets/data.js" (one level up from /blog/) -->
+<script src="../assets/data.js"></script>
 <script>
 if(typeof P !== 'undefined' && P.showAvailBadgeOnBlog){
   const badge = document.getElementById('avail-badge');

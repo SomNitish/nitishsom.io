@@ -1,12 +1,35 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
+<!--
+  === LINK FIXES APPLIED 2025-06-25 ===
+  Root cause: <base href="/nitishsom.io/"> was present in <head>, making EVERY
+  relative URL resolve as /nitishsom.io/<path> instead of the correct path.
+
+  Changes made:
+  1. REMOVED: <base href="/nitishsom.io/"> — root cause of all broken links.
+  2. CSS:  assets/shared.css  →  ../assets/shared.css
+  3. Nav logo:       href="index.html"                →  href="../index.html"
+  4. Nav About:      href="index.html#about"          →  href="../index.html#about"
+  5. Nav Experience: href="index.html#experience"     →  href="../index.html#experience"
+  6. Nav Topics:     href="topics/index.html"         →  href="../topics/index.html"
+  7. Nav Projects:   href="index.html#projects"       →  href="../index.html#projects"
+  8. Nav Certs:      href="certifications/index.html" →  href="../certifications/index.html"
+  9. Nav Blog:       href="blog/index.html"           →  href="index.html"
+ 10. Nav Roadmap:    href="roadmap.html"              →  href="../roadmap.html"
+ 11. Back link:      href="blog/index.html"           →  href="index.html"
+ 12. Footer Topics:  href="topics/index.html"         →  href="../topics/index.html"
+ 13. Footer Roadmap: href="roadmap.html"              →  href="../roadmap.html"
+ 14. Footer Sitemap: href="sitemap.html"              →  href="../sitemap.html"
+ 15. Footer KG:      href="knowledge-graph.html"      →  href="../knowledge-graph.html"
+ 16. JS:  assets/data.js  →  ../assets/data.js
+-->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<base href="/nitishsom.io/">
 <title>Hypothesis-Based Threat Hunting: My Learning Notes — Nitish Som</title>
 <meta name="description" content="While learning threat hunting, I discovered the hypothesis-driven approach. Here are 7 real-world hunting hypotheses I've learned so far.">
-<link rel="stylesheet" href="assets/shared.css">
+<!-- FIXED: path was "assets/shared.css" → "../assets/shared.css" (file is in /blog/, assets/ is at root level) -->
+<link rel="stylesheet" href="../assets/shared.css">
 
 <!-- Open Graph -->
 <meta property="og:title" content="Hypothesis-Based Threat Hunting: My Learning Notes">
@@ -94,17 +117,18 @@
 </head>
 <body>
 
+<!-- FIXED: All nav links below had their paths corrected — see header comment block for full change list -->
 <nav class="site-nav">
   <div class="container nav-inner">
-    <a href="index.html" class="nav-logo"><span class="nav-logo-dot"></span>Nitish <em>Som</em></a>
+    <a href="../index.html" class="nav-logo"><span class="nav-logo-dot"></span>Nitish <em>Som</em></a>
     <div class="nav-links">
-      <a href="index.html#about">About</a>
-      <a href="index.html#experience">Experience</a>
-      <a href="topics/index.html">Topics</a>
-      <a href="index.html#projects">Projects</a>
-      <a href="certifications/index.html">Certs</a>
-      <a href="blog/index.html" class="act">Blog</a>
-      <a href="roadmap.html">Roadmap</a>
+      <a href="../index.html#about">About</a>
+      <a href="../index.html#experience">Experience</a>
+      <a href="../topics/index.html">Topics</a>
+      <a href="../index.html#projects">Projects</a>
+      <a href="../certifications/index.html">Certs</a>
+      <a href="index.html" class="act">Blog</a>
+      <a href="../roadmap.html">Roadmap</a>
     </div>
     <div class="nav-right">
       <button class="cmdk-btn"><span>Search</span><kbd>⌘K</kbd></button>
@@ -115,7 +139,7 @@
 
 <section class="post-hero">
   <div class="container fu">
-    <a href="blog/index.html" class="back-link">← All posts</a>
+    <a href="index.html" class="back-link">← All posts</a>
     <div class="post-meta">
       <span class="post-cat">Threat Hunting</span>
       <span class="post-date">April 25, 2025</span>
@@ -491,6 +515,7 @@
   <button class="quick-btn scroll-top-btn" onclick="scrollToTop()" title="Scroll to top">↑</button>
 </div>
 
+<!-- FIXED: All footer links below updated to use ../ prefix to reach root-level pages from /blog/ -->
 <footer class="site-footer">
   <div class="container footer-inner">
     <div class="footer-left">
@@ -498,16 +523,17 @@
       <div class="footer-copy">© 2025</div>
     </div>
     <div class="footer-links">
-      <a href="topics/index.html">Topics</a>
-      <a href="roadmap.html">Roadmap</a>
-      <a href="sitemap.html">Sitemap</a>
-      <a href="knowledge-graph.html">Knowledge graph</a>
+      <a href="../topics/index.html">Topics</a>
+      <a href="../roadmap.html">Roadmap</a>
+      <a href="../sitemap.html">Sitemap</a>
+      <a href="../knowledge-graph.html">Knowledge graph</a>
     </div>
     <div class="footer-tz">IST · UTC+5:30</div>
   </div>
 </footer>
 
-<script src="assets/data.js"></script>
+<!-- FIXED: script path was "assets/data.js" → "../assets/data.js" (one level up from /blog/) -->
+<script src="../assets/data.js"></script>
 <script src="assets/cmdk.js"></script>
 <script>
 // Badge visibility controlled by P.showAvailBadgeOnBlog in data.js
