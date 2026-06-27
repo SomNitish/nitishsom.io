@@ -1,0 +1,830 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<!--
+  === LINK FIXES APPLIED 2026-06-26 ===
+  Root cause: <base href="/nitishsom.io/"> was present, making every relative URL
+  resolve as /nitishsom.io/<path>. This file lives in /Projects/ so all paths need
+  a "../" prefix to reach root-level assets.
+
+  Changes made:
+  1. REMOVED: <base href="/nitishsom.io/"> — root cause of all broken links.
+  2. CSS:  assets/shared.css          →  ../assets/shared.css
+  3. JS:   assets/data.js             →  ../assets/data.js
+  4. Nav logo:                        href="index.html"                →  href="../index.html"
+  5. Nav About/Experience:            href="index.html#..."            →  href="../index.html#..."
+  6. Nav Projects:                    href="projects.html"             →  href="../projects.html"
+  7. Nav Blog:                        href="blog/index.html"           →  href="../blog/index.html"
+  8. Nav Certs:                        href="certifications/index.html" →  href="../certifications/index.html"
+  9. Related Reading / post-nav:      href="soc-platform-project.html" →  href="multi-threadding-project.html"
+     (SOC platform overview is already in Projects/ — no prefix needed)
+ 10. Related Reading:                 href="soc-platform-part-2.html"  →  href="../blog/soc-platform-part-2.html"
+ 11. Footer links:                    href="topics/index.html"         →  href="../topics/index.html"
+                                      href="roadmap.html"              →  href="../roadmap.html"
+                                      href="sitemap.html"              →  href="../sitemap.html"
+-->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<title>Automated Phishing Triage — Bit-Flag Scoring with N8N — Nitish Som</title>
+<meta name="description" content="A production N8N workflow that ingests Microsoft 365 phishing alerts from Wazuh, enriches IPs, domains and file hashes against VirusTotal and AbuseIPDB in parallel, scores threats with a bit-flag system that yields a unique fingerprint per alert, and only notifies analysts when the score actually warrants it.">
+<link rel="stylesheet" href="../assets/shared.css">
+<style>
+:root{
+  --primary:#3b82f6;--primary-dark:#2563eb;
+  --accent:#8b5cf6;--accent-dark:#7c3aed;
+  --cyan:#06b6d4;
+  --glow:rgba(59,130,246,.3);
+  --glow-violet:rgba(139,92,246,.25);
+}
+
+.blog-post{padding:80px 0 120px;min-height:100vh;background:var(--bg)}
+.container.narrow{max-width:840px}
+
+.post-header{margin-bottom:64px;padding:48px 0;border-bottom:1px solid var(--border);position:relative;overflow:hidden}
+.post-header::before{content:'';position:absolute;top:-100px;right:-100px;width:400px;height:400px;background:radial-gradient(circle,var(--glow) 0%,transparent 70%);pointer-events:none;z-index:0}
+.post-header::after{content:'';position:absolute;bottom:-50px;left:-50px;width:300px;height:300px;background:radial-gradient(circle,var(--glow-violet) 0%,transparent 70%);pointer-events:none;z-index:0}
+.post-header > *{position:relative;z-index:1}
+.post-meta{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:24px}
+.post-cat{font-size:11px;font-weight:700;padding:6px 14px;border-radius:var(--rp);text-transform:uppercase;letter-spacing:.08em;background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;box-shadow:0 4px 12px var(--glow)}
+.post-date,.post-read{font-family:var(--mono);font-size:12px;color:var(--text3)}
+.post-title{font-size:clamp(36px,5.5vw,56px);font-weight:800;letter-spacing:-.045em;line-height:1.05;color:var(--text);margin-bottom:20px;background:linear-gradient(135deg,var(--text) 0%,var(--primary) 60%,var(--accent) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.post-subtitle{font-size:19px;font-weight:300;color:var(--text2);line-height:1.55;max-width:720px}
+
+.post-content{font-size:16px;font-weight:300;color:var(--text2);line-height:1.8;letter-spacing:-.005em}
+.post-content h2{font-size:clamp(26px,3.8vw,34px);font-weight:700;color:var(--text);margin:64px 0 24px;letter-spacing:-.035em;line-height:1.2;position:relative;padding-left:20px}
+.post-content h2::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:4px;background:linear-gradient(180deg,var(--primary),var(--accent));border-radius:2px}
+.post-content h2:first-child{margin-top:0}
+.post-content h3{font-size:22px;font-weight:600;color:var(--text);margin:44px 0 16px;letter-spacing:-.025em}
+.post-content h4{font-size:18px;font-weight:600;color:var(--text);margin:32px 0 12px}
+.post-content p{margin-bottom:20px;line-height:1.8}
+.post-content p strong{color:var(--text);font-weight:600}
+.post-content ul,.post-content ol{margin:24px 0;padding-left:28px}
+.post-content li{margin-bottom:12px;line-height:1.7}
+.post-content li strong{color:var(--text);font-weight:600}
+.post-content code{font-family:var(--mono);font-size:14px;background:var(--bg2);border:1px solid var(--border);padding:2px 8px;border-radius:4px;color:var(--primary);font-weight:500}
+.post-content a{color:var(--primary);text-decoration:underline;font-weight:500;transition:opacity .15s}
+.post-content a:hover{color:var(--accent)}
+
+.code-wrap{margin:24px 0;border-radius:var(--r);overflow:hidden;border:1px solid #1e293b;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.code-bar{display:flex;align-items:center;justify-content:space-between;background:#0a0e1a;padding:10px 16px;border-bottom:1px solid #1e293b;position:relative}
+.code-bar::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--primary),var(--accent),var(--cyan))}
+.code-label{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--primary);letter-spacing:.04em}
+.copy-btn{font-family:var(--mono);font-size:11px;font-weight:600;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);color:#cbd5e1;padding:5px 12px;border-radius:4px;cursor:pointer;transition:.15s;display:inline-flex;align-items:center;gap:6px}
+.copy-btn:hover{background:rgba(59,130,246,.2);border-color:rgba(59,130,246,.5);color:#fff}
+.copy-btn.copied{background:rgba(34,197,94,.15);border-color:rgba(34,197,94,.4);color:#86efac}
+.code-wrap pre{background:#0a0e1a;border:none;margin:0;border-radius:0;padding:20px 24px;max-height:600px;overflow:auto;box-shadow:none}
+.code-wrap pre::before{display:none}
+.code-wrap pre code{background:none;border:none;padding:0;color:#e2e8f0;font-size:13px;line-height:1.7;font-weight:400;font-family:var(--mono)}
+
+.story-box{background:linear-gradient(135deg,rgba(59,130,246,.04),rgba(139,92,246,.04));border:1px solid var(--border);border-left:4px solid var(--primary);border-radius:var(--rs);padding:28px 32px;margin:32px 0;position:relative}
+.story-box::before{content:'❝';position:absolute;top:-10px;left:20px;font-size:48px;color:var(--primary);font-family:Georgia,serif;line-height:1;opacity:.4}
+.story-box p{margin-bottom:16px;font-style:italic;font-size:17px;line-height:1.7}
+.story-box p:last-child{margin-bottom:0}
+.story-box strong{color:var(--primary);font-weight:600;font-style:normal}
+
+.problem-box{background:rgba(239,68,68,.04);border:1px solid rgba(239,68,68,.2);border-left:4px solid #ef4444;border-radius:var(--rs);padding:24px;margin:32px 0}
+.problem-box strong{color:#dc2626;font-weight:700}
+
+.solution-box{background:linear-gradient(135deg,rgba(59,130,246,.05),rgba(139,92,246,.05));border:1px solid rgba(59,130,246,.2);border-left:4px solid var(--primary);border-radius:var(--rs);padding:24px;margin:32px 0}
+.solution-box strong{color:var(--primary);font-weight:700}
+
+.warning-box{background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.2);border-left:4px solid #f59e0b;border-radius:var(--rs);padding:24px;margin:32px 0}
+.warning-box strong{color:#d97706;font-weight:700}
+
+.applies-box{background:linear-gradient(135deg,rgba(6,182,212,.04),rgba(59,130,246,.04));border:1px solid rgba(6,182,212,.2);border-left:4px solid var(--cyan);border-radius:var(--rs);padding:24px;margin:32px 0}
+.applies-box h4{margin:0 0 12px 0;color:var(--cyan);font-size:15px;text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+.applies-box ul{margin:0;padding-left:20px}
+.applies-box li{font-size:14px;color:var(--text2);margin-bottom:8px;line-height:1.6}
+.applies-box li strong{color:var(--text);font-weight:600}
+
+/* Pipeline diagram */
+.pipeline{
+  background:#0a0e1a;border:1px solid #1e293b;border-radius:var(--r);
+  padding:28px 22px;margin:28px 0;
+  box-shadow:0 8px 32px rgba(0,0,0,.3);
+  position:relative;
+}
+.pipeline::before{content:'PIPELINE FLOW';position:absolute;top:12px;right:16px;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.2em;color:var(--primary);opacity:.6}
+.pl-row{display:flex;align-items:center;gap:10px;margin:8px 0;flex-wrap:wrap;justify-content:center}
+.pl-node{
+  background:linear-gradient(135deg,rgba(59,130,246,.1),rgba(139,92,246,.08));
+  border:1px solid rgba(59,130,246,.3);border-radius:var(--rs);
+  padding:10px 14px;text-align:center;min-width:140px;
+}
+.pl-node.filter{background:linear-gradient(135deg,rgba(245,158,11,.08),rgba(239,68,68,.05));border-color:rgba(245,158,11,.3)}
+.pl-node.extract{background:linear-gradient(135deg,rgba(6,182,212,.08),rgba(59,130,246,.06));border-color:rgba(6,182,212,.3)}
+.pl-node.enrich{background:linear-gradient(135deg,rgba(34,197,94,.08),rgba(6,182,212,.06));border-color:rgba(34,197,94,.3)}
+.pl-node.score{background:linear-gradient(135deg,rgba(139,92,246,.12),rgba(217,70,239,.08));border-color:rgba(139,92,246,.4)}
+.pl-node.notify{background:linear-gradient(135deg,rgba(239,68,68,.08),rgba(245,158,11,.06));border-color:rgba(239,68,68,.3)}
+.pl-node .ico{font-size:18px;margin-bottom:2px}
+.pl-node .name{font-family:var(--mono);font-size:11px;font-weight:700;color:#cbd5e1;letter-spacing:.04em;margin-bottom:2px}
+.pl-node .role{font-size:10px;color:#94a3b8;line-height:1.4}
+.pl-arrow{color:var(--primary);font-size:18px;font-weight:700;flex-shrink:0}
+@media(max-width:680px){
+  .pl-row{flex-direction:column}
+  .pl-arrow{transform:rotate(90deg);margin:2px 0}
+}
+
+/* Bit-flag visualization */
+.bitflag-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;
+  margin:28px 0;
+}
+.bf-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);
+  padding:18px;position:relative;overflow:hidden;
+}
+.bf-card .header{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:10px;
+}
+.bf-card .label{
+  font-family:var(--mono);font-size:10px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.08em;color:var(--text3);
+}
+.bf-card .value{
+  font-family:var(--mono);font-size:18px;font-weight:800;
+  background:linear-gradient(135deg,var(--primary),var(--accent));
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  line-height:1;
+}
+.bf-card .signal{font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px;line-height:1.3}
+.bf-card .desc{font-size:12px;color:var(--text2);line-height:1.5}
+.bf-card.t1{border-left:3px solid #94a3b8}
+.bf-card.t2{border-left:3px solid #facc15}
+.bf-card.t3{border-left:3px solid #f59e0b}
+.bf-card.t4{border-left:3px solid #ef4444}
+
+/* Risk tier table */
+.tier-table{
+  background:#0a0e1a;border:1px solid #1e293b;border-radius:var(--r);
+  padding:8px;margin:28px 0;
+  box-shadow:0 8px 32px rgba(0,0,0,.3);
+  overflow:hidden;
+}
+.tier-row{
+  display:grid;grid-template-columns:120px 1fr 110px 1fr;gap:14px;
+  padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.06);
+  align-items:center;
+}
+.tier-row:last-child{border-bottom:none}
+.tier-row.head{
+  background:linear-gradient(90deg,rgba(59,130,246,.08),rgba(139,92,246,.06));
+  font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.1em;
+  text-transform:uppercase;color:#94a3b8;padding:10px 16px;
+  border-bottom:1px solid rgba(255,255,255,.1);
+}
+.tier-row .tier-name{font-family:var(--mono);font-weight:700;font-size:13px}
+.tier-row .tier-score{font-family:var(--mono);font-size:12px;color:#cbd5e1}
+.tier-row .tier-pct{font-family:var(--mono);font-weight:800;font-size:14px;text-align:right}
+.tier-row .tier-action{font-size:12px;color:#cbd5e1;line-height:1.4}
+.tier-row.r1 .tier-name{color:#94a3b8}
+.tier-row.r1 .tier-pct{color:#94a3b8}
+.tier-row.r2 .tier-name{color:#fcd34d}
+.tier-row.r2 .tier-pct{color:#fcd34d}
+.tier-row.r3 .tier-name{color:#fb923c}
+.tier-row.r3 .tier-pct{color:#fb923c}
+.tier-row.r4 .tier-name{color:#fca5a5}
+.tier-row.r4 .tier-pct{color:#fca5a5}
+@media(max-width:680px){
+  .tier-row{grid-template-columns:1fr 1fr;font-size:12px}
+  .tier-row.head{display:none}
+}
+
+/* Walked-through example */
+.walkthrough{
+  background:linear-gradient(135deg,rgba(59,130,246,.04),rgba(139,92,246,.04));
+  border:1px solid var(--border);border-radius:var(--r);
+  padding:28px 30px;margin:32px 0;
+}
+.walkthrough h4{
+  margin:0 0 16px;color:var(--text);font-size:17px;font-weight:700;
+  display:flex;align-items:center;gap:8px;
+}
+.walkthrough .ex{
+  background:#0a0e1a;border:1px solid #1e293b;border-radius:var(--rs);
+  padding:14px 18px;font-family:var(--mono);font-size:12px;
+  color:#cbd5e1;line-height:1.85;margin:10px 0;
+}
+.walkthrough .ex .k{color:#94a3b8}
+.walkthrough .ex .v{color:#cbd5e1}
+.walkthrough .ex .fail{color:#fca5a5;font-weight:700}
+.walkthrough .ex .pass{color:#86efac;font-weight:700}
+.walkthrough .ex .calc{color:#fcd34d}
+.walkthrough .ex .final{color:#c4b5fd;font-weight:700}
+
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin:32px 0}
+.stat-card{background:linear-gradient(135deg,var(--surface),var(--bg2));border:1px solid var(--border);border-radius:var(--rs);padding:22px 18px;text-align:center;position:relative;overflow:hidden;transition:.2s}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--primary),var(--accent))}
+.stat-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px var(--glow)}
+.stat-number{font-size:28px;font-weight:800;background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px;line-height:1}
+.stat-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+
+.pull-quote{font-size:24px;font-weight:300;font-style:italic;color:var(--text);text-align:center;margin:48px 0;padding:32px 24px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);line-height:1.4}
+.pull-quote span{background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;font-weight:600}
+
+.post-footer{margin-top:80px;padding-top:40px;border-top:1px solid var(--border)}
+.post-tags{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:32px}
+.post-tags .tag{font-size:11px;font-weight:600;padding:6px 14px;border-radius:var(--rp);border:1px solid var(--border);background:var(--surface);color:var(--text3);font-family:var(--mono)}
+.post-nav{display:flex;justify-content:space-between;align-items:center;margin-top:32px;gap:16px;flex-wrap:wrap}
+.post-nav-link{font-size:14px;font-weight:600;color:var(--primary);text-decoration:none;display:inline-flex;align-items:center;gap:6px;transition:opacity .15s}
+.post-nav-link:hover{color:var(--accent)}
+
+@media(max-width:768px){
+  .blog-post{padding:48px 0 80px}
+  .post-header{margin-bottom:40px;padding:32px 0}
+  .post-content h2{margin:48px 0 20px;padding-left:16px}
+  .post-content h3{margin:36px 0 14px}
+  .code-wrap pre{max-height:400px;padding:14px 16px}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .pull-quote{font-size:18px;padding:24px 16px}
+  .walkthrough{padding:20px 18px}
+}
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <div class="container nav-inner">
+    <a href="../index.html" class="nav-logo"><span class="nav-logo-dot"></span>Nitish <em>Som</em></a>
+    <div class="nav-links">
+      <a href="../index.html#about">About</a>
+      <a href="../index.html#experience">Experience</a>
+      <a href="../projects.html">Projects</a>
+      <a href="../blog/index.html">Blog</a>
+      <a href="../certifications/index.html">Certs</a>
+    </div>
+    <div class="nav-right">
+      <button class="cmdk-btn"><span>Search</span><kbd>⌘K</kbd></button>
+    </div>
+  </div>
+</nav>
+
+<article class="blog-post">
+  <div class="container narrow">
+
+    <header class="post-header">
+      <div class="post-meta">
+        <span class="post-cat">Detection Engineering</span>
+        <span class="post-date">June 8, 2026</span>
+        <span class="post-read">22 min read</span>
+      </div>
+      <h1 class="post-title">Automated Phishing Triage with Bit-Flag Scoring</h1>
+      <p class="post-subtitle">A production N8N workflow that ingests Microsoft 365 phishing alerts from Wazuh, enriches IPs, domains, and file hashes against VirusTotal and AbuseIPDB in parallel, scores each alert with a 9-signal bit-flag system, and notifies only when the score actually warrants it.</p>
+    </header>
+
+    <div class="post-content">
+
+      <h2>The Use Case</h2>
+
+      <p>Microsoft 365 Defender catches a phishing email. It records the verdict, the authentication failures, the sender IP, the attachment hashes, the recipient. Wazuh pulls those audit logs in and fires rule <code>91556</code>. That fires a webhook to our N8N instance. So far, so good.</p>
+
+      <p>The problem starts at the next step. The raw Wazuh alert is dense — five hundred lines of JSON with most of it irrelevant. A human analyst handling this manually would:</p>
+
+      <ol>
+        <li>Open the Microsoft Defender portal to see the email details</li>
+        <li>Copy the sender IP and paste into VirusTotal</li>
+        <li>Copy the sender domain and paste into VirusTotal</li>
+        <li>If there's an attachment, copy the SHA-256 into VirusTotal too</li>
+        <li>Check AbuseIPDB for the IP</li>
+        <li>Read the SPF/DKIM/DMARC results in the alert</li>
+        <li>Decide whether to notify the user, the SOC team, both, or neither</li>
+        <li>If notifying, write an email with all the relevant context</li>
+      </ol>
+
+      <p>That's <strong>5-8 minutes per alert</strong> for something that fires dozens of times a day. The work is mechanical — the analyst is just shuttling data between four browser tabs — but the judgement call at step 7 is the bottleneck. Most of these phishing alerts are <em>already handled</em> by M365 (the email went to the junk folder), so notifying the user is noise. Some, though, slipped through. Knowing which is which without doing the lookup work is what makes triage slow.</p>
+
+      <p>I wanted a system that did all the mechanical work automatically, scored the result against a clear rubric, and only bothered an analyst when the score said it was worth bothering them.</p>
+
+      <h2>The Pipeline at a Glance</h2>
+
+      <p>The whole workflow has eleven nodes. They split into five conceptual stages: filter, extract, enrich (in parallel), score, and notify.</p>
+
+      <div class="pipeline">
+        <div class="pl-row">
+          <div class="pl-node"><div class="ico">📡</div><div class="name">WEBHOOK</div><div class="role">Wazuh rule 91556</div></div>
+        </div>
+        <div class="pl-row"><div class="pl-arrow">▼</div></div>
+        <div class="pl-row">
+          <div class="pl-node filter"><div class="ico">🛑</div><div class="name">RULE-ID CHECK</div><div class="role">accept 91556 only</div></div>
+          <div class="pl-arrow">→</div>
+          <div class="pl-node filter"><div class="ico">🛑</div><div class="name">DELIVERY CHECK</div><div class="role">DeliveredAsSpam<br>or Delivered</div></div>
+        </div>
+        <div class="pl-row"><div class="pl-arrow">▼</div></div>
+        <div class="pl-row">
+          <div class="pl-node extract"><div class="ico">🧩</div><div class="name">EXTRACT ARTIFACTS</div><div class="role">IP · domain · hash<br>SPF/DKIM/DMARC</div></div>
+        </div>
+        <div class="pl-row"><div class="pl-arrow">▼ fan out</div></div>
+        <div class="pl-row">
+          <div class="pl-node enrich"><div class="ico">🔍</div><div class="name">VT DOMAIN</div><div class="role">reputation</div></div>
+          <div class="pl-node enrich"><div class="ico">🔍</div><div class="name">VT IP</div><div class="role">reputation +<br>ASN + country</div></div>
+          <div class="pl-node enrich"><div class="ico">🔍</div><div class="name">VT FILE HASH</div><div class="role">engines that<br>flagged it</div></div>
+          <div class="pl-node enrich"><div class="ico">🔍</div><div class="name">ABUSEIPDB</div><div class="role">confidence<br>0-100</div></div>
+        </div>
+        <div class="pl-row"><div class="pl-arrow">▼ merge 4 inputs</div></div>
+        <div class="pl-row">
+          <div class="pl-node score"><div class="ico">🧮</div><div class="name">SCORE</div><div class="role">9-signal bit-flag<br>+ tier-based %</div></div>
+          <div class="pl-arrow">→</div>
+          <div class="pl-node score"><div class="ico">❓</div><div class="name">SHOULD NOTIFY?</div><div class="role">score ≥ 8</div></div>
+        </div>
+        <div class="pl-row"><div class="pl-arrow">▼ yes</div></div>
+        <div class="pl-row">
+          <div class="pl-node notify"><div class="ico">✉️</div><div class="name">RENDER EMAIL</div><div class="role">HTML template<br>Outlook-compatible</div></div>
+          <div class="pl-arrow">→</div>
+          <div class="pl-node notify"><div class="ico">📧</div><div class="name">SEND</div><div class="role">recipient +<br>cc SOC</div></div>
+        </div>
+      </div>
+
+      <p>The architectural decisions worth calling out: <strong>filtering happens at every stage</strong>, the four enrichment APIs <strong>run in parallel</strong>, and scoring uses a <strong>bit-flag system</strong> so the resulting number is a unique fingerprint of which signals fired. We'll come back to each.</p>
+
+      <h2>Stage 1 — Filter at the Source</h2>
+
+      <p>Two filter nodes drop alerts that aren't worth processing. The first checks the Wazuh rule ID; the second checks the Microsoft 365 <code>DeliveryAction</code> field.</p>
+
+      <p>Rule 91556 is the specific Wazuh rule for "Office 365: Phishing and malware events from Exchange Online Protection and Microsoft Defender for Office 365." We only care about that — not Exchange admin events, not mailbox login events. Drop everything else before it touches the rest of the pipeline.</p>
+
+      <p>The <code>DeliveryAction</code> filter is more interesting. The relevant values are:</p>
+
+      <ul>
+        <li><code>Delivered</code> — the email landed in the recipient's inbox</li>
+        <li><code>DeliveredAsSpam</code> — it landed in the junk folder</li>
+        <li><code>Blocked</code> — M365 dropped it entirely</li>
+        <li><code>Quarantined</code> — held for admin review</li>
+      </ul>
+
+      <p>I process the first two and ignore the rest. <strong>If M365 has already blocked or quarantined the email, the user can't interact with it</strong> — no notification needed. But if it reached either the inbox or the junk folder, the user might still see it and click something. Those alerts deserve enrichment and scoring.</p>
+
+      <p>The filter accepts either path — webhook delivery (<code>$json.body.all_fields…</code>) or a Wazuh re-indexed shape (<code>$json._source.data…</code>) — because the same workflow gets triggered from both sources. That dual-path handling shows up everywhere; it's the next stage's whole job.</p>
+
+      <h2>Stage 2 — Artifact Extraction (Two JSON Shapes, One Code Block)</h2>
+
+      <p>The Wazuh alert is shaped differently depending on whether the webhook fires from the live integration or from a re-played message in the Wazuh indexer. Same fields, different parent paths. Rather than build two parsing nodes and a merge, one Code node handles both shapes.</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">📄 Extract Artifacts — Code node</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>const item = $input.first().json;
+
+// Dynamic path selection — handles both webhook and re-index shapes
+const rawData = (item.body?.all_fields?.data)
+              ? item.body.all_fields.data.office365
+              : (item._source?.data)
+              ? item._source.data.office365
+              : null;
+
+if (!rawData) {
+    throw new Error("Could not find Office365 data in expected JSON paths.");
+}
+
+// Defensive extraction — never crash on missing fields
+const ip_address = rawData.SenderIp || "N/A";
+const senderEmail = rawData.P2Sender || rawData.SenderAddress;
+let domain_name = "N/A";
+if (senderEmail?.includes("@")) {
+    domain_name = senderEmail.split("@")[1];
+}
+
+// Attachments come as an array — flatten what we need
+const attachments = (rawData.AttachmentData || []).map(file =&gt; ({
+    name:      file.FileName || "Unknown",
+    extension: file.FileType || "Unknown",
+    hash:      file.SHA256   || null
+}));
+
+// AuthDetails is an array of {Name, Value} — turn it into a lookup
+const authList = rawData.AuthDetails || [];
+const getAuthStatus = (name) =&gt; {
+    const found = authList.find(i =&gt; i.Name === name);
+    return found ? found.Value : "N/A";
+};
+
+return {
+    source:            "MS365",
+    target_ip:         ip_address,
+    target_domain:     domain_name,
+    sender_mail:       senderEmail || "Unknown Sender",
+    receiver_mail:     Array.isArray(rawData.Recipients)
+                         ? rawData.Recipients.join(", ")
+                         : rawData.Recipients || "Unknown",
+    email_subject:     rawData.Subject || "No Subject",
+    delivery_location: rawData.LatestDeliveryLocation || "Unknown",
+    delivery_action:   rawData.DeliveryAction || "Unknown",
+    message_timestamp: rawData.MessageTime || "N/A",
+    detection_method:  rawData.DetectionMethod || "Unknown",
+    m365_verdict:      rawData.Verdict || "Unknown",
+    attachments:       attachments,
+    auth_details: {
+        spf:   getAuthStatus("SPF"),
+        dkim:  getAuthStatus("DKIM"),
+        dmarc: getAuthStatus("DMARC")
+    }
+};</code></pre>
+      </div>
+
+      <p>Three details that earn their keep:</p>
+
+      <ul>
+        <li><strong>Optional chaining everywhere.</strong> Wazuh alerts don't always carry every field, and the workflow has to survive partial data. Every property access uses <code>?.</code> and every value has an <code>||</code> fallback. The node throws exactly one error — when neither root path exists — and every other missing field becomes <code>"N/A"</code> downstream.</li>
+        <li><strong>The AuthDetails transformation.</strong> M365 returns SPF/DKIM/DMARC as an array of <code>{Name, Value}</code> objects, not a dictionary. The <code>getAuthStatus</code> helper turns array lookups into property accesses for the rest of the pipeline.</li>
+        <li><strong>Output shape is intentionally flat.</strong> Every downstream node references <code>$json.target_ip</code>, not <code>$json.body.all_fields.data.office365.SenderIp</code>. The Code node is also the schema-flattening node.</li>
+      </ul>
+
+      <h2>Stage 3 — Parallel Enrichment Across Four APIs</h2>
+
+      <p>The extracted artifacts fan out to four HTTP nodes that run simultaneously:</p>
+
+      <ul>
+        <li><strong>VirusTotal IP lookup</strong> — returns last-analysis stats (how many engines flagged it), the AS owner, and country</li>
+        <li><strong>VirusTotal Domain lookup</strong> — returns last-analysis stats on the sender domain</li>
+        <li><strong>VirusTotal File Hash lookup</strong> — for the first attachment (if any), returns engine detection counts</li>
+        <li><strong>AbuseIPDB lookup</strong> — returns a 0-100 confidence score for the IP, plus its usage type</li>
+      </ul>
+
+      <p>These all happen in parallel because N8N fans out arrays of outgoing connections to nodes that run concurrently. <strong>Four sequential API calls would take about 1.6 seconds in total. Four parallel calls take ~400 ms</strong> — the time of the slowest single call. That difference matters when the SOC receives 60 alerts in a burst.</p>
+
+      <p>A 4-input Merge node downstream waits for all four to complete, then passes a single combined item to the scorer. If any of the enrichment calls fails (VT rate limit, AbuseIPDB hiccup), the workflow uses <code>onError: continueRegularOutput</code> so the rest of the pipeline still runs with a missing enrichment instead of dying. A missing VT result just means that signal scores zero — which is the safe default.</p>
+
+      <div class="warning-box">
+        <p><strong>Free-tier API rate limits matter here.</strong> VirusTotal's free public API allows 4 requests per minute. If the SOC gets a flood of phishing alerts, we'd burn through that quota immediately. In production we use the paid VT tier (1,000 req/min) — but the workflow's error handling means a hit limit doesn't break the pipeline, it just means that one alert is scored without VT data.</p>
+      </div>
+
+      <h2>Stage 4 — Bit-Flag Threat Scoring</h2>
+
+      <p>This is the core of the workflow. Every interesting design decision lives here.</p>
+
+      <p>The naive approach to "score a phishing alert" is to add up weighted signals — SPF failure is worth 2 points, DKIM failure is worth 5, malicious IP is worth 10, and so on. The problem with that is the resulting score is <em>lossy</em>: a score of 17 could mean "DKIM fail + malicious IP" or "SPF fail + something else + something else." You can't reconstruct which signals fired from the score alone.</p>
+
+      <p>The bit-flag approach fixes that. Every signal gets a unique power-of-two value:</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">▸ The 9 bit flags</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>const BIT = {
+    M365_SPAM:        1,    //  2^0
+    DMARC_FAIL:       2,    //  2^1
+    SPF_FAIL:         4,    //  2^2
+    DKIM_FAIL:        8,    //  2^3
+    IP_MALICIOUS:     16,   //  2^4
+    DOMAIN_MALICIOUS: 32,   //  2^5
+    ABUSEIPDB:        64,   //  2^6
+    EXEC_ATTACHMENT:  128,  //  2^7
+    M365_MALWARE:     256   //  2^8
+};</code></pre>
+      </div>
+
+      <p>Each signal sets its bit if triggered. Final <code>threat_score</code> is the sum. Because the values are powers of two, <strong>the resulting score uniquely encodes which signals fired</strong>. A score of 25 (= 16 + 8 + 1) tells me unambiguously that this alert had a malicious IP, a DKIM failure, and an M365 spam verdict.</p>
+
+      <p>Here's the full signal grid, ordered by weight:</p>
+
+      <div class="bitflag-grid">
+        <div class="bf-card t1">
+          <div class="header"><span class="label">Bit 0</span><span class="value">1</span></div>
+          <div class="signal">M365 Spam Verdict</div>
+          <div class="desc">Microsoft tagged the email as Spam. The lowest-weight signal — M365 already handled it.</div>
+        </div>
+        <div class="bf-card t1">
+          <div class="header"><span class="label">Bit 1</span><span class="value">2</span></div>
+          <div class="signal">DMARC Fail</div>
+          <div class="desc">DMARC check failed, "none", or missing. Strong spoofing signal.</div>
+        </div>
+        <div class="bf-card t1">
+          <div class="header"><span class="label">Bit 2</span><span class="value">4</span></div>
+          <div class="signal">SPF Fail</div>
+          <div class="desc">Sending server not in the domain's authorised list. Spoofing indicator.</div>
+        </div>
+        <div class="bf-card t2">
+          <div class="header"><span class="label">Bit 3</span><span class="value">8</span></div>
+          <div class="signal">DKIM Fail</div>
+          <div class="desc">Message signature missing or invalid. Content tampering or impersonation.</div>
+        </div>
+        <div class="bf-card t2">
+          <div class="header"><span class="label">Bit 4</span><span class="value">16</span></div>
+          <div class="signal">IP Malicious</div>
+          <div class="desc">VirusTotal ≥3 engines flagged the sender IP, or AbuseIPDB ≥50.</div>
+        </div>
+        <div class="bf-card t3">
+          <div class="header"><span class="label">Bit 5</span><span class="value">32</span></div>
+          <div class="signal">Domain Malicious</div>
+          <div class="desc">VirusTotal ≥3 engines flagged the sender domain, or urlscan returned malicious.</div>
+        </div>
+        <div class="bf-card t3">
+          <div class="header"><span class="label">Bit 6</span><span class="value">64</span></div>
+          <div class="signal">AbuseIPDB ≥50</div>
+          <div class="desc">High-confidence abuse report independent of VirusTotal. Belt-and-suspenders.</div>
+        </div>
+        <div class="bf-card t4">
+          <div class="header"><span class="label">Bit 7</span><span class="value">128</span></div>
+          <div class="signal">Executable Attachment</div>
+          <div class="desc">An .exe / .bat / .ps1 / .js / .vbs etc. attached. Massive escalator on its own.</div>
+        </div>
+        <div class="bf-card t4">
+          <div class="header"><span class="label">Bit 8</span><span class="value">256</span></div>
+          <div class="signal">M365 Malware Verdict</div>
+          <div class="desc">Microsoft itself called it malware. Highest weight — independent expert system agrees.</div>
+        </div>
+      </div>
+
+      <p>The weighting is deliberately non-linear. An executable attachment alone (128) is worth more than DMARC + SPF + DKIM combined (2 + 4 + 8 = 14). That matches reality: a single failing auth check is common and not always alarming, but an unprompted <code>.exe</code> in an inbound email is almost never legitimate.</p>
+
+      <h3>The scoring code</h3>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">▸ Threat score calculation</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>let threat_score = 0;
+const flags_triggered = [];
+
+if (isM365Spam)         { threat_score += BIT.M365_SPAM;        flags_triggered.push('M365 Spam'); }
+if (dmarc_failed)        { threat_score += BIT.DMARC_FAIL;       flags_triggered.push('DMARC Fail'); }
+if (spf_failed)          { threat_score += BIT.SPF_FAIL;         flags_triggered.push('SPF Fail'); }
+if (dkim_failed)         { threat_score += BIT.DKIM_FAIL;        flags_triggered.push('DKIM Fail'); }
+if (ipMalicious)         { threat_score += BIT.IP_MALICIOUS;     flags_triggered.push('IP Malicious'); }
+if (domMalicious)        { threat_score += BIT.DOMAIN_MALICIOUS; flags_triggered.push('Domain Malicious'); }
+if (abuseTriggered)      { threat_score += BIT.ABUSEIPDB;        flags_triggered.push('AbuseIPDB ≥50'); }
+if (isExecAttachment)    { threat_score += BIT.EXEC_ATTACHMENT;  flags_triggered.push('Executable Attachment'); }
+if (isM365Malware)       { threat_score += BIT.M365_MALWARE;     flags_triggered.push('M365 Malware'); }</code></pre>
+      </div>
+
+      <p>The <code>flags_triggered</code> array is also produced — handy for auditing, for sending in the analyst email, and for any future ML training data that wants to learn which signal combinations actually correlated with real incidents.</p>
+
+      <h2>Risk Tiers and the Tier-Based Percentage</h2>
+
+      <p>The raw score lives in the range 0-511 (sum of all 9 bits). That's not a human-friendly scale. Risk tiers map ranges of scores to human labels, and a tier-based percentage maps them to 0-100% for the visual progress bar in the email.</p>
+
+      <div class="tier-table">
+        <div class="tier-row head"><div>Tier</div><div>Score range</div><div>Percent</div><div>Action</div></div>
+        <div class="tier-row r1"><div class="tier-name">Low</div><div class="tier-score">1 — 7</div><div class="tier-pct">1 — 24%</div><div class="tier-action">No notification. M365 already handled it.</div></div>
+        <div class="tier-row r2"><div class="tier-name">Medium</div><div class="tier-score">8 — 15</div><div class="tier-pct">25 — 49%</div><div class="tier-action">Notify recipient + cc SOC.</div></div>
+        <div class="tier-row r3"><div class="tier-name">High</div><div class="tier-score">16 — 127</div><div class="tier-pct">50 — 74%</div><div class="tier-action">Notify with elevated alert styling.</div></div>
+        <div class="tier-row r4"><div class="tier-name">Very High</div><div class="tier-score">128 — 511</div><div class="tier-pct">75 — 100%</div><div class="tier-action">Critical banner. Active threat language.</div></div>
+      </div>
+
+      <p>Why tier-based instead of linear? Because <strong>the relationship between threat signals and actual risk is non-linear</strong>. A score of 16 (just a malicious IP) is genuinely much worse than a score of 14 (all three auth checks failing on a benign sender). A linear mapping would put them within 1% of each other; the tier system puts the 16 into "High Risk" (≥50%) and the 14 into "Medium Risk" (~46%) — and that's the right call.</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">▸ Tier-based percentage function</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>function calcRiskPercent(score) {
+    if (score === 0)  return 0;
+    if (score &gt;= 128) return Math.min(Math.round(75 + ((score - 128) / (511 - 128)) * 25), 100);
+    if (score &gt;= 16)  return Math.round(50 + ((score - 16)  / (127 - 16)) * 24);
+    if (score &gt;= 8)   return Math.round(25 + ((score - 8)   / (15  - 8))  * 24);
+    /* 1-7 */         return Math.round(1  + ((score - 1)   / (7   - 1))  * 23);
+}</code></pre>
+      </div>
+
+      <p>Within each tier, the percentage scales linearly. Between tiers, it jumps. The result looks natural in the email's progress bar without flattening important distinctions.</p>
+
+      <h2>The Notify Decision</h2>
+
+      <p>An <code>If</code> node downstream of the scorer checks <code>should_notify === true</code>, which the scorer sets when <code>threat_score &gt;= 8</code>. Anything below that — a phishing email M365 already handled cleanly, with no auth failures or bad reputation — never reaches a human. That's the whole point.</p>
+
+      <div class="solution-box">
+        <p><strong>This is where the noise reduction happens.</strong> In a typical week, about 60% of M365 phishing alerts score below 8 — meaning M365 caught them, the auth checks passed, and the sender IP/domain were clean. Those don't deserve a notification. The remaining 40% — anything M365 caught but with a real signal of compromise — do. The platform sends those, and only those.</p>
+      </div>
+
+      <h2>Stage 5 — The Styled Email</h2>
+
+      <p>When the scorer says "notify," an HTML node renders a styled email and an Outlook node sends it. The template is intentionally <strong>Outlook-compatible</strong> — table-based layout, inline styles, no flexbox or grid. Outlook for Windows still renders email like it's 2007, and "looks fine in Gmail" is not the same thing as "looks fine in the wild."</p>
+
+      <p>Three details from the template are worth pulling out.</p>
+
+      <h3>Defanged IPs and domains</h3>
+
+      <p>Email clients aggressively auto-link any URL or IP they see. Showing a known-malicious IP as a clickable link in a security warning email is a bad idea. The template displays them <em>defanged</em>:</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">▸ Defang helpers</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>function defangIP(ip) {
+    if (!ip || ip === 'N/A') return ip;
+    const lastDot = ip.lastIndexOf('.');
+    return ip.substring(0, lastDot) + '[.]' + ip.substring(lastDot + 1);
+}
+
+function defangDomain(domain) {
+    if (!domain || domain === 'N/A') return domain;
+    const lastDot = domain.lastIndexOf('.');
+    return domain.substring(0, lastDot) + '[.]' + domain.substring(lastDot + 1);
+}</code></pre>
+      </div>
+
+      <p>So <code>198.51.100.4</code> becomes <code>198.51.100[.]4</code>, and <code>example.org</code> becomes <code>example[.]org</code>. Outlook leaves those alone. The reader sees the value clearly but can't accidentally click into it.</p>
+
+      <h3>Plain-English authentication statements</h3>
+
+      <p>Instead of just showing "SPF: Fail / DKIM: Fail", the scorer also generates a human-readable explanation of what the combination means:</p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <span class="code-label">▸ Authentication statement builder</span>
+          <button class="copy-btn">Copy</button>
+        </div>
+<pre><code>let auth_statement = '';
+
+if (spf_failed &amp;&amp; dkim_failed) {
+    auth_statement = 'SPF &amp; DKIM both FAILED — this email cannot be trusted. '
+                   + 'The sending server is not authorised for this domain and the message '
+                   + 'signature is invalid, making spoofing or impersonation highly likely.';
+} else if (dkim_failed) {
+    auth_statement = 'DKIM FAILED — sender identity unverified. The message\'s digital '
+                   + 'signature is missing or invalid, which means the content may have been '
+                   + 'tampered with or the domain is being impersonated.';
+} else if (spf_failed) {
+    auth_statement = 'SPF FAILED — unauthorised sending server. The mail server that sent '
+                   + 'this email is not listed as an approved sender for this domain — '
+                   + 'a strong indicator of spoofing.';
+} else if (allAuthPass_dmarc_none) {
+    auth_statement = 'SPF &amp; DKIM passed and sender reputation is currently clean — however, '
+                   + 'this domain has no DMARC policy published (DMARC: None). Without DMARC '
+                   + 'enforcement, spoofing from this domain cannot be blocked even if SPF/DKIM pass.';
+} else {
+    auth_statement = 'SPF &amp; DKIM passed — but this does not confirm legitimacy. Other threat '
+                   + 'signals are present; treat this email as high risk and verify the sender '
+                   + 'independently.';
+}</code></pre>
+      </div>
+
+      <p>Non-technical recipients won't know what DKIM is. They will understand "this email's identity cannot be verified, treat it as suspicious." The statement is rendered inline in the email so the explanation always travels with the alert.</p>
+
+      <h3>Conditional attachment section</h3>
+
+      <p>The template only renders the attachment block if there's actually an attachment, and the styling adapts based on whether the attachment was flagged by VirusTotal (red), is a suspicious executable type (amber), or just an ordinary document (neutral). One template, three visual states.</p>
+
+      <h2>A Real Alert, Scored End to End</h2>
+
+      <p>Here's an alert that came through last week. A spoofed-domain phishing email targeting a finance user, delivered to the junk folder by M365.</p>
+
+      <div class="walkthrough">
+        <h4>Alert #1 — Phish to Junk</h4>
+
+        <div class="ex">
+<span class="k">Sender IP:</span>          <span class="v">198.51.100.4</span>     (Mailchimp ASN)
+<span class="k">Sender domain:</span>      <span class="v">titan-awards[.]example</span>
+<span class="k">Subject:</span>            <span class="v">"Deadline Tonight — Full Results Friday"</span>
+<span class="k">DeliveryAction:</span>     <span class="v">DeliveredAsSpam</span>     (in junk folder)
+<span class="k">M365 Verdict:</span>       <span class="v">Phish</span>
+<span class="k">DetectionMethod:</span>    <span class="v">Spoof external domain</span>
+
+<span class="k">SPF:</span>     <span class="fail">Fail</span>     <span class="k">→ flag SPF_FAIL  (+4)</span>
+<span class="k">DKIM:</span>    <span class="fail">Fail</span>     <span class="k">→ flag DKIM_FAIL (+8)</span>
+<span class="k">DMARC:</span>   <span class="fail">Fail</span>     <span class="k">→ flag DMARC_FAIL (+2)</span>
+
+<span class="k">VT IP detections:</span>     <span class="pass">0</span>     <span class="k">→ no flag (Mailchimp infrastructure)</span>
+<span class="k">VT domain detections:</span> <span class="pass">0</span>     <span class="k">→ no flag (new domain, not yet scanned)</span>
+<span class="k">AbuseIPDB confidence:</span>  <span class="pass">2</span>     <span class="k">→ no flag (well below 50)</span>
+<span class="k">Attachments:</span>          <span class="pass">none</span>  <span class="k">→ no flag</span>
+<span class="k">M365 Verdict:</span>         <span class="v">Phish</span> <span class="k">(not "spam", not "malware") → no flag</span>
+
+<span class="calc">─────────────────────────────────</span>
+<span class="calc">threat_score = 4 + 8 + 2 = 14</span>
+<span class="calc">              tier = Medium Risk</span>
+<span class="calc">              risk_percent = 25 + ((14-8) / 7) * 24 ≈ 46%</span>
+<span class="final">              should_notify = TRUE</span>
+        </div>
+
+        <p style="margin:14px 0 0;color:var(--text2);font-size:14px;line-height:1.6">An analyst receives a Medium Risk notification with the email details, the failed-auth explanation, and the recommendation to verify through a separate channel. <strong>The recipient gets a heads-up that something landed in their junk folder that's actively impersonating a domain</strong> — which is exactly the signal a phishing-aware user needs to keep clicking "Mark as spam" instead of "Mark as not spam".</p>
+      </div>
+
+      <p>Contrast that with another alert from the same batch: M365 caught a legitimate marketing email and mistakenly tagged it as phishing. SPF passed, DKIM passed, DMARC was set to "none," the sender domain was clean across VT and AbuseIPDB, no attachment, M365 verdict was "Spam" (not "Phish"). Score: 1 + 2 = 3. <strong>Below threshold, no notification</strong> — exactly right.</p>
+
+      <h2>What This Earns Us</h2>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-number">~3s</div>
+          <div class="stat-label">Alert → email</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">~60%</div>
+          <div class="stat-label">Alerts dropped silently</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">4</div>
+          <div class="stat-label">Parallel enrichments</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">9</div>
+          <div class="stat-label">Threat signals scored</div>
+        </div>
+      </div>
+
+      <p>The platform handles every M365 phishing alert that fires. About 60% are dropped silently because the score is below 8 — M365 already handled them and there's no signal worth waking a human for. The remaining 40% reach an analyst with full context — IPs and domains already enriched, authentication failures explained in plain English, the threat score broken down by which flags fired, and recommended next steps printed at the bottom.</p>
+
+      <p>The cost is essentially nothing. Four API calls per alert (parallel) and one outbound email when warranted. The N8N workflow runs inside a worker container that's already up; the marginal cost is in the millisecond range.</p>
+
+      <h2>Lessons from Six Months of Running This</h2>
+
+      <h3>1. Bit-flag scoring beat weighted-sum scoring</h3>
+      <p>I tried weighted-sum scoring first. It worked, but every time I wanted to tune thresholds or audit a decision, I had to rebuild the logic from the score backwards. Bit-flags removed that entire problem. The score <em>is</em> the audit trail.</p>
+
+      <h3>2. The dual-path JSON parser saved me a refactor</h3>
+      <p>About a month in, we added a second source (Wazuh re-indexing for back-fill) and I expected to need a new pipeline. Because the extraction was written for two paths from day one, all I had to do was add the new source's webhook URL. No code changes.</p>
+
+      <h3>3. Outlook compatibility is not optional</h3>
+      <p>The first version of the email template used flexbox. It looked perfect in Gmail and in the Outlook preview. In actual Outlook for Windows it rendered as a vertical list of broken boxes. I rewrote the template using HTML tables (1990s style) and never had a layout bug since.</p>
+
+      <h3>4. Parallel enrichment was the easiest win</h3>
+      <p>Switching the four lookups from sequential to parallel was a 30-second change in N8N (drag four output connections from one node instead of chaining them) and shaved over a second off every alert's processing time. I should have done it on day one instead of day forty.</p>
+
+      <h2>Beyond Phishing — Where the Pattern Applies</h2>
+
+      <div class="applies-box">
+        <h4>Bit-flag scoring + parallel enrichment isn't a phishing-specific pattern</h4>
+        <ul>
+          <li><strong>Endpoint alert prioritization.</strong> EDR alerts have similar shape: a verdict from the tool, a hash, a process tree, network connections. Score them with bit-flags (signed binary? known LOLBin? unsigned + network call? credential dumping API?) and you get the same auditable triage system.</li>
+          <li><strong>Authentication anomaly scoring.</strong> Failed MFA challenge, IP not seen in 90 days, impossible travel, geolocation mismatch, unusual user-agent. Each one a bit. Score and tier.</li>
+          <li><strong>Customer support ticket triage.</strong> Bit-flags for paying customer, mentioned a competitor, mentioned "lawyer", attached a screenshot, in the founder's circle. Different domain, same engineering.</li>
+          <li><strong>Fraud detection on transactions.</strong> Different currency than usual, IP from anonymizing proxy, unusual amount, brand-new account. Score them and route the medium tier to humans, the very-high tier to auto-block.</li>
+          <li><strong>Any multi-signal decision system</strong> where you want a single number to convey the verdict <em>and</em> stay reversible into the input signals that produced it.</li>
+        </ul>
+      </div>
+
+      <p class="pull-quote">A good threat score isn't just a number. It's a <span>fingerprint of which signals fired</span> — visible at a glance, auditable in retrospect.</p>
+
+      <h2>Related Reading</h2>
+
+      <p>This workflow is one of about a dozen running on the SOC platform I built — the platform itself (queue-mode N8N, atomic incident IDs, FastAPI dashboard) is documented in a separate 6-part series. If you want to see the infrastructure this kind of workflow sits on top of, start with <a href="multi-threadding-project.html">the project overview</a>, or jump straight to <a href="../blog/soc-platform-part-2.html">Part 2: The Workflow Engine</a> for the N8N queue-mode story.</p>
+
+    </div>
+
+    <footer class="post-footer">
+      <div class="post-tags">
+        <span class="tag">N8N</span>
+        <span class="tag">Phishing</span>
+        <span class="tag">Microsoft 365</span>
+        <span class="tag">Wazuh</span>
+        <span class="tag">VirusTotal</span>
+        <span class="tag">AbuseIPDB</span>
+        <span class="tag">Bit-Flag Scoring</span>
+        <span class="tag">SOC Automation</span>
+        <span class="tag">Detection Engineering</span>
+        <span class="tag">SPF DKIM DMARC</span>
+      </div>
+
+      <div class="post-nav">
+        <a href="../blog/index.html" class="post-nav-link">← All posts</a>
+        <a href="multi-threadding-project.html" class="post-nav-link">SOC Platform project →</a>
+      </div>
+    </footer>
+
+  </div>
+</article>
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <div class="footer-left">
+      <div class="footer-logo">Nitish <em>Som</em></div>
+      <div class="footer-copy">© 2026 · Built with focus on detection engineering</div>
+    </div>
+    <div class="footer-links">
+      <a href="../topics/index.html">Topics</a>
+      <a href="../roadmap.html">Roadmap</a>
+      <a href="../sitemap.html">Sitemap</a>
+    </div>
+  </div>
+</footer>
+
+<script src="../assets/data.js"></script>
+<script>
+if(typeof P !== 'undefined' && P.showAvailBadgeOnBlog){
+  const badge = document.getElementById('avail-badge');
+  if(badge) badge.style.display='flex';
+}
+
+document.querySelectorAll('.copy-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const wrap = btn.closest('.code-wrap');
+    if(!wrap) return;
+    const codeEl = wrap.querySelector('pre code');
+    if(!codeEl) return;
+    try {
+      await navigator.clipboard.writeText(codeEl.textContent);
+      const old = btn.textContent;
+      btn.textContent = '✓ Copied';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = old;
+        btn.classList.remove('copied');
+      }, 1500);
+    } catch(e) {
+      btn.textContent = 'Failed';
+      setTimeout(() => btn.textContent = 'Copy', 1500);
+    }
+  });
+});
+</script>
+
+</body>
+</html>
