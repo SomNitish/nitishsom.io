@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<base href="/nitishsom.io/">
+<!-- FIXED 2026-06-28: removed <base href="/nitishsom.io/"> — was breaking all relative links, root-level pages do not need it -->
 <title>Nitish Som — SOC Analyst & Security Engineer</title>
 <meta name="description" content="Nitish Som — SOC Analyst and Security Engineer with 2+ years securing enterprise environments.">
 <link rel="stylesheet" href="assets/shared.css">
@@ -555,7 +555,7 @@
       <a href="topics/index.html">Topics</a>
       <a href="roadmap.html">Roadmap</a>
       <a href="sitemap.html">Sitemap</a>
-      <a href="skill-tree.html">Skill tree</a>
+      <!-- REMOVED: skill-tree.html does not exist — dead link removed -->
       <a href="knowledge-graph.html">Knowledge graph</a>
     </div>
     <!-- <div class="footer-tz">IST · UTC+5:30 · Remote ready</div> -->
@@ -565,7 +565,8 @@
 <script src="assets/data.js"></script>
 <script src="assets/cmdk.js"></script>
 <script>
-if(P.showHireBtn)document.getElementById('hire-btn').style.display='flex';
+// FIXED 2026-06-28: hire-btn — added onclick; button was visible but did nothing when clicked
+if(P.showHireBtn){const hb=document.getElementById('hire-btn');hb.style.display='flex';hb.addEventListener('click',()=>location.href='#contact');}
 if(P.showAvailBadge)document.getElementById('avail-badge').style.display='flex';
 const nameEl=document.getElementById('hero-name');
 const nameText=nameEl.textContent;

@@ -429,6 +429,8 @@ diff original_hash.txt image_hash.txt</code></pre>
 <script src="../assets/data.js"></script>
 <script>
 if(P.showAvailBadgeOnBlog)document.getElementById('avail-badge').style.display='flex';
+// ADDED 2026-06-28: hire-btn — controlled by showHireBtn in data.js
+if(P.showHireBtn){const hb=document.getElementById('hire-btn');hb.style.display='flex';hb.addEventListener('click',()=>location.href='../index.html#contact');}
 </script>
 
 </body>

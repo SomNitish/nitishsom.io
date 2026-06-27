@@ -1,11 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<base href="/nitishsom.io/">
+<!-- FIXED 2026-06-28: removed <base href="/nitishsom.io/"> — was breaking all relative links -->
 <title>Knowledge Graph — Nitish Som</title>
-<link rel="stylesheet" href="assets/shared.css">
+<link rel="stylesheet" href="../assets/shared.css">
 <script src="https://d3js.org/d3.v7.min.js"></script>
 <style>
 .graph-hero{padding:64px 0 48px;border-bottom:1px solid var(--border)}
@@ -34,19 +34,20 @@
 
 <nav class="site-nav">
   <div class="container nav-inner">
-    <a href="index.html" class="nav-logo"><span class="nav-logo-dot"></span>Nitish <em>Som</em></a>
+    <a href="../index.html" class="nav-logo"><span class="nav-logo-dot"></span>Nitish <em>Som</em></a>
     <div class="nav-links">
-      <a href="index.html#about">About</a>
-      <a href="index.html#experience">Experience</a>
-      <a href="topics/index.html">Topics</a>
-      <a href="index.html#projects">Projects</a>
-      <a href="certifications/index.html">Certs</a>
-      <a href="blog/index.html">Blog</a>
-      <a href="roadmap.html">Roadmap</a>
+      <a href="../index.html#about">About</a>
+      <a href="../index.html#experience">Experience</a>
+      <a href="index.html">Topics</a>
+      <a href="../projects.html">Projects</a>
+      <a href="../certifications/index.html">Certs</a>
+      <a href="../blog/index.html">Blog</a>
+      <a href="../roadmap.html">Roadmap</a>
     </div>
     <div class="nav-right">
       <button class="cmdk-btn"><span>Search</span><kbd>⌘K</kbd></button>
       <div id="avail-badge"><span class="pulse"></span>Open to remote</div>
+      <button id="hire-btn"><span class="pulse"></span>Hire me</button>
     </div>
   </div>
 </nav>
@@ -86,19 +87,21 @@
       <div class="footer-copy">© 2025</div>
     </div>
     <div class="footer-links">
-      <a href="topics/index.html">Topics</a>
-      <a href="roadmap.html">Roadmap</a>
-      <a href="sitemap.html">Sitemap</a>
-      <a href="knowledge-graph.html">Knowledge graph</a>
+      <a href="index.html">Topics</a>
+      <a href="../roadmap.html">Roadmap</a>
+      <a href="../sitemap.html">Sitemap</a>
+      <a href="../knowledge-graph.html">Knowledge graph</a>
     </div>
     <div class="footer-tz">IST · UTC+5:30</div>
   </div>
 </footer>
 
-<script src="assets/data.js"></script>
-<script src="assets/cmdk.js"></script>
+<script src="../assets/data.js"></script>
+<script src="../assets/cmdk.js"></script>
 <script>
 if(P.showAvailBadge)document.getElementById('avail-badge').style.display='flex';
+// ADDED 2026-06-28: hire-btn — controlled by showHireBtn in data.js
+if(P.showHireBtn){const hb=document.getElementById('hire-btn');hb.style.display='flex';hb.addEventListener('click',()=>location.href='../index.html#contact');}
 
 // Build graph data from P.graph
 const nodes = P.graph.nodes.map(n => ({...n}));

@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<base href="/nitishsom.io/">
+<!-- FIXED 2026-06-28: removed <base href="/nitishsom.io/"> — was breaking all relative links, root-level pages do not need it -->
 <title>Sitemap — Nitish Som</title>
 <link rel="stylesheet" href="assets/shared.css">
 <style>
@@ -29,7 +29,7 @@
       <a href="index.html#about">About</a>
       <a href="index.html#experience">Experience</a>
       <a href="topics/index.html">Topics</a>
-      <a href="index.html#projects">Projects</a>
+      <a href="projects.html">Projects</a>
       <a href="certifications/index.html">Certs</a>
       <a href="blog/index.html">Blog</a>
       <a href="roadmap.html">Roadmap</a>
@@ -37,6 +37,7 @@
     <div class="nav-right">
       <button class="cmdk-btn"><span>Search</span><kbd>⌘K</kbd></button>
       <div id="avail-badge"><span class="pulse"></span>Open to remote</div>
+      <button id="hire-btn"><span class="pulse"></span>Hire me</button>
     </div>
   </div>
 </nav>
@@ -62,7 +63,7 @@
           <a href="index.html" class="sitemap-link">Homepage</a>
           <a href="index.html#about" class="sitemap-link indent">About</a>
           <a href="index.html#experience" class="sitemap-link indent">Experience</a>
-          <a href="index.html#projects" class="sitemap-link indent">Projects</a>
+          <a href="projects.html" class="sitemap-link indent">Projects</a>
           <a href="index.html#contact" class="sitemap-link indent">Contact</a>
         </div>
       </div>
@@ -146,6 +147,8 @@
 <script src="assets/cmdk.js"></script>
 <script>
 if(P.showAvailBadge)document.getElementById('avail-badge').style.display='flex';
+// ADDED 2026-06-28: hire-btn — controlled by showHireBtn in data.js; click navigates to contact section
+if(P.showHireBtn){const hb=document.getElementById('hire-btn');hb.style.display='flex';hb.addEventListener('click',()=>location.href='index.html#contact');}
 const fObs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('vis');fObs.unobserve(e.target);}});},{threshold:.08});
 document.querySelectorAll('.fu').forEach(el=>fObs.observe(el));
 </script>

@@ -133,6 +133,7 @@
     <div class="nav-right">
       <button class="cmdk-btn"><span>Search</span><kbd>⌘K</kbd></button>
       <div id="avail-badge"><span class="pulse"></span>Open to remote</div>
+      <button id="hire-btn"><span class="pulse"></span>Hire me</button>
     </div>
   </div>
 </nav>
@@ -538,6 +539,8 @@
 <script>
 // Badge visibility controlled by P.showAvailBadgeOnBlog in data.js
 if(P.showAvailBadgeOnBlog)document.getElementById('avail-badge').style.display='flex';
+// ADDED 2026-06-28: hire-btn — controlled by showHireBtn in data.js
+if(P.showHireBtn){const hb=document.getElementById('hire-btn');hb.style.display='flex';hb.addEventListener('click',()=>location.href='../index.html#contact');}
 
 // Toggle hypothesis card
 function toggleHypothesis(id) {

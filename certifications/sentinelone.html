@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -421,7 +421,8 @@
 
 <script src="../assets/data.js"></script>
 <script>
-if(P.showHireBtn) document.getElementById('hire-btn').style.display='flex';
+// FIXED 2026-06-28: hire-btn — added onclick; button was shown but clicking it did nothing
+if(P.showHireBtn){const hb=document.getElementById('hire-btn');hb.style.display='flex';hb.addEventListener('click',()=>location.href='../index.html#contact');}
 if(P.showAvailBadge) document.getElementById('avail-badge').style.display='flex';
 
 function toggleModule(header) {

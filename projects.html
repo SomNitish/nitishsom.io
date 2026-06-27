@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<base href="/nitishsom.io/">
+<!-- FIXED 2026-06-28: removed <base href="/nitishsom.io/"> — was breaking all relative links, root-level pages do not need it -->
 <title>Projects — Nitish Som</title>
 <meta name="description" content="SOC automation, detection engineering, and SIEM projects by Nitish Som">
 <link rel="stylesheet" href="assets/shared.css">
@@ -36,13 +36,14 @@
       <a href="index.html#about">About</a>
       <a href="index.html#experience">Experience</a>
       <a href="projects.html" class="act">Projects</a>
-      <a href="index.html#blog">Blog</a>
+      <a href="blog/index.html">Blog</a>
       <a href="certifications/index.html">Certs</a>
       <a href="index.html#contact">Contact</a>
     </div>
     <div class="nav-right">
       <button class="cmdk-btn"><span>Search</span><kbd>⌘K</kbd></button>
       <div id="avail-badge"><span class="pulse"></span>Available for collaboration</div>
+      <button id="hire-btn"><span class="pulse"></span>Hire me</button>
     </div>
   </div>
 </nav>
@@ -79,6 +80,8 @@
 <script src="assets/cmdk.js"></script>
 <script>
 if(P.showAvailBadge)document.getElementById('avail-badge').style.display='flex';
+// ADDED 2026-06-28: hire-btn — controlled by showHireBtn in data.js; click navigates to contact section
+if(P.showHireBtn){const hb=document.getElementById('hire-btn');hb.style.display='flex';hb.addEventListener('click',()=>location.href='index.html#contact');}
 
 document.getElementById('all-projects').innerHTML=P.projects.map(p=>`
   <div class="proj-card">

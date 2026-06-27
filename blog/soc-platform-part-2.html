@@ -938,6 +938,8 @@ if(typeof P !== 'undefined' && P.showAvailBadgeOnBlog){
   const badge = document.getElementById('avail-badge');
   if(badge) badge.style.display='flex';
 }
+// ADDED 2026-06-28: hire-btn — controlled by showHireBtn in data.js
+if(typeof P !== 'undefined' && P.showHireBtn){const hb=document.getElementById('hire-btn');hb.style.display='flex';hb.addEventListener('click',()=>location.href='../index.html#contact');}
 
 // Copy-button handler — finds every .copy-btn and wires it to its <pre>
 document.querySelectorAll('.copy-btn').forEach(btn => {

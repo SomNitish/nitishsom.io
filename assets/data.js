@@ -1,4 +1,4 @@
-// // /* ════════════════════════════════════════════
+﻿// // /* ════════════════════════════════════════════
 // //    Nitish Som · nitishsom123@gmail.com
 // // ════════════════════════════════════════════ */
 // // const P = {
@@ -635,9 +635,9 @@ const P = {
   name:"Nitish Som", handle:"monkincyber", role:"SOC Analyst · Detection Engineer",
   tagline:"Building detection pipelines and automating SOC workflows.",
   location:"India", tz:"IST / UTC+5:30",
-  showHireBtn:false, 
-  showAvailBadge:false,           // Shows on portfolio pages (homepage, roadmap, etc.) - SET TO TRUE WHEN READY
-  showAvailBadgeOnBlog:false,    // Hidden on blog posts (when sharing with org)
+  showHireBtn:true,          // MASTER TOGGLE — flip to false to hide "Hire me" button everywhere
+  showAvailBadge:true,        // MASTER TOGGLE — flip to false to hide "Open to remote" badge everywhere
+  showAvailBadgeOnBlog:false, // Separate toggle for blog/article posts (keep false when sharing articles professionally)
   contact:{
     email:"nitishsom123@gmail.com",
     linkedin:"https://www.linkedin.com/in/nitishsom/",

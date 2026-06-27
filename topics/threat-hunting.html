@@ -1,36 +1,37 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<base href="/nitishsom.io/">
+<!-- FIXED 2026-06-28: removed <base href="/nitishsom.io/"> — was breaking all relative links -->
 <title>Threat Hunting — Nitish Som</title>
-<link rel="stylesheet" href="assets/shared.css">
+<link rel="stylesheet" href="../assets/shared.css">
 </head>
 <body>
 
 <nav class="site-nav">
   <div class="container nav-inner">
-    <a href="index.html" class="nav-logo"><span class="nav-logo-dot"></span>Nitish <em>Som</em></a>
+    <a href="../index.html" class="nav-logo"><span class="nav-logo-dot"></span>Nitish <em>Som</em></a>
     <div class="nav-links">
-      <a href="index.html#about">About</a>
-      <a href="index.html#experience">Experience</a>
-      <a href="topics/index.html" class="act">Topics</a>
-      <a href="index.html#projects">Projects</a>
-      <a href="certifications/index.html">Certs</a>
-      <a href="blog/index.html">Blog</a>
-      <a href="roadmap.html">Roadmap</a>
+      <a href="../index.html#about">About</a>
+      <a href="../index.html#experience">Experience</a>
+      <a href="index.html" class="act">Topics</a>
+      <a href="../projects.html">Projects</a>
+      <a href="../certifications/index.html">Certs</a>
+      <a href="../blog/index.html">Blog</a>
+      <a href="../roadmap.html">Roadmap</a>
     </div>
     <div class="nav-right">
       <button class="cmdk-btn"><span>Search</span><kbd>⌘K</kbd></button>
       <div id="avail-badge"><span class="pulse"></span>Open to remote</div>
+      <button id="hire-btn"><span class="pulse"></span>Hire me</button>
     </div>
   </div>
 </nav>
 
 <section class="topic-hero">
   <div class="container fu">
-    <a href="topics/index.html" class="back-link">← All topics</a>
+    <a href="index.html" class="back-link">← All topics</a>
     <div class="topic-icon">🎯</div>
     <h1 class="topic-title">Threat Hunting</h1>
     <p class="topic-tagline">Proactive detection beyond automated alerts</p>
@@ -76,20 +77,22 @@
       <div class="footer-copy">© 2025</div>
     </div>
     <div class="footer-links">
-      <a href="topics/index.html">Topics</a>
-      <a href="roadmap.html">Roadmap</a>
-      <a href="sitemap.html">Sitemap</a>
-      <a href="knowledge-graph.html">Knowledge graph</a>
+      <a href="index.html">Topics</a>
+      <a href="../roadmap.html">Roadmap</a>
+      <a href="../sitemap.html">Sitemap</a>
+      <a href="../knowledge-graph.html">Knowledge graph</a>
     </div>
     <div class="footer-tz">IST · UTC+5:30</div>
   </div>
 </footer>
 
-<script src="assets/data.js"></script>
-<script src="assets/cmdk.js"></script>
+<script src="../assets/data.js"></script>
+<script src="../assets/cmdk.js"></script>
 <script>
 // Show availability badge if enabled
 if(P.showAvailBadge)document.getElementById('avail-badge').style.display='flex';
+// ADDED 2026-06-28: hire-btn — controlled by showHireBtn in data.js
+if(P.showHireBtn){const hb=document.getElementById('hire-btn');hb.style.display='flex';hb.addEventListener('click',()=>location.href='../index.html#contact');}
 
 // Filter blog posts for this topic
 const topicId = 'threat-hunting';
