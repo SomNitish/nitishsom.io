@@ -983,7 +983,7 @@ const P = {
 {
   id: 'soc-platform-deploy',
   title: 'Deploy the SOC Platform — Quickstart Guide (SOP)',
-  summary: 'The no-narrative deploy guide. Copy the three files, follow eight steps, and have the full N8N queue-mode automation stack running on your own host in about twenty minutes.',
+  summary: 'The no-narrative deploy guide. Copy the three files, follow nine steps, and have the full N8N queue-mode automation stack running on your own host in about twenty minutes.',
   cat: 'Quickstart',
   catColor: 'cyan',
   date: '2026-06-08',

@@ -23,7 +23,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>The Data Layer — Atomic Incident IDs (Part 3) — Nitish Som</title>
-<meta name="description" content="Part 2 gave us 20 parallel workers — and a brand new race condition: duplicate incident IDs. This part fixes it the right way: in the database, not the application. A PostgreSQL trigger, a continuous per-customer counter, and a verifiable concurrency test.">
+<meta name="description" content="Part 2 gave us auto-scaled workers (10–50, peak 27 during burst) — and a brand new race condition: duplicate incident IDs. This part fixes it the right way: in the database, not the application. A PostgreSQL trigger, a continuous per-customer counter, and a verifiable concurrency test.">
 <!-- FIXED: path was "assets/shared.css" → "../assets/shared.css" (file is in /blog/, assets/ is at root level) -->
 <link rel="stylesheet" href="../assets/shared.css">
 <style>
@@ -196,7 +196,7 @@
       </div>
       <div class="part-badge">📕 PART 3 / 6 — The Data Layer</div>
       <h1 class="post-title">The Database That Stops Duplicate IDs</h1>
-      <p class="post-subtitle">Part 2 gave us 20 parallel workers — and a brand-new bug: two workers inserting at the same millisecond produced the same incident ID. This part fixes it the right way: in the database, with a trigger, in code older and more tested than anything I could write.</p>
+      <p class="post-subtitle">Part 2 gave us auto-scaled workers (10–50, peak 27 during burst) — and a brand-new bug: two workers inserting at the same millisecond produced the same incident ID. This part fixes it the right way: in the database, with a trigger, in code older and more tested than anything I could write.</p>
     </header>
 
     <div class="post-content">

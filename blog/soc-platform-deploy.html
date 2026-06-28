@@ -388,7 +388,7 @@ EXECUTIONS_DATA_SAVE_ON_SUCCESS=all
 EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS=true
 
 # ── CONCURRENCY ───────────────────────────────────────────────────────
-N8N_CONCURRENCY_PRODUCTION_LIMIT=1
+N8N_CONCURRENCY_PRODUCTION_LIMIT=5
 
 # ── TIMEZONE ──────────────────────────────────────────────────────────
 GENERIC_TIMEZONE=Asia/Kolkata
@@ -516,12 +516,12 @@ services:
       - WEBHOOK_URL=${WEBHOOK_URL}
       - N8N_EDITOR_BASE_URL=${N8N_EDITOR_BASE_URL}
       - GENERIC_TIMEZONE=${GENERIC_TIMEZONE}
-      - N8N_CONCURRENCY_PRODUCTION_LIMIT=1
+      - N8N_CONCURRENCY_PRODUCTION_LIMIT=5
       - NODE_TLS_REJECT_UNAUTHORIZED=0
       - NODE_FUNCTION_ALLOW_EXTERNAL=cheerio
       - N8N_DISABLE_PRODUCTION_MAIN_PROCESS=true
       - EXECUTIONS_DATA_PRUNE=true
-      - EXECUTIONS_DATA_MAX_AGE=336
+      - EXECUTIONS_DATA_MAX_AGE=168
     volumes:
       - n8nq-data:/home/node/.n8n
       - ./certs:/home/node/.n8n/certs:ro
