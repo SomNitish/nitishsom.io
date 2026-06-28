@@ -804,6 +804,8 @@ const P = {
     {id:"n8n",name:"N8N",cat:"SOAR",icon:"n8n.png",lvl:90},
     {id:"thehive",name:"TheHive",cat:"SOAR",icon:"thehive.png",lvl:85},
     {id:"jira",name:"JIRA",cat:"Process",icon:"jira.png",lvl:80},
+    {id:"s1-hyperauto",name:"S1 Hyper Automation",cat:"SOAR",icon:"sentinelone.png",lvl:82},
+    {id:"s1-remoteops",name:"S1 RemoteOps",cat:"SOAR",icon:"sentinelone.png",lvl:78},
     {id:"suricata",name:"Suricata",cat:"NDR/IDS",icon:"suricata.png",lvl:82},
     {id:"fortinet",name:"Fortinet",cat:"Firewall",icon:"fortinet.png",lvl:68},
     {id:"docker",name:"Docker",cat:"Platform",icon:"docker.png",lvl:60},

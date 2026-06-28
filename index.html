@@ -255,6 +255,8 @@
     <span class="marquee-item"><span class="marquee-dot"></span>TheHive</span>
     <span class="marquee-item"><span class="marquee-dot"></span>N8N</span>
     <span class="marquee-item"><span class="marquee-dot"></span>JIRA</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>S1 Hyper Automation</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>S1 RemoteOps</span>
     <span class="marquee-item"><span class="marquee-dot"></span>MITRE ATT&amp;CK</span>
     <span class="marquee-item"><span class="marquee-dot"></span>NIST RMF</span>
     <span class="marquee-item"><span class="marquee-dot"></span>Splunk</span>
@@ -269,6 +271,8 @@
     <span class="marquee-item"><span class="marquee-dot"></span>TheHive</span>
     <span class="marquee-item"><span class="marquee-dot"></span>N8N</span>
     <span class="marquee-item"><span class="marquee-dot"></span>JIRA</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>S1 Hyper Automation</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>S1 RemoteOps</span>
     <span class="marquee-item"><span class="marquee-dot"></span>MITRE ATT&amp;CK</span>
     <span class="marquee-item"><span class="marquee-dot"></span>NIST RMF</span>
     <span class="marquee-item"><span class="marquee-dot"></span>Splunk</span>
@@ -339,7 +343,7 @@
         <div class="term-body">
           <div class="term-line"><span class="term-prompt">~$</span> <span class="term-cmd">cat focus.txt</span></div>
           <div class="term-line"><span class="term-key">SIEM Engineering</span> <span class="term-out">→ Wazuh, Splunk</span></div>
-          <div class="term-line"><span class="term-key">SOAR Automation</span> <span class="term-out">→ N8N, TheHive</span></div>
+          <div class="term-line"><span class="term-key">SOAR Automation</span> <span class="term-out">→ N8N, TheHive, S1 HyperAuto, RemoteOps</span></div>
           <div class="term-line"><span class="term-key">Threat Hunting</span> <span class="term-out">→ MITRE ATT&CK</span></div>
           <div class="term-line"><span class="term-key">Detection Eng</span> <span class="term-out">→ Custom rules</span></div>
           <div class="term-line" style="margin-top:12px"><span class="term-prompt">~$</span> <span class="term-cmd">current_focus --show</span></div>
@@ -675,7 +679,7 @@ document.getElementById('topics-grid').innerHTML=P.topics.slice(0,6).map(t=>`
 const stackCats=[
   {label:'EDR',icon:'🛡',color:'blue',ids:['sentinelone','cortex-xdr']},
   {label:'SIEM / XDR / LOG',icon:'📊',color:'purple',ids:['wazuh','splunk','elastic']},
-  {label:'SOAR / AUTOMATION',icon:'⚡',color:'green',ids:['n8n','thehive','jira']},
+  {label:'SOAR / AUTOMATION',icon:'⚡',color:'green',ids:['n8n','thehive','jira','s1-hyperauto','s1-remoteops']},
   {label:'NETWORK / NDR / IDS',icon:'🌐',color:'amber',ids:['suricata','fortinet']},
   {label:'SCRIPTING / LEARNING',icon:'💻',color:'teal',ids:['python','bash','powershell']},
   {label:'FRAMEWORKS / COMPLIANCE',icon:'📋',color:'pink',ids:['mitre','nist','pcidss','iso27001']},
