@@ -107,7 +107,7 @@ if (topicPosts.length === 0) {
   postsContainer.innerHTML = topicPosts.map(post => {
     const catColor = post.catColor || 'gray';
     return `
-      <a href="blog/${post.id}.html" class="blog-card">
+      <a href="../blog/${post.id}.html" class="blog-card">
         <div class="blog-card-meta">
           <span class="blog-cat blog-cat-${catColor}">${post.cat}</span>
           <span class="blog-date">${post.date}</span>

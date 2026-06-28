@@ -108,11 +108,14 @@
       <a href="../index.html#about">About</a>
       <a href="../index.html#experience">Experience</a>
       <a href="../projects.html">Projects</a>
-      <a href="index.html">Blog</a>
+      <a href="index.html" class="act">Blog</a>
       <a href="../certifications/index.html">Certs</a>
+      <a href="../index.html#contact">Contact</a>
     </div>
     <div class="nav-right">
       <button class="cmdk-btn"><span>Search</span><kbd>⌘K</kbd></button>
+      <div id="avail-badge"><span class="pulse"></span>Open to remote</div>
+      <button id="hire-btn"><span class="pulse"></span>Hire me</button>
     </div>
   </div>
 </nav>
@@ -421,15 +424,17 @@ diff original_hash.txt image_hash.txt</code></pre>
       <a href="../topics/index.html">Topics</a>
       <a href="../roadmap.html">Roadmap</a>
       <a href="../sitemap.html">Sitemap</a>
+      <a href="../knowledge-graph.html">Knowledge graph</a>
     </div>
+    <div class="footer-tz">IST · UTC+5:30</div>
   </div>
 </footer>
 
 <!-- FIXED: script path was "assets/data.js" → "../assets/data.js" (one level up from /blog/) -->
 <script src="../assets/data.js"></script>
+<script src="../assets/cmdk.js"></script>
 <script>
-if(P.showAvailBadgeOnBlog)document.getElementById('avail-badge').style.display='flex';
-// ADDED 2026-06-28: hire-btn — controlled by showHireBtn in data.js
+if(P.showAvailBadgeOnBlog){const ab=document.getElementById('avail-badge');if(ab)ab.style.display='flex';}
 if(P.showHireBtn){const hb=document.getElementById('hire-btn');hb.style.display='flex';hb.addEventListener('click',()=>location.href='../index.html#contact');}
 </script>
 
