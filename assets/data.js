@@ -635,8 +635,8 @@ const P = {
   name:"Nitish Som", handle:"monkincyber", role:"SOC Analyst · Detection Engineer",
   tagline:"Building detection pipelines and automating SOC workflows.",
   location:"India", tz:"IST / UTC+5:30",
-  showHireBtn:true,          // MASTER TOGGLE — flip to false to hide "Hire me" button everywhere
-  showAvailBadge:true,        // MASTER TOGGLE — flip to false to hide "Open to remote" badge everywhere
+  showHireBtn:false,          // MASTER TOGGLE — flip to false to hide "Hire me" button everywhere
+  showAvailBadge:false,        // MASTER TOGGLE — flip to false to hide "Open to remote" badge everywhere
   showAvailBadgeOnBlog:false, // Separate toggle for blog/article posts (keep false when sharing articles professionally)
   contact:{
     email:"nitishsom123@gmail.com",
@@ -1115,3 +1115,15 @@ const CMDK={
     {name:"Email me",url:"mailto:nitishsom123@gmail.com",icon:"@",cat:"Quick actions"},
   ],
 };
+
+// ── NAV BADGE / HIRE-BTN VISIBILITY ──────────────────────────────────────────
+// Runs immediately (data.js loads at end of body, elements already in DOM).
+// Inline style="display:none" on elements is the primary guard; this JS enables
+// them only when flags are true. No DOMContentLoaded needed.
+(function() {
+  var hb = document.getElementById('hire-btn');
+  var ab = document.getElementById('avail-badge');
+  var isBlog = !!document.querySelector('.blog-post');
+  if (hb) hb.style.display = P.showHireBtn ? 'flex' : 'none';
+  if (ab) ab.style.display = (isBlog ? P.showAvailBadgeOnBlog : P.showAvailBadge) ? 'flex' : 'none';
+}());

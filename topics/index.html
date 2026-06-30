@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <!-- FIXED 2026-06-28: removed <base href="/nitishsom.io/"> — was breaking all relative links -->
 <title>Topics — Nitish Som</title>
-<link rel="stylesheet" href="../assets/shared.css">
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+<link rel="stylesheet" href="../assets/shared.css?v=2">
 <style>
 .topics-hero{padding:64px 0 48px;border-bottom:1px solid var(--border)}
 .topics-h1{font-size:clamp(32px,5vw,52px);font-weight:800;letter-spacing:-.04em;line-height:1.1;color:var(--text);margin-bottom:12px}
@@ -44,8 +45,8 @@
     </div>
     <div class="nav-right">
       <button class="cmdk-btn"><span>Search</span><kbd>⌘K</kbd></button>
-      <div id="avail-badge"><span class="pulse"></span>Open to remote</div>
-      <button id="hire-btn"><span class="pulse"></span>Hire me</button>
+      <div id="avail-badge" style="display:none"><span class="pulse"></span>Open to remote</div>
+      <button id="hire-btn" style="display:none"><span class="pulse"></span>Hire me</button>
     </div>
   </div>
 </nav>
@@ -80,7 +81,7 @@
   </div>
 </footer>
 
-<script src="../assets/data.js"></script>
+<script src="../assets/data.js?v=3"></script>
 <script src="../assets/cmdk.js"></script>
 <script>
 if(P.showAvailBadge)document.getElementById('avail-badge').style.display='flex';

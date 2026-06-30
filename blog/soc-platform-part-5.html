@@ -25,7 +25,8 @@
 <title>The Dashboard — Vanilla JS, Queue Monitoring, Alerting (Part 5) — Nitish Som</title>
 <meta name="description" content="The backend serves JSON. Analysts don't drink JSON. Part 5 builds the screen — vanilla JavaScript, no framework, no build step. A polling refresh loop, a queue-stuck overlay that drafts an emergency email for you, real-time notifications, and Chart.js for the queue history.">
 <!-- FIXED: path was "assets/shared.css" → "../assets/shared.css" (file is in /blog/, assets/ is at root level) -->
-<link rel="stylesheet" href="../assets/shared.css">
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+<link rel="stylesheet" href="../assets/shared.css?v=2">
 <style>
 :root{
   --primary:#3b82f6;--primary-dark:#2563eb;
@@ -844,7 +845,7 @@ setInterval(loadQueueHistory, 30000);   // refresh every 30s
 </footer>
 
 <!-- FIXED: script path was "assets/data.js" → "../assets/data.js" (one level up from /blog/) -->
-<script src="../assets/data.js"></script>
+<script src="../assets/data.js?v=3"></script>
 <script>
 if(typeof P !== 'undefined' && P.showAvailBadgeOnBlog){
   const badge = document.getElementById('avail-badge');

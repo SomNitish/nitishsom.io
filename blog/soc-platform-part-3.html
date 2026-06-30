@@ -25,7 +25,8 @@
 <title>The Data Layer — Atomic Incident IDs (Part 3) — Nitish Som</title>
 <meta name="description" content="Part 2 gave us auto-scaled workers (10–50, peak 27 during burst) — and a brand new race condition: duplicate incident IDs. This part fixes it the right way: in the database, not the application. A PostgreSQL trigger, a continuous per-customer counter, and a verifiable concurrency test.">
 <!-- FIXED: path was "assets/shared.css" → "../assets/shared.css" (file is in /blog/, assets/ is at root level) -->
-<link rel="stylesheet" href="../assets/shared.css">
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+<link rel="stylesheet" href="../assets/shared.css?v=2">
 <style>
 :root{
   --primary:#3b82f6;--primary-dark:#2563eb;
@@ -815,7 +816,7 @@ EOF</code></pre>
 </footer>
 
 <!-- FIXED: script path was "assets/data.js" → "../assets/data.js" (one level up from /blog/) -->
-<script src="../assets/data.js"></script>
+<script src="../assets/data.js?v=3"></script>
 <script>
 if(typeof P !== 'undefined' && P.showAvailBadgeOnBlog){
   const badge = document.getElementById('avail-badge');

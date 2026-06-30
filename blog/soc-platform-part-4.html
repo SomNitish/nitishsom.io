@@ -25,7 +25,8 @@
 <title>The Backend API — FastAPI, Sessions, Permissions (Part 4) — Nitish Som</title>
 <meta name="description" content="Part 3 made the database the source of truth — but analysts still SSH in to query it. Part 4 wraps the data layer in a FastAPI backend: login, single-session enforcement with browser fingerprinting, a permission model that can only restrict (never elevate), and clean integrations with Jira.">
 <!-- FIXED: path was "assets/shared.css" → "../assets/shared.css" (file is in /blog/, assets/ is at root level) -->
-<link rel="stylesheet" href="../assets/shared.css">
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+<link rel="stylesheet" href="../assets/shared.css?v=2">
 <style>
 :root{
   --primary:#3b82f6;--primary-dark:#2563eb;
@@ -1091,7 +1092,7 @@ def start_background_threads():
 </footer>
 
 <!-- FIXED: script path was "assets/data.js" → "../assets/data.js" (one level up from /blog/) -->
-<script src="../assets/data.js"></script>
+<script src="../assets/data.js?v=3"></script>
 <script>
 if(typeof P !== 'undefined' && P.showAvailBadgeOnBlog){
   const badge = document.getElementById('avail-badge');

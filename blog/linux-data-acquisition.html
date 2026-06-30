@@ -26,7 +26,8 @@
 <title>Linux Data Acquisition: A Forensic Analyst's Guide — Nitish Som</title>
 <meta name="description" content="Deep dive into Linux data acquisition for security operations and digital forensics - covering volatile and non-volatile data collection techniques">
 <!-- FIXED: path was "assets/shared.css" → "../assets/shared.css" (file is in /blog/, assets/ is at root level) -->
-<link rel="stylesheet" href="../assets/shared.css">
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+<link rel="stylesheet" href="../assets/shared.css?v=2">
 <style>
 /* ── BLOG POST STYLES ── */
 .blog-post{padding:80px 0 120px;min-height:100vh}
@@ -114,8 +115,8 @@
     </div>
     <div class="nav-right">
       <button class="cmdk-btn"><span>Search</span><kbd>⌘K</kbd></button>
-      <div id="avail-badge"><span class="pulse"></span>Open to remote</div>
-      <button id="hire-btn"><span class="pulse"></span>Hire me</button>
+      <div id="avail-badge" style="display:none"><span class="pulse"></span>Open to remote</div>
+      <button id="hire-btn" style="display:none"><span class="pulse"></span>Hire me</button>
     </div>
   </div>
 </nav>
@@ -431,7 +432,7 @@ diff original_hash.txt image_hash.txt</code></pre>
 </footer>
 
 <!-- FIXED: script path was "assets/data.js" → "../assets/data.js" (one level up from /blog/) -->
-<script src="../assets/data.js"></script>
+<script src="../assets/data.js?v=3"></script>
 <script src="../assets/cmdk.js"></script>
 <script>
 if(P.showAvailBadgeOnBlog){const ab=document.getElementById('avail-badge');if(ab)ab.style.display='flex';}

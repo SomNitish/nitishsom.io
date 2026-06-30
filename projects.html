@@ -6,7 +6,8 @@
 <!-- FIXED 2026-06-28: removed <base href="/nitishsom.io/"> — was breaking all relative links, root-level pages do not need it -->
 <title>Projects — Nitish Som</title>
 <meta name="description" content="SOC automation, detection engineering, and SIEM projects by Nitish Som">
-<link rel="stylesheet" href="assets/shared.css">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link rel="stylesheet" href="assets/shared.css?v=2">
 <style>
 .page-hero{padding:80px 0 48px;border-bottom:1px solid var(--border)}
 .proj-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:24px;margin-top:40px}
@@ -42,8 +43,8 @@
     </div>
     <div class="nav-right">
       <button class="cmdk-btn"><span>Search</span><kbd>⌘K</kbd></button>
-      <div id="avail-badge"><span class="pulse"></span>Available for collaboration</div>
-      <button id="hire-btn"><span class="pulse"></span>Hire me</button>
+      <div id="avail-badge" style="display:none"><span class="pulse"></span>Available for collaboration</div>
+      <button id="hire-btn" style="display:none"><span class="pulse"></span>Hire me</button>
     </div>
   </div>
 </nav>
@@ -76,7 +77,7 @@
   </div>
 </footer>
 
-<script src="assets/data.js"></script>
+<script src="assets/data.js?v=3"></script>
 <script src="assets/cmdk.js"></script>
 <script>
 if(P.showAvailBadge)document.getElementById('avail-badge').style.display='flex';

@@ -4,7 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Certification — Nitish Som</title>
-<link rel="stylesheet" href="../assets/shared.css">
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+<link rel="stylesheet" href="../assets/shared.css?v=2">
 <style>
 .cert-hero{padding:56px 0 40px;border-bottom:1px solid var(--border);background:var(--surface)}
 .cert-hero-inner{display:grid;grid-template-columns:1fr auto;gap:40px;align-items:start}
@@ -70,8 +71,8 @@
     </div>
     <div class="nav-right">
       <button class="cmdk-btn"><span>Search</span><kbd>⌘K</kbd></button>
-      <div id="avail-badge"><span class="pulse"></span>Open to remote</div>
-      <button id="hire-btn"><span class="pulse"></span>Hire me</button>
+      <div id="avail-badge" style="display:none"><span class="pulse"></span>Open to remote</div>
+      <button id="hire-btn" style="display:none"><span class="pulse"></span>Hire me</button>
     </div>
   </div>
 </nav>
@@ -94,7 +95,7 @@
   </div>
 </footer>
 
-<script src="../assets/data.js"></script>
+<script src="../assets/data.js?v=3"></script>
 <script src="../assets/cmdk.js"></script>
 <script>
 // FIXED 2026-06-28: hire-btn — added onclick; button was shown but clicking it did nothing

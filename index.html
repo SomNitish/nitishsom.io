@@ -6,7 +6,8 @@
 <!-- FIXED 2026-06-28: removed <base href="/nitishsom.io/"> — was breaking all relative links, root-level pages do not need it -->
 <title>Nitish Som — SOC Analyst & Security Engineer</title>
 <meta name="description" content="Nitish Som — SOC Analyst and Security Engineer with 2+ years securing enterprise environments.">
-<link rel="stylesheet" href="assets/shared.css">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link rel="stylesheet" href="assets/shared.css?v=2">
 <style>
 /* ── HERO ── */
 .hero{padding:72px 0 64px;border-bottom:1px solid var(--border);position:relative;overflow:hidden}
@@ -203,8 +204,8 @@
     </div>
     <div class="nav-right">
       <button class="cmdk-btn"><span>Search</span><kbd>⌘K</kbd></button>
-      <div id="avail-badge"><span class="pulse"></span>Open to remote</div>
-      <button id="hire-btn"><span class="pulse"></span>Hire me</button>
+      <div id="avail-badge" style="display:none"><span class="pulse"></span>Open to remote</div>
+      <button id="hire-btn" style="display:none"><span class="pulse"></span>Hire me</button>
     </div>
   </div>
 </nav>
@@ -566,7 +567,7 @@
   </div>
 </footer>
 
-<script src="assets/data.js"></script>
+<script src="assets/data.js?v=3"></script>
 <script src="assets/cmdk.js"></script>
 <script>
 // FIXED 2026-06-28: hire-btn — added onclick; button was visible but did nothing when clicked
