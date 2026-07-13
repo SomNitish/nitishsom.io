@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Evidence of Execution, Part 1: What Prefetch Files Actually Remember | Nitish Som</title>
+<style>
+  :root{
+    --bg:#0a0e1a;
+    --surface:#111726;
+    --surface2:#161d30;
+    --border:#232b40;
+    --text:#e5e7eb;
+    --text2:#9aa4b8;
+    --text3:#6b7280;
+    --primary:#3b82f6;
+    --accent:#8b5cf6;
+    --cyan:#06b6d4;
+    --glow:rgba(59,130,246,.3);
+    --glow-violet:rgba(139,92,246,.25);
+    --red:#ef4444;
+    --amber:#f59e0b;
+    --mono:'SF Mono', Menlo, 'Fira Code', monospace;
+    --sans:-apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:var(--sans); line-height:1.7; font-weight:300;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:760px; margin:0 auto; padding:0 24px 120px;}
+
+  /* NAV */
+  nav{
+    border-bottom:1px solid var(--border); background:rgba(10,14,26,.85);
+    backdrop-filter:blur(8px); position:sticky; top:0; z-index:50;
+  }
+  .nav-inner{
+    max-width:760px; margin:0 auto; padding:16px 24px;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .nav-logo{font-weight:700; color:var(--text); text-decoration:none; font-size:15px;}
+  .nav-logo em{color:var(--primary); font-style:italic;}
+  .nav-links{display:flex; gap:20px; align-items:center;}
+  .nav-links a{color:var(--text2); text-decoration:none; font-size:13px;}
+  .nav-links a:hover{color:var(--text);}
+  .kbtn{
+    border:1px solid var(--border); border-radius:6px; padding:4px 8px;
+    font-size:11px; color:var(--text3); font-family:var(--mono);
+  }
+
+  /* HEADER */
+  .post-header{padding:56px 0 32px;}
+  .eyebrow{
+    font-family:var(--mono); font-size:12px; letter-spacing:.08em;
+    color:var(--accent); text-transform:uppercase; margin-bottom:16px;
+    display:flex; align-items:center; gap:10px;
+  }
+  .eyebrow .dot{width:6px; height:6px; border-radius:50%; background:var(--accent);}
+  h1{
+    font-size:38px; line-height:1.15; font-weight:800; margin:0 0 18px;
+    background:linear-gradient(135deg, var(--text) 0%, var(--primary) 60%, var(--accent) 100%);
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  }
+  .dek{font-size:17px; color:var(--text2); font-weight:300; margin:0 0 24px;}
+  .meta{
+    display:flex; gap:16px; flex-wrap:wrap; font-size:13px; color:var(--text3);
+    font-family:var(--mono); border-top:1px solid var(--border); padding-top:20px;
+  }
+  .meta span{display:flex; align-items:center; gap:6px;}
+  .tag{
+    background:var(--surface2); border:1px solid var(--border); color:var(--text2);
+    padding:2px 10px; border-radius:20px; font-size:11px;
+  }
+
+  /* PROSE */
+  p{margin:0 0 20px; color:var(--text2); font-size:16px;}
+  p strong{color:var(--text); font-weight:600;}
+  h2{
+    font-size:24px; font-weight:700; color:var(--text); margin:48px 0 18px;
+    padding-left:16px; position:relative;
+  }
+  h2::before{
+    content:''; position:absolute; left:0; top:2px; bottom:2px; width:4px;
+    border-radius:2px; background:linear-gradient(180deg, var(--primary), var(--accent));
+  }
+  h3{font-size:18px; font-weight:700; color:var(--text); margin:32px 0 12px;}
+  ul,ol{color:var(--text2); padding-left:22px; margin:0 0 20px;}
+  li{margin-bottom:8px;}
+  code.inline{
+    font-family:var(--mono); background:var(--surface2); border:1px solid var(--border);
+    padding:2px 6px; border-radius:4px; font-size:13.5px; color:var(--cyan);
+  }
+  a.link{color:var(--primary); text-decoration:none; border-bottom:1px solid var(--glow);}
+  a.link:hover{border-bottom-color:var(--primary);}
+
+  /* CODE BLOCKS */
+  .code-block{
+    margin:24px 0; border-radius:10px; overflow:hidden;
+    border:1px solid var(--border); background:#0a0e1a;
+  }
+  .code-path{
+    display:flex; justify-content:space-between; align-items:center;
+    background:var(--surface2); padding:8px 14px; font-family:var(--mono);
+    font-size:12px; color:var(--text3); border-bottom:1px solid var(--border);
+  }
+  .copy-btn{
+    background:transparent; border:1px solid var(--border); color:var(--text3);
+    font-family:var(--mono); font-size:11px; padding:3px 9px; border-radius:5px;
+    cursor:pointer; transition:.15s;
+  }
+  .copy-btn:hover{color:var(--text); border-color:var(--primary);}
+  pre{margin:0; padding:16px; overflow-x:auto;}
+  pre code{
+    font-family:var(--mono); font-size:13px; color:#d1d5db; line-height:1.6;
+    white-space:pre;
+  }
+  .c-kw{color:#8b5cf6;} .c-str{color:#34d399;} .c-com{color:#6b7280;} .c-num{color:#f59e0b;} .c-fn{color:#3b82f6;}
+
+  /* CALLOUTS */
+  .callout{border-radius:10px; padding:18px 20px; margin:28px 0; font-size:15px;}
+  .story-box{
+    background:rgba(59,130,246,.06); border-left:3px solid var(--primary);
+    color:var(--text2); font-style:italic;
+  }
+  .story-box::before{content:'"'; color:var(--primary); font-size:22px; font-style:normal; margin-right:4px;}
+  .problem-box{background:rgba(239,68,68,.06); border-left:3px solid var(--red);}
+  .problem-box .callout-label{color:var(--red);}
+  .solution-box{background:rgba(59,130,246,.06); border-left:3px solid var(--primary);}
+  .solution-box .callout-label{color:var(--primary);}
+  .warning-box{background:rgba(245,158,11,.06); border-left:3px solid var(--amber);}
+  .warning-box .callout-label{color:var(--amber);}
+  .applies-box{background:rgba(6,182,212,.06); border-left:3px solid var(--cyan);}
+  .applies-box .callout-label{color:var(--cyan);}
+  .callout-label{
+    font-family:var(--mono); font-size:11px; letter-spacing:.06em; text-transform:uppercase;
+    font-weight:700; margin-bottom:8px; display:block;
+  }
+  .callout p{margin:0; color:var(--text2); font-size:14.5px;}
+  .callout p + p{margin-top:10px;}
+
+  /* TABLE */
+  table{width:100%; border-collapse:collapse; margin:24px 0; font-size:14px;}
+  th{
+    text-align:left; font-family:var(--mono); font-size:11px; text-transform:uppercase;
+    letter-spacing:.05em; color:var(--text3); padding:10px 14px; border-bottom:1px solid var(--border);
+  }
+  td{padding:12px 14px; border-bottom:1px solid var(--border); color:var(--text2);}
+  tr:last-child td{border-bottom:none;}
+
+  /* TIMELINE CARD (architecture-ish visual, no ASCII art) */
+  .flow{
+    display:flex; flex-direction:column; gap:0; margin:28px 0;
+    border:1px solid var(--border); border-radius:12px; overflow:hidden;
+  }
+  .flow-step{
+    display:flex; gap:16px; padding:18px 20px; background:var(--surface);
+    border-bottom:1px solid var(--border); position:relative;
+  }
+  .flow-step:last-child{border-bottom:none;}
+  .flow-num{
+    font-family:var(--mono); font-size:13px; color:var(--accent); font-weight:700;
+    flex-shrink:0; width:22px;
+  }
+  .flow-body h4{margin:0 0 4px; font-size:14.5px; color:var(--text); font-weight:600;}
+  .flow-body p{margin:0; font-size:13.5px; color:var(--text3);}
+
+  /* SERIES NAV */
+  .series-nav{
+    margin:56px 0 24px; border:1px solid var(--border); border-radius:12px;
+    background:var(--surface); padding:22px;
+  }
+  .series-nav-title{
+    font-family:var(--mono); font-size:11px; text-transform:uppercase; letter-spacing:.06em;
+    color:var(--text3); margin-bottom:14px;
+  }
+  .series-item{
+    display:flex; align-items:center; gap:12px; padding:10px 0;
+    border-top:1px solid var(--border); font-size:14px;
+  }
+  .series-item:first-of-type{border-top:none;}
+  .series-item .idx{
+    font-family:var(--mono); font-size:12px; color:var(--text3); width:20px; flex-shrink:0;
+  }
+  .series-item.current .idx{color:var(--primary);}
+  .series-item a{color:var(--text2); text-decoration:none;}
+  .series-item.current a{color:var(--text); font-weight:600;}
+  .series-item a:hover{color:var(--primary);}
+  .series-item .status{
+    margin-left:auto; font-family:var(--mono); font-size:10px; color:var(--text3);
+    background:var(--surface2); padding:2px 8px; border-radius:20px;
+  }
+  .series-item.current .status{color:var(--primary); background:rgba(59,130,246,.1);}
+
+  footer{
+    border-top:1px solid var(--border); margin-top:60px; padding-top:30px;
+    text-align:center; color:var(--text3); font-size:13px;
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">Nitish <em>Som</em></a>
+    <div class="nav-links">
+      <a href="/#blog">Blog</a>
+      <a href="/#projects">Projects</a>
+      <span class="kbtn">⌘K</span>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <div class="post-header">
+    <div class="eyebrow"><span class="dot"></span>Evidence of Execution — Part 1 of 3</div>
+    <h1>What Prefetch Files Actually Remember</h1>
+    <p class="dek">A workstation looks compromised. The tools are gone. The attacker was careful — except Windows was quietly taking notes the whole time, in a folder almost nobody thinks to check first.</p>
+    <div class="meta">
+      <span>📅 2026-07-13</span>
+      <span>⏱ 14 min read</span>
+      <span class="tag">DFIR</span>
+      <span class="tag">Windows Forensics</span>
+      <span class="tag">Wazuh</span>
+      <span class="tag">Detection Engineering</span>
+    </div>
+  </div>
+
+  <div class="story-box callout">
+    I keep a running note on my desk that just says <strong>"the disk doesn't lie, it just forgets selectively."</strong> Prefetch is the first artifact that taught me that. It's also the first one I got embarrassingly wrong before I understood what it was actually for.
+  </div>
+
+  <h2>The Use Case</h2>
+  <p>
+    Say an endpoint alert fires — SentinelOne flags a process that's already gone by the time you pivot into the host. No live process, no file on disk, nothing in the recycle bin. The attacker cleaned up. This is the point where a lot of junior responders (me, a few months ago) shrug and write "insufficient evidence" in the ticket.
+  </p>
+  <p>
+    That's the wrong move. Windows has been silently building a performance-optimization index of everything you've run, since long before you knew you'd need it for an investigation — and it does this <em>regardless</em> of whether the attacker was careful about their actual payload.
+  </p>
+
+  <h2>What Prefetch Actually Is</h2>
+  <p>
+    Prefetch is not a security feature. It's a caching mechanism Windows built to make your applications launch faster. The OS watches which files and DLLs an application touches in its first ten seconds of execution, and the next time you launch that app, it pre-loads those same resources from disk into memory ahead of time — hence "pre-fetch."
+  </p>
+  <p>
+    Every time it does this, it writes a small metadata file to <code class="inline">C:\Windows\Prefetch</code>, named after the executable plus an 8-character hash of the full path it was run from, e.g. <code class="inline">CMD.EXE-087B4001.pf</code>. From Windows 8 onward, the system keeps up to 1024 of these; earlier versions capped at 128 — which matters, because on a busy or heavily-scripted host, old evidence gets rotated out faster than you'd expect.
+  </p>
+
+  <div class="solution-box callout">
+    <span class="callout-label">Why this matters for IR</span>
+    <p>A prefetch file is proof the target executable <strong>ran</strong> — not just that it existed on disk. That distinction is the entire value of this artifact. A malicious binary sitting unexecuted in a temp folder is a finding. The same binary with a matching .pf file is a confirmed execution.</p>
+  </div>
+
+  <h3>What's actually inside one</h3>
+  <p>Each prefetch file tracks, per executable:</p>
+  <ul>
+    <li>The <strong>run count</strong> — total number of times it's been executed</li>
+    <li>The <strong>original full path</strong> it was launched from</li>
+    <li>Up to <strong>8 of the most recent execution timestamps</strong> (Windows 8–11)</li>
+    <li>The file's own creation time on disk, which — combined with the 8 embedded timestamps — gives you up to <strong>9 data points</strong> for one binary's execution history</li>
+  </ul>
+
+  <h2>Checking Whether Prefetch Is Even On</h2>
+  <p>
+    Before you trust an absence of prefetch data as "this never ran," check whether prefetch collection itself was disabled — this happens more often than you'd think on server builds, and some hardening guides disable it as a side effect of trying to reduce disk writes.
+  </p>
+
+  <div class="code-block">
+    <div class="code-path"><span>Registry — verify prefetch is enabled</span><button class="copy-btn" onclick="navigator.clipboard.writeText(this.closest('.code-block').querySelector('code').innerText)">Copy</button></div>
+    <pre><code><span class="c-com"># Application launch + boot prefetching control</span>
+<span class="c-kw">Path:</span> HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\PrefetchParameters
+<span class="c-kw">Value:</span> EnablePrefetcher (DWORD)
+
+<span class="c-num">0</span> = Disabled
+<span class="c-num">1</span> = Application launch prefetching enabled
+<span class="c-num">2</span> = Boot prefetching enabled
+<span class="c-num">3</span> = Both enabled (default on most workstation builds)
+
+<span class="c-com"># SysMain (formerly Superfetch) service — governs whether the</span>
+<span class="c-com"># prefetch subsystem runs at all</span>
+<span class="c-kw">Path:</span> HKLM\SYSTEM\CurrentControlSet\Services\SysMain
+<span class="c-kw">Value:</span> Start (DWORD)
+
+<span class="c-num">0-2</span> = Automatic start
+<span class="c-num">3</span>   = Manual start
+<span class="c-num">4</span>   = Disabled</code></pre>
+  </div>
+
+  <div class="warning-box callout">
+    <span class="callout-label">Don't skip this check</span>
+    <p>If a host you're investigating has zero prefetch files and you haven't confirmed these keys, you don't have "no evidence of execution" — you have an unanswered question. Audit the keys first, conclude second.</p>
+  </div>
+
+  <h2>The Detail That Actually Changed How I Read a Case</h2>
+  <p>
+    Here's the thing that took me longest to internalize: <strong>the same executable name can legitimately have multiple prefetch files</strong> — but the reason matters enormously.
+  </p>
+  <p>
+    For most applications, a hash is computed from the executable's <em>full path</em>. So if you see two prefetch files for <code class="inline">CMD.EXE</code> with different hash suffixes, that usually means <code class="inline">cmd.exe</code> was run from two different locations — and if one of those locations isn't <code class="inline">C:\Windows\System32</code>, you may be looking at a renamed or planted binary impersonating a trusted process. That's a real finding, not a coincidence.
+  </p>
+  <p>
+    The exception: Windows "hosting" processes — <code class="inline">svchost.exe</code>, <code class="inline">dllhost.exe</code>, <code class="inline">rundll32.exe</code>, <code class="inline">backgroundtaskhost.exe</code> — get their hash calculated from the full command line, not just the path. So it's completely normal to see a dozen prefetch entries for <code class="inline">svchost.exe</code> with different arguments. Flagging every one of those as suspicious is how you burn a shift chasing noise instead of the one entry that matters.
+  </p>
+
+  <div class="problem-box callout">
+    <span class="callout-label">Where I got this wrong initially</span>
+    <p>My first pass at "prefetch anomaly hunting" flagged multi-instance svchost prefetch files as suspicious duplicates. It wasn't wrong data — it was the wrong baseline. I hadn't yet separated "hosting processes hash on command line" from "everything else hashes on path." Know which bucket you're looking at before you draw a conclusion.</p>
+  </div>
+
+  <h2>Getting the Data Out: PECmd</h2>
+  <p>
+    Prefetch files are binary and not human-readable on their own. Eric Zimmerman's <code class="inline">PECmd.exe</code> is the tool I actually reach for — it parses the .pf structure into readable CSV/JSON, including run counts, all embedded timestamps, and the list of files/directories referenced during that launch window (which is its own goldmine — it tells you what the process actually touched, not just that it ran).
+  </p>
+
+  <div class="code-block">
+    <div class="code-path"><span>PowerShell — parse a single host's entire prefetch folder</span><button class="copy-btn" onclick="navigator.clipboard.writeText(this.closest('.code-block').querySelector('code').innerText)">Copy</button></div>
+    <pre><code><span class="c-fn">PECmd.exe</span> -d <span class="c-str">"C:\Windows\Prefetch"</span> --csv <span class="c-str">"C:\triage\output"</span> --csvf <span class="c-str">prefetch_results.csv</span>
+
+<span class="c-com"># Key columns worth pivoting on once it's in the CSV:</span>
+<span class="c-com"># SourceFilename, ExecutableName, RunCount, LastRun,</span>
+<span class="c-com"># PreviousRun0-7, Volume0Name, FilesLoaded</span></code></pre>
+  </div>
+
+  <h2>Turning This Into a Wazuh Detection</h2>
+  <p>
+    Reading prefetch manually during triage is one thing. The more interesting engineering problem — the one I'm still actively working through — is: <strong>can you get signal on new prefetch activity in near-real-time instead of waiting for a manual pull?</strong>
+  </p>
+  <p>
+    The answer is yes, but it needs two separate pieces working together, because prefetch itself isn't a log source — it's a folder of files.
+  </p>
+
+  <div class="flow">
+    <div class="flow-step">
+      <div class="flow-num">01</div>
+      <div class="flow-body">
+        <h4>Sysmon Event ID 11 (File Create)</h4>
+        <p>Configure Sysmon to watch <code class="inline">C:\Windows\Prefetch\*.pf</code> specifically. Every new prefetch file creation becomes a loggable event with a timestamp, the filename, and the process that triggered it — SysMain, in this case.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">02</div>
+      <div class="flow-body">
+        <h4>Forward to the SOC platform via eventchannel</h4>
+        <p>The Wazuh agent picks up Sysmon's operational log through the standard eventchannel localfile block and ships it to the manager, same path used for every other Sysmon event type already flowing into the platform.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">03</div>
+      <div class="flow-body">
+        <h4>Custom rule layered on top of the base Sysmon ruleset</h4>
+        <p>A child rule keyed off the existing <code class="inline">sysmon_event11</code> group, filtered to the Prefetch path, so it inherits the decoder work already done rather than reinventing parsing.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">04</div>
+      <div class="flow-body">
+        <h4>Correlate, don't just alert</h4>
+        <p>A single new .pf file is not an incident — it's telemetry. The actual value comes from correlating it against process creation (Event ID 1) for the same executable name arriving from a path outside its expected baseline.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-path"><span>local_rules.xml — new prefetch file creation, child of the base Sysmon ruleset</span><button class="copy-btn" onclick="navigator.clipboard.writeText(this.closest('.code-block').querySelector('code').innerText)">Copy</button></div>
+    <pre><code><span class="c-kw">&lt;group</span> name=<span class="c-str">"sysmon,evidence_of_execution,"</span><span class="c-kw">&gt;</span>
+
+  <span class="c-kw">&lt;rule</span> id=<span class="c-str">"100310"</span> level=<span class="c-str">"5"</span><span class="c-kw">&gt;</span>
+    <span class="c-kw">&lt;if_group&gt;</span>sysmon_event11<span class="c-kw">&lt;/if_group&gt;</span>
+    <span class="c-kw">&lt;field</span> name=<span class="c-str">"win.eventdata.targetFilename"</span> type=<span class="c-str">"pcre2"</span><span class="c-kw">&gt;</span>
+      (?i)\\Windows\\Prefetch\\.*\.pf$
+    <span class="c-kw">&lt;/field&gt;</span>
+    <span class="c-kw">&lt;description&gt;</span>New Prefetch file created: $(win.eventdata.targetFilename)<span class="c-kw">&lt;/description&gt;</span>
+    <span class="c-kw">&lt;group&gt;</span>evidence_of_execution,prefetch_creation,<span class="c-kw">&lt;/group&gt;</span>
+  <span class="c-kw">&lt;/rule&gt;</span>
+
+  <span class="c-com">&lt;!-- Escalation: same executable name, new prefetch hash, seen from</span>
+<span class="c-com">       an unexpected volume/path within the correlation window --&gt;</span>
+  <span class="c-kw">&lt;rule</span> id=<span class="c-str">"100311"</span> level=<span class="c-str">"10"</span> frequency=<span class="c-str">"2"</span> timeframe=<span class="c-str">"120"</span><span class="c-kw">&gt;</span>
+    <span class="c-kw">&lt;if_matched_sid&gt;</span>100310<span class="c-kw">&lt;/if_matched_sid&gt;</span>
+    <span class="c-kw">&lt;same_field&gt;</span>win.eventdata.image<span class="c-kw">&lt;/same_field&gt;</span>
+    <span class="c-kw">&lt;different_field&gt;</span>win.eventdata.targetFilename<span class="c-kw">&lt;/different_field&gt;</span>
+    <span class="c-kw">&lt;description&gt;</span>Duplicate prefetch hash for same-named executable — possible path spoofing<span class="c-kw">&lt;/description&gt;</span>
+    <span class="c-kw">&lt;mitre&gt;</span><span class="c-kw">&lt;id&gt;</span>T1036<span class="c-kw">&lt;/id&gt;</span><span class="c-kw">&lt;/mitre&gt;</span>
+    <span class="c-kw">&lt;group&gt;</span>evidence_of_execution,masquerading,<span class="c-kw">&lt;/group&gt;</span>
+  <span class="c-kw">&lt;/rule&gt;</span>
+
+<span class="c-kw">&lt;/group&gt;</span></code></pre>
+  </div>
+
+  <p>
+    Rule <code class="inline">100310</code> is deliberately low severity — level 5. It's telemetry, not a verdict, and it will fire constantly on a normal host. Rule <code class="inline">100311</code> is where the actual "same name, different hash" pattern from earlier in this post becomes an automated detection instead of something I have to notice manually during a manual PECmd review. I've mapped it to <code class="inline">T1036 — Masquerading</code>, though I'd honestly still call this rule a first draft — I haven't run it against a large enough baseline yet to know its false-positive rate on legitimate multi-path tools.
+  </p>
+
+  <div class="warning-box callout">
+    <span class="callout-label">Open problem I haven't solved yet</span>
+    <p>The svchost/dllhost/rundll32 exception from earlier means rule 100311 needs an exclusion list for command-line-hashed processes, or it will fire constantly on completely normal svchost activity. I'm treating this as a tuning pass for a future revision rather than shipping it broadly yet — worth saying out loud rather than pretending the first draft is production-ready.</p>
+  </div>
+
+  <h2>A Real Walkthrough</h2>
+  <p>Pulling this together on one of my own lab hosts, running PECmd against a live Prefetch folder:</p>
+
+  <div class="code-block">
+    <div class="code-path"><span>PowerShell — checking the AppCompatCache key exists before deeper triage</span><button class="copy-btn" onclick="navigator.clipboard.writeText(this.closest('.code-block').querySelector('code').innerText)">Copy</button></div>
+    <pre><code>PS C:\Users\<span class="c-str">nsom</span>&gt; <span class="c-fn">Get-ChildItem</span> -Path <span class="c-str">"C:\Windows\Prefetch"</span> -Filter <span class="c-str">"CMD.EXE*"</span>
+
+Directory: C:\Windows\Prefetch
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----          <span class="c-num">7</span>/<span class="c-num">13</span>/<span class="c-num">2026</span>  <span class="c-num">9:14</span> AM          <span class="c-num">28672</span> CMD.EXE-087B4001.pf
+-a----          <span class="c-num">7</span>/<span class="c-num">13</span>/<span class="c-num">2026</span> <span class="c-num">11:02</span> AM          <span class="c-num">28912</span> CMD.EXE-3F27A9DE.pf</code></pre>
+  </div>
+  <p>
+    Two hashes for the same binary name, roughly two hours apart. That alone isn't an incident — it's a question. Running PECmd against both and comparing the embedded volume/path metadata is what turns "two files" into either "explainable" (a portable toolkit legitimately launching cmd from a USB volume) or "not explainable" (a renamed binary sitting in a user-writable temp path). This is exactly the kind of case where rule 100311, once tuned, would have surfaced the pair automatically instead of me finding it by manually browsing the folder.
+  </p>
+
+  <h2>Lessons Learned</h2>
+  <ul>
+    <li><strong>Absence of a prefetch file is not absence of execution.</strong> Live response tooling running on a host can evict old .pf files once the cap (128 or 1024, depending on OS version) is hit — collect prefetch <em>early</em> in triage, before your own tools start overwriting the evidence you came to find.</li>
+    <li><strong>The "duplicate name, different hash" pattern is only meaningful once you've separated path-hashed processes from command-line-hashed ones.</strong> Skipping that step turns a good detection idea into alert noise.</li>
+    <li><strong>Prefetch tells you a program ran and roughly what it touched in its first seconds — nothing about what it did after that.</strong> It's a starting thread, not the whole fabric. The next artifact in this series exists specifically to cover cases where even the prefetch file itself has been deleted.</li>
+  </ul>
+
+  <div class="applies-box callout">
+    <span class="callout-label">Beyond the SOC: Where This Pattern Applies</span>
+    <p>The core idea here — a system silently logging "what ran" as a side effect of an unrelated optimization feature — shows up outside security constantly. Application performance monitoring tools infer usage patterns from cache-warming logs the same way. Fraud detection pipelines lean on side-channel signals (session replay artifacts, CDN cache-hit logs) that were never designed for fraud detection but happen to prove something occurred. The transferable skill isn't "know what Prefetch is" — it's knowing to ask, for any system you're investigating: <em>what does this thing log as an accidental byproduct of doing its actual job?</em> Those byproducts are usually more honest than the logs a system was deliberately designed to produce, because nobody thought to clean them up.</p>
+  </div>
+
+  <div class="series-nav">
+    <div class="series-nav-title">Series — Evidence of Execution</div>
+    <div class="series-item current">
+      <span class="idx">01</span>
+      <a href="#">What Prefetch Files Actually Remember</a>
+      <span class="status">reading</span>
+    </div>
+    <div class="series-item">
+      <span class="idx">02</span>
+      <a href="/blog/evidence-of-execution-02-shimcache.html">ShimCache: The Witness That Remembers Things That Never Happened</a>
+      <span class="status">next</span>
+    </div>
+    <div class="series-item">
+      <span class="idx">03</span>
+      <a href="/blog/evidence-of-execution-03-amcache.html">Amcache and the Driver That Shouldn't Have Been There</a>
+      <span class="status">coming</span>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  © 2026 Nitish Som · SOC Analyst &amp; Security Engineer
+</footer>
+
+</body>
+</html>
